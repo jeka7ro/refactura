@@ -257,19 +257,19 @@ export default function CursValutar() {
           height={16}
           rx={4}
           fill="#ffffff"
-          stroke="#2563eb"
+          stroke="#0071e3"
           strokeWidth={1.5}
-          className="fill-white dark:fill-slate-900 stroke-blue-600 dark:stroke-blue-400"
+          className="fill-white dark:fill-[#1c1c1e] stroke-[#0071e3] dark:stroke-[#0a84ff]"
         />
         <text
           x={0}
           y={-11}
           textAnchor="middle"
-          fill="#1d4ed8"
+          fill="#0071e3"
           fontSize={9.5}
-          fontWeight={800}
+          fontWeight={700}
           fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', sans-serif"
-          className="fill-blue-700 dark:fill-blue-300 tabular-nums"
+          className="fill-[#0071e3] dark:fill-[#64d2ff] tabular-nums"
         >
           {num.toFixed(4)}
         </text>
@@ -299,7 +299,7 @@ export default function CursValutar() {
           fill="#ffffff"
           stroke="#d97706"
           strokeWidth={1.5}
-          className="fill-white dark:fill-slate-900 stroke-amber-600 dark:stroke-amber-400"
+          className="fill-white dark:fill-[#1c1c1e] stroke-amber-600 dark:stroke-amber-400"
         />
         <text
           x={0}
@@ -307,7 +307,7 @@ export default function CursValutar() {
           textAnchor="middle"
           fill="#b45309"
           fontSize={9.5}
-          fontWeight={800}
+          fontWeight={700}
           fontFamily="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', sans-serif"
           className="fill-amber-700 dark:fill-amber-300 tabular-nums"
         >
@@ -318,37 +318,32 @@ export default function CursValutar() {
   };
 
   return (
-    <div className="p-3 sm:p-5 max-w-full space-y-6 pb-12">
-      {/* Page Header Banner - Matches Dashboard exactly */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 rounded-[22px] border border-slate-200/80 dark:border-slate-800 shadow-sm">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/60">
-              Oficial BNR
-            </span>
-            <span className="text-xs text-slate-400">
-              Banca Națională a României · Cotație de referință
-            </span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+    <div className="p-3 sm:p-5 max-w-full space-y-4 pb-12 overflow-x-hidden">
+      {/* Window Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
             Curs Valutar & Calculator Financiar
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Conversie valutară instant, calculator TVA cu cota standard 21% și evoluție istorică pe 7-30 zile
+          <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
+            Cotație oficială BNR ({displayDate}) · conversie instant, calculator TVA 21% și evoluție istorică
           </p>
         </div>
 
         {/* Date indicator & Refresh action */}
-        <div className="flex items-center gap-2.5 self-start md:self-auto">
-          <div className="px-3.5 py-2 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-xs">
-            <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Ședința BNR</span>
-            <span className="font-bold text-slate-800 dark:text-slate-100">{displayDate}</span>
+        <div className="flex items-center gap-2 flex-wrap self-start md:self-auto">
+          <div className="apple-pill-control px-3.5 h-9 inline-flex items-center gap-1.5 text-[12px] text-[#6e6e73] dark:text-[#98989d] tabular-nums">
+            <span>Ședința BNR:</span>
+            <strong className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+              {displayDate}
+            </strong>
           </div>
 
           <button
+            type="button"
             onClick={() => refetch()}
             disabled={isFetching}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
+            className="apple-btn-prominent inline-flex items-center gap-1.5 px-4 h-9 text-[13px] font-semibold cursor-pointer disabled:opacity-60"
             title="Actualizează cursul valutar"
           >
             <RefreshCcw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`} />
@@ -358,34 +353,39 @@ export default function CursValutar() {
       </div>
 
       {/* Official BNR Header Ticker & Financial Indices Strip */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         {/* Card 1: Cursuri oficiale BNR */}
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-[22px] border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+        <div className="apple-surface p-4 sm:p-5 flex flex-col justify-between">
           <div>
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center justify-between">
-              <span>Cursuri Principale BNR</span>
-              <span className="text-[11px] font-medium text-slate-400">{dateStr}</span>
+            <div className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-3 flex items-center justify-between">
+              <span>Cursuri principale BNR</span>
+              <span className="text-[11.5px] tabular-nums text-[#8e8e93]">{dateStr}</span>
             </div>
 
             <div className="space-y-2">
               {/* EUR */}
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.04] dark:border-white/[0.06]">
                 <div className="flex items-center gap-2.5">
                   <span className="inline-flex rounded-[2px] overflow-hidden shadow-xs border border-black/10">
                     <EuFlag className="w-4 h-2.5" />
                   </span>
                   <div>
-                    <span className="text-xs font-bold text-slate-900 dark:text-white block">1 EUR</span>
-                    <span className="text-[10px] text-slate-400">Euro</span>
+                    <span className="text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] block">
+                      1 EUR
+                    </span>
+                    <span className="text-[11px] text-[#6e6e73] dark:text-[#98989d]">Euro</span>
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="text-sm font-black tabular-nums text-slate-900 dark:text-white">
-                    {eurRate.toFixed(4)} <span className="text-xs font-normal text-slate-400">RON</span>
+                  <span className="text-[14px] font-bold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">
+                    {eurRate.toFixed(4)}{" "}
+                    <span className="text-[11.5px] font-normal text-[#6e6e73] dark:text-[#98989d]">
+                      RON
+                    </span>
                   </span>
                   {eurVar && (
                     <span
-                      className={`block text-[10px] font-bold tabular-nums ${
+                      className={`block text-[11px] font-semibold tabular-nums ${
                         eurVar.trend === "down"
                           ? "text-emerald-600 dark:text-emerald-400"
                           : "text-rose-600 dark:text-rose-400"
@@ -398,23 +398,30 @@ export default function CursValutar() {
               </div>
 
               {/* USD */}
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.04] dark:border-white/[0.06]">
                 <div className="flex items-center gap-2.5">
                   <span className="inline-flex rounded-[2px] overflow-hidden shadow-xs border border-black/10">
                     <UsFlag className="w-4 h-2.5" />
                   </span>
                   <div>
-                    <span className="text-xs font-bold text-slate-900 dark:text-white block">1 USD</span>
-                    <span className="text-[10px] text-slate-400">Dolar American</span>
+                    <span className="text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] block">
+                      1 USD
+                    </span>
+                    <span className="text-[11px] text-[#6e6e73] dark:text-[#98989d]">
+                      Dolar American
+                    </span>
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="text-sm font-black tabular-nums text-slate-900 dark:text-white">
-                    {usdRate.toFixed(4)} <span className="text-xs font-normal text-slate-400">RON</span>
+                  <span className="text-[14px] font-bold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">
+                    {usdRate.toFixed(4)}{" "}
+                    <span className="text-[11.5px] font-normal text-[#6e6e73] dark:text-[#98989d]">
+                      RON
+                    </span>
                   </span>
                   {usdVar && (
                     <span
-                      className={`block text-[10px] font-bold tabular-nums ${
+                      className={`block text-[11px] font-semibold tabular-nums ${
                         usdVar.trend === "down"
                           ? "text-emerald-600 dark:text-emerald-400"
                           : "text-rose-600 dark:text-rose-400"
@@ -427,11 +434,11 @@ export default function CursValutar() {
               </div>
 
               {/* Cross Rate */}
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-blue-50/50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 text-xs">
-                <span className="font-semibold text-blue-950 dark:text-blue-200">
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.04] dark:border-white/[0.06] text-[12.5px]">
+                <span className="font-semibold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">
                   1 EUR = {crossEurUsd} USD
                 </span>
-                <span className="font-bold tabular-nums text-emerald-600 dark:text-emerald-400 text-[11px]">
+                <span className="font-semibold tabular-nums text-emerald-600 dark:text-emerald-400 text-[11.5px]">
                   ▲ +0.0012 USD
                 </span>
               </div>
@@ -440,45 +447,57 @@ export default function CursValutar() {
         </div>
 
         {/* Card 2: Indici IRCC & ROBOR */}
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-[22px] border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+        <div className="apple-surface p-4 sm:p-5 flex flex-col justify-between">
           <div>
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center justify-between">
-              <span>Indici de Referință Credite</span>
-              <span className="text-[11px] font-medium text-slate-400">BNR</span>
+            <div className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-3 flex items-center justify-between">
+              <span>Indici de referință credite</span>
+              <span className="text-[11.5px] text-[#8e8e93]">BNR</span>
             </div>
 
-            <div className="p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/40 mb-3">
-              <div className="flex items-center justify-between">
+            <div className="p-3 rounded-xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.04] dark:border-white/[0.06] mb-3">
+              <div className="flex items-center justify-between gap-2">
                 <div>
-                  <span className="text-xs font-bold text-amber-950 dark:text-amber-200 block">
-                    Indicele IRCC Trimestrial
+                  <span className="text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] block">
+                    Indicele IRCC trimestrial
                   </span>
-                  <span className="text-[10px] text-amber-800/80 dark:text-amber-400/80">
+                  <span className="text-[11px] text-[#6e6e73] dark:text-[#98989d]">
                     Bază legală credite consum & ipotecare
                   </span>
                 </div>
-                <span className="text-lg font-black text-amber-700 dark:text-amber-300 tabular-nums">
+                <span className="text-[20px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums">
                   5.56%
                 </span>
               </div>
             </div>
 
             <div>
-              <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1.5">
+              <span className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1.5 tabular-nums">
                 Cotații ROBOR ({dateStr}):
               </span>
               <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
-                  <span className="block text-[10px] font-bold text-slate-400">3 Luni (3M)</span>
-                  <span className="text-sm font-black tabular-nums text-slate-900 dark:text-white">5.84%</span>
+                <div className="p-2 rounded-xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.04] dark:border-white/[0.06]">
+                  <span className="block text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                    3 Luni (3M)
+                  </span>
+                  <span className="text-[14px] font-bold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">
+                    5.84%
+                  </span>
                 </div>
-                <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
-                  <span className="block text-[10px] font-bold text-slate-400">6 Luni (6M)</span>
-                  <span className="text-sm font-black tabular-nums text-slate-900 dark:text-white">5.92%</span>
+                <div className="p-2 rounded-xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.04] dark:border-white/[0.06]">
+                  <span className="block text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                    6 Luni (6M)
+                  </span>
+                  <span className="text-[14px] font-bold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">
+                    5.92%
+                  </span>
                 </div>
-                <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
-                  <span className="block text-[10px] font-bold text-slate-400">12 Luni (12M)</span>
-                  <span className="text-sm font-black tabular-nums text-slate-900 dark:text-white">5.98%</span>
+                <div className="p-2 rounded-xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.04] dark:border-white/[0.06]">
+                  <span className="block text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                    12 Luni (12M)
+                  </span>
+                  <span className="text-[14px] font-bold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">
+                    5.98%
+                  </span>
                 </div>
               </div>
             </div>
@@ -486,36 +505,48 @@ export default function CursValutar() {
         </div>
 
         {/* Card 3: Dobândă de Referință */}
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-[22px] border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+        <div className="apple-surface p-4 sm:p-5 flex flex-col justify-between">
           <div>
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-              Dobânda Medie Credite Ipotecare
+            <div className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-3">
+              Dobânda medie credite ipotecare
             </div>
 
             <div className="grid grid-cols-2 gap-2.5 mb-3">
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
-                <span className="text-[10px] font-bold text-slate-400 block">Dobândă Fixă</span>
-                <span className="text-lg font-black text-slate-900 dark:text-white tabular-nums">5.45%</span>
-                <span className="text-[10px] text-rose-500 block font-semibold">▲ medie oferte</span>
+              <div className="p-3 rounded-xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.04] dark:border-white/[0.06]">
+                <span className="text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] block">
+                  Dobândă fixă
+                </span>
+                <span className="text-[20px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums">
+                  5.45%
+                </span>
+                <span className="text-[11px] text-rose-600 dark:text-rose-400 block font-medium">
+                  ▲ medie oferte
+                </span>
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
-                <span className="text-[10px] font-bold text-slate-400 block">Dobândă Variabilă</span>
-                <span className="text-lg font-black text-slate-900 dark:text-white tabular-nums">8.05%</span>
-                <span className="text-[10px] text-slate-400 block font-semibold">IRCC + marjă</span>
+              <div className="p-3 rounded-xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.04] dark:border-white/[0.06]">
+                <span className="text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] block">
+                  Dobândă variabilă
+                </span>
+                <span className="text-[20px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums">
+                  8.05%
+                </span>
+                <span className="text-[11px] text-[#6e6e73] dark:text-[#98989d] block font-medium">
+                  IRCC + marjă
+                </span>
               </div>
             </div>
 
-            <div className="p-3 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-900/40 flex items-center justify-between">
+            <div className="p-3 rounded-xl bg-[#eefbf3] dark:bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-between">
               <div>
-                <span className="text-xs font-bold text-emerald-950 dark:text-emerald-200 block">
-                  Rata Dobânzii de Referință BNR
+                <span className="text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] block">
+                  Rata dobânzii de referință BNR
                 </span>
-                <span className="text-[10px] text-emerald-800/80 dark:text-emerald-400/80">
+                <span className="text-[11px] text-[#6e6e73] dark:text-[#98989d]">
                   Politică monetară
                 </span>
               </div>
-              <span className="text-lg font-black text-emerald-700 dark:text-emerald-300 tabular-nums">
+              <span className="text-[20px] font-bold text-emerald-700 dark:text-emerald-300 tabular-nums">
                 6.50%
               </span>
             </div>
@@ -523,27 +554,27 @@ export default function CursValutar() {
         </div>
       </div>
 
-      {/* SECTION: Grafice Evoluție Curs BNR - FULL WIDTH (100% width) */}
-      <div className="w-full space-y-6">
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-[22px] border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-5">
+      {/* SECTION: Grafice Evoluție Curs BNR */}
+      <div className="w-full space-y-4">
+        <div className="apple-surface p-5 sm:p-6 space-y-5">
           {/* Chart Control Bar */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-4 border-b border-black/[0.05] dark:border-white/[0.07]">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/60 flex items-center justify-center text-blue-600 flex-shrink-0">
-                <TrendingUp className="w-5 h-5" />
+              <div className="w-8 h-8 rounded-[10px] bg-[#f2f4f7] dark:bg-[#2c2c2e] flex items-center justify-center text-[#0071e3] dark:text-[#0a84ff] shrink-0">
+                <TrendingUp className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-base font-black text-slate-900 dark:text-white tracking-tight">
-                  Grafice Evoluție Curs BNR
+                <h3 className="text-[16px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-tight">
+                  Grafice evoluție curs BNR
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d]">
                   Date istorice oficiale pentru ultimele {chartDays} zile bancare · Cotații vizibile pe fiecare punct
                 </p>
               </div>
             </div>
 
             {/* Days interval toggle: 7, 10, 30 Zile */}
-            <div className="apple-segmented">
+            <div className="apple-segmented self-start lg:self-auto">
               {[7, 10, 30].map((days) => (
                 <button
                   key={days}
@@ -559,24 +590,20 @@ export default function CursValutar() {
           </div>
 
           {/* Currency selector tabs for chart */}
-          <div className="flex items-center gap-2">
+          <div className="apple-segmented max-w-full overflow-x-auto no-scrollbar">
             <button
+              type="button"
+              data-active={chartCurrency === "ALL"}
               onClick={() => setChartCurrency("ALL")}
-              className={`px-3.5 py-1.5 text-xs font-bold rounded-full transition-all cursor-pointer ${
-                chartCurrency === "ALL"
-                  ? "bg-blue-600 text-white shadow-xs"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
-              }`}
+              className="apple-segmented-item px-3.5 shrink-0"
             >
               Paralel (EUR & USD)
             </button>
             <button
+              type="button"
+              data-active={chartCurrency === "EUR"}
               onClick={() => setChartCurrency("EUR")}
-              className={`px-3.5 py-1.5 text-xs font-bold rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
-                chartCurrency === "EUR"
-                  ? "bg-blue-600 text-white shadow-xs"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
-              }`}
+              className="apple-segmented-item px-3.5 flex items-center gap-1.5 shrink-0"
             >
               <span className="inline-flex rounded-[2px] overflow-hidden">
                 <EuFlag className="w-3.5 h-2" />
@@ -584,12 +611,10 @@ export default function CursValutar() {
               <span>Doar Euro</span>
             </button>
             <button
+              type="button"
+              data-active={chartCurrency === "USD"}
               onClick={() => setChartCurrency("USD")}
-              className={`px-3.5 py-1.5 text-xs font-bold rounded-full transition-all flex items-center gap-1.5 cursor-pointer ${
-                chartCurrency === "USD"
-                  ? "bg-blue-600 text-white shadow-xs"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200"
-              }`}
+              className="apple-segmented-item px-3.5 flex items-center gap-1.5 shrink-0"
             >
               <span className="inline-flex rounded-[2px] overflow-hidden">
                 <UsFlag className="w-3.5 h-2" />
@@ -600,21 +625,23 @@ export default function CursValutar() {
 
           {/* Charts View - Ambele pe același rând (2 coloane pe desktop) */}
           {chartCurrency === "ALL" ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* EVOLUȚIA CURS EURO */}
-              <div className="p-4 sm:p-5 rounded-[22px] bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800">
+              <div className="p-4 sm:p-5 rounded-2xl bg-[#f5f5f7]/70 dark:bg-[#2c2c2e]/55 border border-black/[0.05] dark:border-white/[0.07]">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <span className="inline-flex rounded-[2px] overflow-hidden">
                       <EuFlag className="w-4 h-2.5" />
                     </span>
-                    <span className="text-xs sm:text-sm font-black tracking-wide text-blue-900 dark:text-blue-300 uppercase">
-                      EVOLUȚIA CURS EURO (EUR/RON)
+                    <span className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                      Evoluția curs Euro (EUR/RON)
                     </span>
                   </div>
                   <span
-                    className={`text-xs font-bold tabular-nums px-2 py-0.5 rounded-md ${
-                      eurStats.change <= 0 ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" : "bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
+                    className={`text-[11.5px] font-semibold tabular-nums px-2 py-0.5 rounded-full ${
+                      eurStats.change <= 0
+                        ? "bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300"
+                        : "bg-rose-500/10 text-rose-700 dark:bg-rose-500/18 dark:text-rose-300"
                     }`}
                   >
                     {eurStats.change > 0 ? "+" : ""}{eurStats.change}%
@@ -626,21 +653,21 @@ export default function CursValutar() {
                     <AreaChart data={chartData} margin={{ top: 32, right: 24, left: -10, bottom: 4 }}>
                       <defs>
                         <linearGradient id="eurGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#2563eb" stopOpacity={0.25} />
-                          <stop offset="95%" stopColor="#2563eb" stopOpacity={0.0} />
+                          <stop offset="5%" stopColor="#0071e3" stopOpacity={0.25} />
+                          <stop offset="95%" stopColor="#0071e3" stopOpacity={0.0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(142,142,147,0.2)" vertical={false} />
                       <XAxis
                         dataKey="shortDate"
-                        tick={{ fontSize: 11, fill: "#64748b", fontWeight: 600 }}
+                        tick={{ fontSize: 11, fill: "#8e8e93", fontWeight: 500 }}
                         axisLine={false}
                         tickLine={false}
                         interval={chartDays === 30 ? "preserveEnd" : 0}
                       />
                       <YAxis
                         domain={["dataMin - 0.003", "dataMax + 0.005"]}
-                        tick={{ fontSize: 10, fill: "#64748b" }}
+                        tick={{ fontSize: 10, fill: "#8e8e93" }}
                         axisLine={false}
                         tickLine={false}
                         tickFormatter={(v) => v.toFixed(3)}
@@ -650,20 +677,20 @@ export default function CursValutar() {
                         labelFormatter={(l) => `Data: ${l}`}
                         contentStyle={{
                           borderRadius: "12px",
-                          backgroundColor: "#0f172a",
-                          border: "none",
-                          color: "#fff",
+                          backgroundColor: "#1c1c1e",
+                          border: "1px solid rgba(255,255,255,0.10)",
+                          color: "#f5f5f7",
                           fontSize: "12px",
                         }}
                       />
                       <Area
                         type="monotone"
                         dataKey="EUR"
-                        stroke="#2563eb"
+                        stroke="#0071e3"
                         strokeWidth={2.5}
                         fillOpacity={1}
                         fill="url(#eurGrad)"
-                        dot={{ r: 4, fill: "#2563eb", strokeWidth: 2, stroke: "#ffffff" }}
+                        dot={{ r: 4, fill: "#0071e3", strokeWidth: 2, stroke: "#ffffff" }}
                         activeDot={{ r: 6 }}
                       >
                         <LabelList
@@ -675,27 +702,44 @@ export default function CursValutar() {
                   </ResponsiveContainer>
                 </div>
 
-                <div className="mt-3 pt-2.5 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-xs text-slate-500">
-                  <span>Minim: <strong className="tabular-nums text-slate-700 dark:text-slate-300">{eurStats.min.toFixed(4)}</strong></span>
-                  <span>Maxim: <strong className="tabular-nums text-slate-700 dark:text-slate-300">{eurStats.max.toFixed(4)}</strong></span>
-                  <span>Cotație Curentă: <strong className="tabular-nums text-blue-600 dark:text-blue-400 font-bold">{eurRate.toFixed(4)} RON</strong></span>
+                <div className="mt-3 pt-2.5 border-t border-black/[0.05] dark:border-white/[0.07] flex items-center justify-between text-[12px] text-[#6e6e73] dark:text-[#98989d] flex-wrap gap-2">
+                  <span>
+                    Minim:{" "}
+                    <strong className="tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">
+                      {eurStats.min.toFixed(4)}
+                    </strong>
+                  </span>
+                  <span>
+                    Maxim:{" "}
+                    <strong className="tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">
+                      {eurStats.max.toFixed(4)}
+                    </strong>
+                  </span>
+                  <span>
+                    Cotație curentă:{" "}
+                    <strong className="tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7] font-bold">
+                      {eurRate.toFixed(4)} RON
+                    </strong>
+                  </span>
                 </div>
               </div>
 
               {/* EVOLUȚIA CURS DOLAR */}
-              <div className="p-4 sm:p-5 rounded-[22px] bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800">
+              <div className="p-4 sm:p-5 rounded-2xl bg-[#f5f5f7]/70 dark:bg-[#2c2c2e]/55 border border-black/[0.05] dark:border-white/[0.07]">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <span className="inline-flex rounded-[2px] overflow-hidden">
                       <UsFlag className="w-4 h-2.5" />
                     </span>
-                    <span className="text-xs sm:text-sm font-black tracking-wide text-amber-900 dark:text-amber-300 uppercase">
-                      EVOLUȚIA CURS DOLAR (USD/RON)
+                    <span className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                      Evoluția curs Dolar (USD/RON)
                     </span>
                   </div>
                   <span
-                    className={`text-xs font-bold tabular-nums px-2 py-0.5 rounded-md ${
-                      usdStats.change <= 0 ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" : "bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
+                    className={`text-[11.5px] font-semibold tabular-nums px-2 py-0.5 rounded-full ${
+                      usdStats.change <= 0
+                        ? "bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300"
+                        : "bg-rose-500/10 text-rose-700 dark:bg-rose-500/18 dark:text-rose-300"
                     }`}
                   >
                     {usdStats.change > 0 ? "+" : ""}{usdStats.change}%
@@ -711,17 +755,17 @@ export default function CursValutar() {
                           <stop offset="95%" stopColor="#d97706" stopOpacity={0.0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(142,142,147,0.2)" vertical={false} />
                       <XAxis
                         dataKey="shortDate"
-                        tick={{ fontSize: 11, fill: "#64748b", fontWeight: 600 }}
+                        tick={{ fontSize: 11, fill: "#8e8e93", fontWeight: 500 }}
                         axisLine={false}
                         tickLine={false}
                         interval={chartDays === 30 ? "preserveEnd" : 0}
                       />
                       <YAxis
                         domain={["dataMin - 0.004", "dataMax + 0.006"]}
-                        tick={{ fontSize: 10, fill: "#64748b" }}
+                        tick={{ fontSize: 10, fill: "#8e8e93" }}
                         axisLine={false}
                         tickLine={false}
                         tickFormatter={(v) => v.toFixed(3)}
@@ -731,9 +775,9 @@ export default function CursValutar() {
                         labelFormatter={(l) => `Data: ${l}`}
                         contentStyle={{
                           borderRadius: "12px",
-                          backgroundColor: "#0f172a",
-                          border: "none",
-                          color: "#fff",
+                          backgroundColor: "#1c1c1e",
+                          border: "1px solid rgba(255,255,255,0.10)",
+                          color: "#f5f5f7",
                           fontSize: "12px",
                         }}
                       />
@@ -756,30 +800,45 @@ export default function CursValutar() {
                   </ResponsiveContainer>
                 </div>
 
-                <div className="mt-3 pt-2.5 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-xs text-slate-500">
-                  <span>Minim: <strong className="tabular-nums text-slate-700 dark:text-slate-300">{usdStats.min.toFixed(4)}</strong></span>
-                  <span>Maxim: <strong className="tabular-nums text-slate-700 dark:text-slate-300">{usdStats.max.toFixed(4)}</strong></span>
-                  <span>Cotație Curentă: <strong className="tabular-nums text-amber-600 dark:text-amber-400 font-bold">{usdRate.toFixed(4)} RON</strong></span>
+                <div className="mt-3 pt-2.5 border-t border-black/[0.05] dark:border-white/[0.07] flex items-center justify-between text-[12px] text-[#6e6e73] dark:text-[#98989d] flex-wrap gap-2">
+                  <span>
+                    Minim:{" "}
+                    <strong className="tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">
+                      {usdStats.min.toFixed(4)}
+                    </strong>
+                  </span>
+                  <span>
+                    Maxim:{" "}
+                    <strong className="tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">
+                      {usdStats.max.toFixed(4)}
+                    </strong>
+                  </span>
+                  <span>
+                    Cotație curentă:{" "}
+                    <strong className="tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7] font-bold">
+                      {usdRate.toFixed(4)} RON
+                    </strong>
+                  </span>
                 </div>
               </div>
             </div>
           ) : (
             /* Single Full Width Chart */
-            <div className="p-4 sm:p-5 rounded-[22px] bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800">
+            <div className="p-4 sm:p-5 rounded-2xl bg-[#f5f5f7]/70 dark:bg-[#2c2c2e]/55 border border-black/[0.05] dark:border-white/[0.07]">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <span className="inline-flex rounded-[2px] overflow-hidden">
                     {chartCurrency === "EUR" ? <EuFlag className="w-4 h-2.5" /> : <UsFlag className="w-4 h-2.5" />}
                   </span>
-                  <span className="text-xs sm:text-sm font-black tracking-wide text-slate-900 dark:text-white uppercase">
-                    EVOLUȚIA CURS {chartCurrency === "EUR" ? "EURO (EUR/RON)" : "DOLAR (USD/RON)"}
+                  <span className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                    Evoluția curs {chartCurrency === "EUR" ? "Euro (EUR/RON)" : "Dolar (USD/RON)"}
                   </span>
                 </div>
                 <span
-                  className={`text-xs font-bold tabular-nums px-2 py-0.5 rounded-md ${
+                  className={`text-[11.5px] font-semibold tabular-nums px-2 py-0.5 rounded-full ${
                     (chartCurrency === "EUR" ? eurStats.change : usdStats.change) <= 0
-                      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
-                      : "bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
+                      ? "bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300"
+                      : "bg-rose-500/10 text-rose-700 dark:bg-rose-500/18 dark:text-rose-300"
                   }`}
                 >
                   {(chartCurrency === "EUR" ? eurStats.change : usdStats.change) > 0 ? "+" : ""}
@@ -792,21 +851,21 @@ export default function CursValutar() {
                   <AreaChart data={chartData} margin={{ top: 32, right: 24, left: -10, bottom: 4 }}>
                     <defs>
                       <linearGradient id="singleGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={chartCurrency === "EUR" ? "#2563eb" : "#d97706"} stopOpacity={0.3} />
-                        <stop offset="95%" stopColor={chartCurrency === "EUR" ? "#2563eb" : "#d97706"} stopOpacity={0.0} />
+                        <stop offset="5%" stopColor={chartCurrency === "EUR" ? "#0071e3" : "#d97706"} stopOpacity={0.3} />
+                        <stop offset="95%" stopColor={chartCurrency === "EUR" ? "#0071e3" : "#d97706"} stopOpacity={0.0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(142,142,147,0.2)" vertical={false} />
                     <XAxis
                       dataKey="shortDate"
-                      tick={{ fontSize: 11, fill: "#64748b", fontWeight: 600 }}
+                      tick={{ fontSize: 11, fill: "#8e8e93", fontWeight: 500 }}
                       axisLine={false}
                       tickLine={false}
                       interval={chartDays === 30 ? "preserveEnd" : 0}
                     />
                     <YAxis
                       domain={chartCurrency === "EUR" ? ["dataMin - 0.003", "dataMax + 0.005"] : ["dataMin - 0.004", "dataMax + 0.006"]}
-                      tick={{ fontSize: 11, fill: "#64748b" }}
+                      tick={{ fontSize: 11, fill: "#8e8e93" }}
                       axisLine={false}
                       tickLine={false}
                       tickFormatter={(v) => v.toFixed(3)}
@@ -816,20 +875,20 @@ export default function CursValutar() {
                       labelFormatter={(l) => `Data: ${l}`}
                       contentStyle={{
                         borderRadius: "12px",
-                        backgroundColor: "#0f172a",
-                        border: "none",
-                        color: "#fff",
+                        backgroundColor: "#1c1c1e",
+                        border: "1px solid rgba(255,255,255,0.10)",
+                        color: "#f5f5f7",
                         fontSize: "12px",
                       }}
                     />
                     <Area
                       type="monotone"
                       dataKey={chartCurrency}
-                      stroke={chartCurrency === "EUR" ? "#2563eb" : "#d97706"}
+                      stroke={chartCurrency === "EUR" ? "#0071e3" : "#d97706"}
                       strokeWidth={2.5}
                       fillOpacity={1}
                       fill="url(#singleGrad)"
-                      dot={{ r: 4, fill: chartCurrency === "EUR" ? "#2563eb" : "#d97706", strokeWidth: 2, stroke: "#fff" }}
+                      dot={{ r: 4, fill: chartCurrency === "EUR" ? "#0071e3" : "#d97706", strokeWidth: 2, stroke: "#fff" }}
                       activeDot={{ r: 6 }}
                     >
                       <LabelList
@@ -841,51 +900,85 @@ export default function CursValutar() {
                 </ResponsiveContainer>
               </div>
 
-              <div className="mt-3 pt-2.5 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-xs text-slate-500">
-                <span>Minim: <strong className="tabular-nums text-slate-700 dark:text-slate-300">{(chartCurrency === "EUR" ? eurStats.min : usdStats.min).toFixed(4)}</strong></span>
-                <span>Maxim: <strong className="tabular-nums text-slate-700 dark:text-slate-300">{(chartCurrency === "EUR" ? eurStats.max : usdStats.max).toFixed(4)}</strong></span>
-                <span>Cotație Curentă: <strong className="tabular-nums font-bold text-blue-600 dark:text-blue-400">{(chartCurrency === "EUR" ? eurRate : usdRate).toFixed(4)} RON</strong></span>
+              <div className="mt-3 pt-2.5 border-t border-black/[0.05] dark:border-white/[0.07] flex items-center justify-between text-[12px] text-[#6e6e73] dark:text-[#98989d] flex-wrap gap-2">
+                <span>
+                  Minim:{" "}
+                  <strong className="tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">
+                    {(chartCurrency === "EUR" ? eurStats.min : usdStats.min).toFixed(4)}
+                  </strong>
+                </span>
+                <span>
+                  Maxim:{" "}
+                  <strong className="tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">
+                    {(chartCurrency === "EUR" ? eurStats.max : usdStats.max).toFixed(4)}
+                  </strong>
+                </span>
+                <span>
+                  Cotație curentă:{" "}
+                  <strong className="tabular-nums font-bold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                    {(chartCurrency === "EUR" ? eurRate : usdRate).toFixed(4)} RON
+                  </strong>
+                </span>
               </div>
             </div>
           )}
 
           {/* Historical Table */}
-          <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800">
+          <div className="mt-5 pt-4 border-t border-black/[0.05] dark:border-white/[0.07]">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold text-slate-900 dark:text-white">
-                Tabel Istoric Cursuri BNR (Ultimele {chartDays} Zile)
+              <span className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                Tabel istoric cursuri BNR (ultimele {chartDays} zile)
               </span>
-              <span className="text-[10px] text-slate-400">Valori oficiale exprimate în RON</span>
+              <span className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d]">
+                Valori oficiale exprimate în RON
+              </span>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left">
-                <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 uppercase text-[10px]">
-                    <th className="py-2.5 px-2">Data</th>
-                    <th className="py-2.5 px-2">Ziua</th>
-                    <th className="py-2.5 px-2 font-bold text-slate-700 dark:text-slate-300">EUR</th>
-                    <th className="py-2.5 px-2 font-bold text-slate-700 dark:text-slate-300">USD</th>
-                    <th className="py-2.5 px-2">GBP</th>
-                    <th className="py-2.5 px-2">CHF</th>
-                    <th className="py-2.5 px-2">MDL</th>
+            <div className="overflow-x-auto rounded-2xl border border-black/[0.05] dark:border-white/[0.07]">
+              <table className="w-full text-left">
+                <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+                  <tr>
+                    {["Data", "Ziua", "EUR", "USD", "GBP", "CHF", "MDL"].map((h) => (
+                      <th
+                        key={h}
+                        className="py-2.5 px-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap"
+                      >
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
                   {[...chartData].reverse().map((row) => (
                     <tr
                       key={row.date}
-                      className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${
-                        row.date === bnrData?.date ? "bg-blue-50/40 dark:bg-blue-950/20 font-semibold" : ""
+                      className={`hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors ${
+                        row.date === bnrData?.date
+                          ? "bg-[#0071e3]/[0.04] dark:bg-[#0a84ff]/[0.08]"
+                          : ""
                       }`}
                     >
-                      <td className="py-2.5 px-2 tabular-nums text-slate-600 dark:text-slate-300">{row.formattedDate}</td>
-                      <td className="py-2.5 px-2 text-slate-400">{row.dayName}</td>
-                      <td className="py-2.5 px-2 tabular-nums font-bold text-blue-600 dark:text-blue-400">{row.EUR.toFixed(4)}</td>
-                      <td className="py-2.5 px-2 tabular-nums font-bold text-amber-600 dark:text-amber-400">{row.USD.toFixed(4)}</td>
-                      <td className="py-2.5 px-2 tabular-nums text-slate-600 dark:text-slate-400">{row.GBP.toFixed(4)}</td>
-                      <td className="py-2.5 px-2 tabular-nums text-slate-600 dark:text-slate-400">{row.CHF.toFixed(4)}</td>
-                      <td className="py-2.5 px-2 tabular-nums text-slate-600 dark:text-slate-400">{row.MDL.toFixed(4)}</td>
+                      <td className="py-2.5 px-3 text-[13px] tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">
+                        {row.formattedDate}
+                      </td>
+                      <td className="py-2.5 px-3 text-[12.5px] text-[#6e6e73] dark:text-[#98989d]">
+                        {row.dayName}
+                      </td>
+                      <td className="py-2.5 px-3 text-[13px] tabular-nums font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                        {row.EUR.toFixed(4)}
+                      </td>
+                      <td className="py-2.5 px-3 text-[13px] tabular-nums font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                        {row.USD.toFixed(4)}
+                      </td>
+                      <td className="py-2.5 px-3 text-[13px] tabular-nums text-[#6e6e73] dark:text-[#98989d]">
+                        {row.GBP.toFixed(4)}
+                      </td>
+                      <td className="py-2.5 px-3 text-[13px] tabular-nums text-[#6e6e73] dark:text-[#98989d]">
+                        {row.CHF.toFixed(4)}
+                      </td>
+                      <td className="py-2.5 px-3 text-[13px] tabular-nums text-[#6e6e73] dark:text-[#98989d]">
+                        {row.MDL.toFixed(4)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -896,45 +989,44 @@ export default function CursValutar() {
       </div>
 
       {/* SECTION: Cele două calculatoare pe același rând sub grafice (50% / 50%) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-        {/* 1. CONVERTOR RAPID - White card styled exactly like Dashboard */}
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-[22px] border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between h-full">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+        {/* 1. CONVERTOR RAPID */}
+        <div className="apple-surface p-5 sm:p-6 flex flex-col justify-between h-full">
           {/* Header */}
-          <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 min-h-[58px]">
+          <div className="flex items-center justify-between pb-4 border-b border-black/[0.05] dark:border-white/[0.07] min-h-[54px]">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/60 flex items-center justify-center text-blue-600 shrink-0">
-                <ArrowLeftRight className="w-5 h-5" />
+              <div className="w-8 h-8 rounded-[10px] bg-[#f2f4f7] dark:bg-[#2c2c2e] flex items-center justify-center text-[#0071e3] dark:text-[#0a84ff] shrink-0">
+                <ArrowLeftRight className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-base font-black text-slate-900 dark:text-white tracking-tight">
-                  Convertor Rapid BNR
+                <h3 className="text-[16px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-tight">
+                  Convertor rapid BNR
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d] tabular-nums">
                   Curs oficial BNR din {dateStr}
                 </p>
               </div>
             </div>
 
-            <span className="px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 text-[10px] font-bold">
-              ● Cotație Oficială
+            <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300 text-[11px] font-medium">
+              ● Cotație oficială
             </span>
           </div>
 
-          {/* Body Container - fills vertical space with equal distribution */}
+          {/* Body Container */}
           <div className="flex-1 flex flex-col justify-between pt-4 gap-4">
-            {/* Currency Inputs & Presets (Top Section) */}
             <div className="space-y-3.5">
               {/* Currency selectors with swap button */}
               <div className="grid grid-cols-1 sm:grid-cols-11 gap-2 items-center">
                 {/* From Currency */}
                 <div className="sm:col-span-5 space-y-1">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-                    Schimbă din:
+                  <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block">
+                    Schimbă din
                   </label>
                   <select
                     value={fromCurrency}
                     onChange={(e) => setFromCurrency(e.target.value as CurrencyCode)}
-                    className="w-full h-11 px-3 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none cursor-pointer"
+                    className="apple-pill-control w-full !h-10 px-3.5 text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] outline-none cursor-pointer"
                   >
                     {CURRENCIES.map((c) => (
                       <option key={c.code} value={c.code}>
@@ -945,12 +1037,12 @@ export default function CursValutar() {
                 </div>
 
                 {/* Swap Button */}
-                <div className="sm:col-span-1 flex justify-center pt-3 sm:pt-4">
+                <div className="sm:col-span-1 flex justify-center pt-3 sm:pt-5">
                   <button
                     onClick={handleSwap}
                     type="button"
                     title="Inversează valutele"
-                    className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors cursor-pointer"
+                    className="apple-btn-glass w-9 h-9 text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center justify-center cursor-pointer"
                   >
                     <ArrowLeftRight className="w-4 h-4" />
                   </button>
@@ -958,13 +1050,13 @@ export default function CursValutar() {
 
                 {/* To Currency */}
                 <div className="sm:col-span-5 space-y-1">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-                    În:
+                  <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block">
+                    În
                   </label>
                   <select
                     value={toCurrency}
                     onChange={(e) => setToCurrency(e.target.value as CurrencyCode)}
-                    className="w-full h-11 px-3 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none cursor-pointer"
+                    className="apple-pill-control w-full !h-10 px-3.5 text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] outline-none cursor-pointer"
                   >
                     {CURRENCIES.map((c) => (
                       <option key={c.code} value={c.code}>
@@ -977,8 +1069,8 @@ export default function CursValutar() {
 
               {/* Amount Input */}
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-                  Suma de convertit:
+                <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block">
+                  Suma de convertit
                 </label>
                 <div className="relative flex items-center">
                   <input
@@ -991,25 +1083,30 @@ export default function CursValutar() {
                         setConvertAmount(val);
                       }
                     }}
-                    className="w-full h-12 pl-4 pr-24 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-black tabular-nums text-xl tracking-tight focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                    className="w-full h-12 pl-4 pr-24 rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.06] dark:border-white/[0.08] text-[#1d1d1f] dark:text-[#f5f5f7] font-bold tabular-nums text-[19px] tracking-tight outline-none transition-all"
                     placeholder="100"
                   />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none px-2.5 py-1 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs">
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none px-2.5 py-1 rounded-full bg-white dark:bg-[#3a3a3c] text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold text-[12px]">
                     {fromCurrency}
                   </div>
                 </div>
 
-                {/* Quick Presets - Single row layout */}
+                {/* Quick Presets */}
                 <div className="flex items-center gap-1 sm:gap-1.5 pt-1 overflow-x-auto no-scrollbar">
                   {["5", "10", "40", "50", "200", "300", "500", "1000"].map((preset) => (
                     <button
                       key={preset}
                       type="button"
                       onClick={() => setConvertAmount(preset)}
-                      className={`flex-1 min-w-0 py-1.5 px-1.5 text-center text-[10px] sm:text-[11px] font-bold tabular-nums rounded-full transition-all cursor-pointer whitespace-nowrap ${
+                      style={
                         convertAmount === preset
-                          ? "bg-blue-600 text-white shadow-xs"
-                          : "bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300"
+                          ? { backgroundColor: "var(--tenant-theme-color, #0071e3)" }
+                          : undefined
+                      }
+                      className={`flex-1 min-w-0 py-1.5 px-1.5 text-center text-[11px] font-semibold tabular-nums rounded-full transition-all cursor-pointer whitespace-nowrap ${
+                        convertAmount === preset
+                          ? "text-white shadow-xs"
+                          : "bg-[#f2f2f7] dark:bg-[#2c2c2e] hover:bg-black/[0.06] dark:hover:bg-white/[0.10] text-[#3a3a3c] dark:text-[#ebebf5]"
                       }`}
                     >
                       {preset} {fromCurrency}
@@ -1019,25 +1116,27 @@ export default function CursValutar() {
               </div>
             </div>
 
-            {/* Results and Action Button (Bottom Section) */}
+            {/* Results and Action Button */}
             <div className="space-y-3.5">
-              {/* Result Area */}
-              <div className="p-4 rounded-[22px] bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/80 space-y-3">
+              <div className="p-4 rounded-2xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.05] dark:border-white/[0.07] space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                    Rezultat Conversie
+                  <span className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                    Rezultat conversie
                   </span>
                   <button
+                    type="button"
                     onClick={() =>
                       copyToClipboard(convertedResult.toFixed(useFourDecimals ? 4 : 2), "conv")
                     }
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-slate-100 text-slate-600 dark:text-slate-200 text-xs font-semibold cursor-pointer shadow-2xs transition-colors"
+                    className="apple-btn-glass inline-flex items-center gap-1 px-2.5 py-1 text-[12px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
                     title="Copiază rezultatul"
                   >
                     {copiedField === "conv" ? (
                       <>
-                        <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        <span className="text-emerald-600 font-bold">Copiat!</span>
+                        <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                          Copiat!
+                        </span>
                       </>
                     ) : (
                       <>
@@ -1048,23 +1147,25 @@ export default function CursValutar() {
                   </button>
                 </div>
 
-                <div className="text-2xl sm:text-3xl font-black tabular-nums text-slate-900 dark:text-white tracking-tight">
+                <div className="text-[26px] sm:text-[30px] font-bold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.028em] leading-none">
                   {formatNumber(convertedResult)}{" "}
-                  <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                  <span className="text-[16px] font-semibold text-[#6e6e73] dark:text-[#98989d]">
                     {toCurrency}
                   </span>
                 </div>
 
-                <div className="text-[11px] text-slate-500 flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-                  <span className="tabular-nums">Rată aplicată: 1 {fromCurrency} = {(ratesMap[fromCurrency] / ratesMap[toCurrency]).toFixed(4)} {toCurrency}</span>
+                <div className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] flex items-center justify-between pt-2 border-t border-black/[0.05] dark:border-white/[0.07]">
+                  <span className="tabular-nums">
+                    Rată aplicată: 1 {fromCurrency} ={" "}
+                    {(ratesMap[fromCurrency] / ratesMap[toCurrency]).toFixed(4)} {toCurrency}
+                  </span>
                 </div>
               </div>
 
-              {/* Action Button: Auto-synced indicator & transfer trigger */}
               <button
                 type="button"
                 onClick={transferToVat}
-                className="w-full h-11 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="apple-btn-prominent w-full h-10 text-[12.5px] font-semibold flex items-center justify-center gap-2 cursor-pointer"
                 title="Rezultatul în lei este aplicat automat în Calculatorul TVA"
               >
                 <Sparkles className="w-4 h-4" />
@@ -1075,22 +1176,22 @@ export default function CursValutar() {
           </div>
         </div>
 
-        {/* 2. CALCULATOR TVA - Matches Site Aesthetics exactly */}
+        {/* 2. CALCULATOR TVA */}
         <div
           id="calculator-tva"
-          className="bg-white dark:bg-slate-900 p-6 rounded-[22px] border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between h-full"
+          className="apple-surface p-5 sm:p-6 flex flex-col justify-between h-full"
         >
           {/* Header with Mode Toggle */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800 min-h-[58px]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-black/[0.05] dark:border-white/[0.07] min-h-[54px]">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/60 flex items-center justify-center text-indigo-600 shrink-0">
-                <Percent className="w-5 h-5" />
+              <div className="w-8 h-8 rounded-[10px] bg-[#f2f4f7] dark:bg-[#2c2c2e] flex items-center justify-center text-[#0071e3] dark:text-[#0a84ff] shrink-0">
+                <Percent className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-base font-black text-slate-900 dark:text-white tracking-tight">
+                <h3 className="text-[16px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-tight">
                   Calculator TVA România (21%)
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d]">
                   Cota standard 21%, 19%, 9%, 5% sau personalizată
                 </p>
               </div>
@@ -1117,19 +1218,18 @@ export default function CursValutar() {
             </div>
           </div>
 
-          {/* Body Container - fills vertical space with equal distribution */}
+          {/* Body Container */}
           <div className="flex-1 flex flex-col justify-between pt-4 gap-4">
-            {/* Top Inputs: Base amount + VAT rates */}
             <div className="space-y-4">
               {/* Input Value */}
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-                    {vatMode === "add" ? "Valoare fără TVA (Bază):" : "Total cu TVA (de extras):"}
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block">
+                    {vatMode === "add" ? "Valoare fără TVA (bază)" : "Total cu TVA (de extras)"}
                   </label>
                   {isSyncedWithConverter && (
-                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-full border border-emerald-200/60 dark:border-emerald-800/60">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5 bg-emerald-500/10 dark:bg-emerald-500/18 px-2.5 py-0.5 rounded-full">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                       Auto-sincronizat din Convertor
                     </span>
                   )}
@@ -1145,17 +1245,17 @@ export default function CursValutar() {
                         setVatAmountInput(val);
                       }
                     }}
-                    className="w-full h-12 pl-4 pr-28 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-black tabular-nums text-xl tracking-tight focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
+                    className="w-full h-12 pl-4 pr-28 rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.06] dark:border-white/[0.08] text-[#1d1d1f] dark:text-[#f5f5f7] font-bold tabular-nums text-[19px] tracking-tight outline-none transition-all"
                     placeholder="100"
                   />
                   <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-                    <span className="px-2.5 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs pointer-events-none">
+                    <span className="px-2.5 py-0.5 rounded-full bg-white dark:bg-[#3a3a3c] text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold text-[12px] pointer-events-none">
                       RON
                     </span>
                     <button
                       type="button"
                       onClick={() => copyToClipboard(vatAmountInput, "vatInput")}
-                      className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7] hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
                       title="Copiază"
                     >
                       {copiedField === "vatInput" ? (
@@ -1168,10 +1268,10 @@ export default function CursValutar() {
                 </div>
               </div>
 
-              {/* Cota TVA - 21% is prominent and standard */}
+              {/* Cota TVA */}
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-                  Cota de TVA aplicabilă:
+                <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block">
+                  Cota de TVA aplicabilă
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {VAT_RATES.map((item) => (
@@ -1182,10 +1282,15 @@ export default function CursValutar() {
                         setVatRate(item.rate);
                         setCustomVatRate("");
                       }}
-                      className={`px-3.5 py-1.5 text-xs font-bold rounded-full border transition-all cursor-pointer ${
+                      style={
                         vatRate === item.rate && !customVatRate
-                          ? "bg-blue-600 text-white border-blue-600 shadow-xs"
-                          : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100"
+                          ? { backgroundColor: "var(--tenant-theme-color, #0071e3)" }
+                          : undefined
+                      }
+                      className={`px-3.5 py-1.5 text-[12px] font-semibold rounded-full transition-all cursor-pointer ${
+                        vatRate === item.rate && !customVatRate
+                          ? "text-white shadow-xs"
+                          : "bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#ebebf5] hover:bg-black/[0.06] dark:hover:bg-white/[0.10]"
                       }`}
                     >
                       {item.label}
@@ -1199,7 +1304,7 @@ export default function CursValutar() {
                       placeholder="Altă %"
                       value={customVatRate}
                       onChange={(e) => setCustomVatRate(e.target.value)}
-                      className="w-20 h-8 px-2.5 text-xs font-semibold tabular-nums rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 outline-none"
+                      className="w-20 h-8 px-2.5 text-[12px] font-semibold tabular-nums rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.06] dark:border-white/[0.08] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none"
                     />
                   </div>
                 </div>
@@ -1208,20 +1313,22 @@ export default function CursValutar() {
 
             {/* Bottom Section: VAT Breakdown Card + Checkboxes */}
             <div className="space-y-3.5">
-              {/* VAT Breakdown Card */}
-              <div className="p-4 rounded-[22px] bg-slate-50 dark:bg-slate-800/70 border border-slate-200/80 dark:border-slate-700/80 space-y-2.5">
+              <div className="p-4 rounded-2xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.05] dark:border-white/[0.07] space-y-2.5">
                 {/* Baza */}
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500 font-medium">Valoare fără TVA (Bază):</span>
+                <div className="flex items-center justify-between text-[12.5px]">
+                  <span className="text-[#6e6e73] dark:text-[#98989d] font-medium">
+                    Valoare fără TVA (bază):
+                  </span>
                   <div className="flex items-center gap-2">
-                    <span className="font-bold tabular-nums text-slate-900 dark:text-white">
+                    <span className="font-semibold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">
                       {formatNumber(vatResults.base)} RON
                     </span>
                     <button
+                      type="button"
                       onClick={() =>
                         copyToClipboard(vatResults.base.toFixed(useFourDecimals ? 4 : 2), "base")
                       }
-                      className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7] hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
                       title="Copiază"
                     >
                       {copiedField === "base" ? (
@@ -1234,17 +1341,20 @@ export default function CursValutar() {
                 </div>
 
                 {/* TVA */}
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500 font-medium">Valoare TVA ({activeVatRate}%):</span>
+                <div className="flex items-center justify-between text-[12.5px]">
+                  <span className="text-[#6e6e73] dark:text-[#98989d] font-medium tabular-nums">
+                    Valoare TVA ({activeVatRate}%):
+                  </span>
                   <div className="flex items-center gap-2">
-                    <span className="font-bold tabular-nums text-indigo-600 dark:text-indigo-400">
+                    <span className="font-semibold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">
                       {formatNumber(vatResults.vat)} RON
                     </span>
                     <button
+                      type="button"
                       onClick={() =>
                         copyToClipboard(vatResults.vat.toFixed(useFourDecimals ? 4 : 2), "vat")
                       }
-                      className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7] hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
                       title="Copiază"
                     >
                       {copiedField === "vat" ? (
@@ -1257,19 +1367,20 @@ export default function CursValutar() {
                 </div>
 
                 {/* Total cu TVA */}
-                <div className="pt-2.5 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between">
-                  <span className="font-black text-slate-900 dark:text-white text-sm">
+                <div className="pt-2.5 border-t border-black/[0.06] dark:border-white/[0.08] flex items-center justify-between">
+                  <span className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] text-[14px]">
                     Total cu TVA:
                   </span>
                   <div className="flex items-center gap-2">
-                    <span className="text-xl font-black tabular-nums text-emerald-600 dark:text-emerald-400">
+                    <span className="text-[20px] font-bold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">
                       {formatNumber(vatResults.total)} RON
                     </span>
                     <button
+                      type="button"
                       onClick={() =>
                         copyToClipboard(vatResults.total.toFixed(useFourDecimals ? 4 : 2), "total")
                       }
-                      className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7] hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
                       title="Copiază"
                     >
                       {copiedField === "total" ? (
@@ -1283,15 +1394,15 @@ export default function CursValutar() {
               </div>
 
               {/* Formatting Checkboxes */}
-              <div className="space-y-2 pt-1 text-xs text-slate-500 dark:text-slate-400">
+              <div className="space-y-2 pt-1 text-[12px] text-[#6e6e73] dark:text-[#98989d]">
                 <label className="flex items-center gap-2 cursor-pointer select-none">
                   <input
                     type="checkbox"
                     checked={useThousandsSeparator}
                     onChange={(e) => setUseThousandsSeparator(e.target.checked)}
-                    className="rounded text-blue-600 focus:ring-blue-500"
+                    className="rounded text-primary cursor-pointer"
                   />
-                  <span>Afișează separator mii în rezultate ( ex: 1.250,50 )</span>
+                  <span>Afișează separator mii în rezultate (ex: 1.250,50)</span>
                 </label>
 
                 <label className="flex items-center gap-2 cursor-pointer select-none">
@@ -1299,7 +1410,7 @@ export default function CursValutar() {
                     type="checkbox"
                     checked={useFourDecimals}
                     onChange={(e) => setUseFourDecimals(e.target.checked)}
-                    className="rounded text-blue-600 focus:ring-blue-500"
+                    className="rounded text-primary cursor-pointer"
                   />
                   <span>Afișează patru zecimale în rezultat (pentru devize / preț unitar)</span>
                 </label>
@@ -1307,7 +1418,7 @@ export default function CursValutar() {
             </div>
           </div>
         </div>
-        </div>
+      </div>
     </div>
   );
 }

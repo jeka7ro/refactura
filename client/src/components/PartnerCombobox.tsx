@@ -62,16 +62,16 @@ export default function PartnerCombobox({
   showClientType = false,
 }: PartnerComboboxProps) {
   const renderTypeBadge = (p: PartnerItem, small: boolean) => {
-    const size = small ? "px-1.5 py-0.5 text-[9px]" : "px-1.5 py-0.5 text-[10px]";
+    const size = small ? "px-1.5 py-0.5 text-[9.5px]" : "px-2 py-0.5 text-[10.5px]";
     if (showClientType) {
       const t = inferClientType(p);
       return (
         <span
           title={t === "pf" ? "Persoană fizică" : "Persoană juridică"}
-          className={`${size} rounded font-bold shrink-0 border ${
+          className={`${size} rounded-full font-semibold shrink-0 border leading-none ${
             t === "pf"
-              ? "bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800"
-              : "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800"
+              ? "bg-violet-500/10 text-violet-700 dark:bg-violet-500/18 dark:text-violet-300 border-violet-500/20"
+              : "bg-[#0071e3]/10 text-[#0071e3] dark:bg-[#0a84ff]/18 dark:text-[#64d2ff] border-[#0071e3]/20"
           }`}
         >
           {t === "pf" ? "PF" : "PJ"}
@@ -79,11 +79,11 @@ export default function PartnerCombobox({
       );
     }
     return p.isSupplier === 1 ? (
-      <span className={`${size} rounded font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shrink-0`}>
+      <span className={`${size} rounded-full font-semibold bg-amber-500/12 text-amber-700 dark:bg-amber-500/18 dark:text-amber-300 border border-amber-500/20 shrink-0 leading-none`}>
         Furnizor
       </span>
     ) : (
-      <span className={`${size} rounded font-bold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 shrink-0`}>
+      <span className={`${size} rounded-full font-semibold bg-[#0071e3]/10 text-[#0071e3] dark:bg-[#0a84ff]/18 dark:text-[#64d2ff] border border-[#0071e3]/20 shrink-0 leading-none`}>
         Client
       </span>
     );
@@ -195,28 +195,28 @@ export default function PartnerCombobox({
           disabled={disabled}
           onClick={() => !disabled && setIsOpen(!isOpen)}
           onKeyDown={handleKeyDown}
-          className={`w-full flex items-center justify-between text-left rounded-xl bg-white dark:bg-slate-900 border transition-all ${
+          className={`w-full flex items-center justify-between text-left rounded-xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border transition-all ${
             isOpen
-              ? "border-primary ring-2 ring-primary/20 shadow-xs"
-              : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+              ? "bg-white dark:bg-[#2c2c2e] border-primary ring-2 ring-primary/20 shadow-xs"
+              : "border-black/[0.08] dark:border-white/[0.10] hover:border-black/[0.15] dark:hover:border-white/[0.16]"
           } h-10 px-3 ${className} ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
         >
           <div className="flex items-center gap-2 min-w-0 flex-1 mr-2">
-            <Building2 className="h-4 w-4 text-slate-400 shrink-0" />
+            <Building2 className="h-4 w-4 text-[#8e8e93] shrink-0" />
             {selectedPartner ? (
               <div className="flex items-center gap-2 truncate text-xs">
-                <span className="font-bold text-slate-900 dark:text-white truncate">
+                <span className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] truncate">
                   {selectedPartner.name}
                 </span>
                 {selectedPartner.cui && (
-                  <span className="tabular-nums text-slate-500 text-[11px] shrink-0">
+                  <span className="tabular-nums text-[#6e6e73] dark:text-[#98989d] text-[11px] shrink-0">
                     ({selectedPartner.cui})
                   </span>
                 )}
                 {renderTypeBadge(selectedPartner, false)}
               </div>
             ) : (
-              <span className="text-xs text-slate-400 dark:text-slate-500 truncate">
+              <span className="text-xs text-[#8e8e93] truncate">
                 {placeholder}
               </span>
             )}
@@ -228,13 +228,13 @@ export default function PartnerCombobox({
                 role="button"
                 tabIndex={0}
                 onClick={handleClear}
-                className="p-1 rounded-md text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                className="p-1 rounded-full text-[#8e8e93] hover:text-[#ff3b30] dark:hover:text-[#ff453a] hover:bg-[#ff3b30]/10 dark:hover:bg-[#ff453a]/15 transition-colors"
                 title="Deselectează partener"
               >
                 <X className="h-3.5 w-3.5" />
               </span>
             )}
-            <ChevronDown className="h-4 w-4 text-slate-400" />
+            <ChevronDown className="h-4 w-4 text-[#8e8e93]" />
           </div>
         </button>
       </PopoverPrimitive.Anchor>
@@ -243,12 +243,12 @@ export default function PartnerCombobox({
         <PopoverPrimitive.Content
           align="start"
           sideOffset={5}
-          className="z-50 w-[var(--radix-popover-trigger-width)] min-w-[min(340px,calc(100vw-24px))] max-w-[min(560px,calc(100vw-24px))] rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden animate-in fade-in-0 zoom-in-95"
+          className="z-50 w-[var(--radix-popover-trigger-width)] min-w-[min(340px,calc(100vw-24px))] max-w-[min(560px,calc(100vw-24px))] rounded-2xl bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.10] shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 overscroll-contain"
         >
           {/* Search Header */}
-          <div className="p-2.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/40">
+          <div className="p-2.5 border-b border-black/[0.06] dark:border-white/[0.08] bg-[#fafafa] dark:bg-white/[0.025]">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#8e8e93]" />
               <input
                 ref={searchInputRef}
                 type="text"
@@ -256,10 +256,10 @@ export default function PartnerCombobox({
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Tastează nume, CUI sau cod SAGA..."
-                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-primary"
+                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.08] dark:border-white/[0.10] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] focus:outline-none focus:bg-white dark:focus:bg-[#2c2c2e] focus:ring-2 focus:ring-primary/25"
               />
             </div>
-            <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1.5 px-1 tabular-nums">
+            <div className="flex items-center justify-between text-[11px] text-[#6e6e73] dark:text-[#98989d] mt-1.5 px-1 tabular-nums">
               <span>{filteredPartners.length} rezultate afișate</span>
               <span>{partners.length} parteneri în baza de date</span>
             </div>
@@ -268,11 +268,11 @@ export default function PartnerCombobox({
           {/* List items */}
           <div
             ref={listRef}
-            className="max-h-[280px] overflow-y-auto p-1 divide-y divide-slate-100 dark:divide-slate-800/60"
+            className="max-h-[280px] overflow-y-auto p-1 divide-y divide-black/[0.045] dark:divide-white/[0.06]"
           >
             {filteredPartners.length === 0 ? (
-              <div className="py-6 text-center text-xs text-slate-400">
-                Niciun partener găsit pentru "{search}".
+              <div className="py-6 text-center text-xs text-[#6e6e73] dark:text-[#98989d]">
+                Niciun partener găsit pentru „{search}”.
               </div>
             ) : (
               filteredPartners.map((p, idx) => {
@@ -286,22 +286,22 @@ export default function PartnerCombobox({
                     onMouseEnter={() => setActiveIndex(idx)}
                     className={`p-2.5 rounded-xl cursor-pointer transition-colors flex items-start justify-between gap-3 text-xs ${
                       isActive
-                        ? "bg-slate-100 dark:bg-slate-800/80"
-                        : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
-                    } ${isSelected ? "bg-primary/5 dark:bg-primary/10" : ""}`}
+                        ? "bg-[#f2f2f7] dark:bg-[#2c2c2e]"
+                        : "hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.04]"
+                    } ${isSelected ? "bg-primary/[0.06] dark:bg-primary/[0.14]" : ""}`}
                   >
                     <div className="space-y-0.5 min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900 dark:text-white truncate">
+                        <span className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] truncate">
                           {p.name}
                         </span>
                         {renderTypeBadge(p, true)}
                       </div>
 
-                      <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
+                      <div className="flex items-center gap-2 text-[11px] text-[#6e6e73] dark:text-[#98989d] tabular-nums">
                         {p.cui && <span>CUI: {p.cui}</span>}
-                        {p.sagaCode && <span>• Cod: {p.sagaCode}</span>}
-                        {p.city && <span className="truncate">• {p.city}</span>}
+                        {p.sagaCode && <span>· Cod: {p.sagaCode}</span>}
+                        {p.city && <span className="truncate">· {p.city}</span>}
                       </div>
                     </div>
 

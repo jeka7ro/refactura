@@ -34,15 +34,15 @@ export default function HorecaInventory() {
   if (isLoading) {
     return (
       <div className="p-8 flex justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
       </div>
     );
   }
 
   if (locations.length === 0) {
     return (
-      <div className="p-8">
-        <p className="text-slate-500">
+      <div className="apple-surface p-8 text-center">
+        <p className="text-[#6e6e73] dark:text-[#98989d] text-sm">
           Nu ai definit nicio locație. Creează una din Setări.
         </p>
       </div>
@@ -54,42 +54,37 @@ export default function HorecaInventory() {
   }
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-slate-950">
-      <div className="border-b border-slate-200 dark:border-slate-800 p-4 sm:p-6 bg-slate-50/50 dark:bg-slate-900/50">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2 tracking-tight">
-              <Box className="w-6 h-6 text-indigo-500" />
-              Gestiune & Stocuri
-            </h1>
-            <p className="text-slate-500 dark:text-slate-400 mt-1">
-              Inventarul materiilor prime. Stocurile se deduc automat la
-              vânzarea produselor prin rețetar.
-            </p>
-          </div>
-          <div className="relative">
-            <select
-              value={selectedLocationId || ""}
-              onChange={e => {
-                const val = e.target.value;
-                setSelectedLocationId(val.startsWith('bridge-') ? val as any : Number(val));
-              }}
-              className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-4 py-2 font-semibold shadow-sm min-w-[200px] appearance-none cursor-pointer pr-10 focus:outline-none focus:border-indigo-500 !rounded-full"
-            >
-              {locations.map(loc => (
-                <option key={loc.id} value={loc.id}>
-                  {loc.name}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="w-4 h-4 text-slate-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
+    <div className="space-y-4 max-w-full overflow-x-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-0.5">
+        <div>
+          <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
+            Gestiune & stocuri
+          </h1>
+          <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
+            Inventarul materiilor prime. Stocurile se deduc automat la
+            vânzarea produselor prin rețetar.
+          </p>
+        </div>
+        <div className="relative self-start sm:self-auto">
+          <select
+            value={selectedLocationId || ""}
+            onChange={e => {
+              const val = e.target.value;
+              setSelectedLocationId(val.startsWith("bridge-") ? (val as any) : Number(val));
+            }}
+            className="apple-pill-control pl-3.5 pr-8 h-[34px] text-[12.5px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] min-w-[180px] appearance-none cursor-pointer focus:outline-none"
+          >
+            {locations.map(loc => (
+              <option key={loc.id} value={loc.id}>
+                {loc.name}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden">
-        <InventoryDashboard locationId={selectedLocationId} />
-      </div>
+      <InventoryDashboard locationId={selectedLocationId} />
     </div>
   );
 }
@@ -160,29 +155,17 @@ function InventoryDashboard({ locationId }: { locationId: number }) {
   }
 
   return (
-    <div className="flex flex-col h-full relative">
+    <div className="space-y-4 relative">
       {!isEditing && !isAddingStock && (
-        <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-wrap gap-4 items-center justify-between">
-          <div style={{ position: "relative" }} className="w-full max-w-sm">
-            <Search
-              className="w-4 h-4 text-slate-400"
-              style={{
-                position: "absolute",
-                left: 12,
-                top: "50%",
-                transform: "translateY(-50%)",
-                zIndex: 1,
-              }}
-            />
+        <div className="apple-surface px-3 py-2.5 flex flex-wrap gap-2.5 items-center justify-between">
+          <div className="relative flex-1 min-w-[180px] max-w-sm">
+            <Search className="w-3.5 h-3.5 text-[#8e8e93] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
-              className="w-full bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500 transition-all"
               style={{
-                paddingLeft: 36,
+                paddingLeft: 34,
                 paddingRight: searchTerm ? 80 : 16,
-                paddingTop: 8,
-                paddingBottom: 8,
-                borderRadius: 9999,
               }}
+              className="apple-pill-control rounded-full w-full h-[34px] text-[13px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none focus:bg-white dark:focus:bg-[#2c2c2e]"
               placeholder="Caută materie primă..."
               value={searchTerm}
               onChange={e => {
@@ -191,144 +174,138 @@ function InventoryDashboard({ locationId }: { locationId: number }) {
               }}
             />
             {searchTerm && (
-              <div
-                style={{
-                  position: "absolute",
-                  right: 10,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  background: "#6366f1",
-                  color: "white",
-                  borderRadius: 9999,
-                  padding: "2px 10px",
-                  fontSize: 11,
-                  fontWeight: 600,
-                  whiteSpace: "nowrap",
-                }}
-              >
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 bg-black/[0.07] dark:bg-white/[0.14] text-[#1d1d1f] dark:text-white rounded-full px-2 py-0.5 text-[10.5px] font-semibold tabular-nums whitespace-nowrap">
                 {filtered.length} / {ingredients.length}
-              </div>
+              </span>
             )}
           </div>
           <button
+            type="button"
             onClick={() => setIsEditing({})}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm transition-all"
+            className="apple-btn-prominent inline-flex items-center gap-1.5 text-white px-4 h-[34px] font-semibold text-xs cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            Materie Primă Nouă
+            Materie primă nouă
           </button>
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+      <div>
         {isLoading ? (
           <div className="flex justify-center p-8">
-            <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden shadow-sm flex flex-col">
+          <div className="apple-surface overflow-hidden flex flex-col">
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left">
-                <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
+                <thead className="bg-[#fafafa] dark:bg-white/[0.025] text-[#6e6e73] dark:text-[#98989d] font-medium text-[12px] border-b border-black/[0.05] dark:border-white/[0.07]">
                   <tr>
-                    <th style={{ width: 50, textAlign: "center" }} className="px-4 py-3">Nr.</th>
-                    <th className="px-4 py-3">Denumire</th>
-                    <th className="px-4 py-3">Stoc Curent</th>
-                    <th className="px-4 py-3">Cost Unitar</th>
-                    <th className="px-4 py-3">Valoare Stoc</th>
-                    <th className="px-4 py-3 text-right">Acțiuni</th>
+                    <th className="px-4 py-3 w-12 text-center font-medium">Nr.</th>
+                    <th className="px-4 py-3 font-medium">Denumire</th>
+                    <th className="px-4 py-3 font-medium">Stoc curent</th>
+                    <th className="px-4 py-3 font-medium">Cost unitar</th>
+                    <th className="px-4 py-3 font-medium">Valoare stoc</th>
+                    <th className="px-4 py-3 font-medium text-right">Acțiuni</th>
                   </tr>
                 </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
-                {paginatedItems.map((item, index) => (
-                  <tr
-                    key={item.id}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
-                  >
-                    <td style={{ textAlign: 'center', color: '#64748b', fontSize: 13 }} className="px-4 py-3">
-                      {(page - 1) * rowsPerPage + index + 1}
-                    </td>
-                    <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">
-                      {item.name}
-                    </td>
-                    <td className="px-4 py-3 font-black text-indigo-600 dark:text-indigo-400">
-                      {Number(item.currentStock).toFixed(2)} {item.unit}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
-                      {formatCurrency(Number(item.unitCost || 0), "RON")} / {item.unit}
-                    </td>
-                    <td className="px-4 py-3 font-semibold text-slate-700 dark:text-slate-300">
-                      {formatCurrency(
-                        Number(item.currentStock) * Number(item.unitCost || 0),
-                        "RON"
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => setIsAddingStock(item)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20 rounded-lg text-xs font-bold transition-colors border border-emerald-200 dark:border-emerald-500/30"
-                        >
-                          <ArrowDownToLine className="w-3.5 h-3.5" />
-                          Recepție Stoc (NIR)
-                        </button>
-                        <button
-                          onClick={() => setIsEditing(item)}
-                          className="px-3 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 rounded-lg text-xs font-bold transition-colors border border-slate-200 dark:border-slate-700"
-                        >
-                          Editează
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {paginatedItems.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="text-center py-8 text-slate-500">
-                      Nu s-au găsit date.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06] tabular-nums">
+                  {paginatedItems.map((item, index) => (
+                    <tr
+                      key={item.id}
+                      className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors"
+                    >
+                      <td className="px-4 py-3 text-center text-[#8e8e93] text-xs font-medium">
+                        {(page - 1) * rowsPerPage + index + 1}
+                      </td>
+                      <td className="px-4 py-3 font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] text-[13.5px]">
+                        {item.name}
+                      </td>
+                      <td className="px-4 py-3 font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                        {Number(item.currentStock).toFixed(2)} {item.unit}
+                      </td>
+                      <td className="px-4 py-3 text-[#6e6e73] dark:text-[#98989d]">
+                        {formatCurrency(Number(item.unitCost || 0), "RON")} / {item.unit}
+                      </td>
+                      <td className="px-4 py-3 font-semibold text-[#1d1d1f] dark:text-[#ebebf5]">
+                        {formatCurrency(
+                          Number(item.currentStock) * Number(item.unitCost || 0),
+                          "RON"
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setIsAddingStock(item)}
+                            className="inline-flex items-center gap-1.5 px-3 h-8 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/18 dark:bg-emerald-500/18 dark:text-emerald-300 rounded-full text-xs font-semibold transition-colors border border-emerald-500/20 cursor-pointer"
+                          >
+                            <ArrowDownToLine className="w-3.5 h-3.5" />
+                            Recepție stoc (NIR)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setIsEditing(item)}
+                            className="apple-btn-glass px-3.5 h-8 text-[#1d1d1f] dark:text-[#f5f5f7] text-xs font-medium cursor-pointer"
+                          >
+                            Editează
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {paginatedItems.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="text-center py-8 text-[#6e6e73] dark:text-[#98989d] text-[13px]">
+                        Nu s-au găsit date.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
 
             {/* FOOTER PAGINARE */}
-            <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border-color, #e2e8f0)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--bg-secondary, #f8fafc)', borderBottomLeftRadius: 8, borderBottomRightRadius: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }} className="text-sm text-slate-600 dark:text-slate-400">
-                <span style={{ whiteSpace: 'nowrap' }} className="relative inline-block">
-                  Afișează&nbsp;
-                  <select 
-                    value={rowsPerPage} 
-                    onChange={e => {
-                      setRowsPerPage(Number(e.target.value));
-                      setPage(1);
-                    }} 
-                    style={{ background: 'transparent', padding: '2px 24px 2px 12px' }}
-                    className="dark:border-slate-700 dark:bg-slate-800 dark:text-white appearance-none cursor-pointer focus:outline-none border border-slate-300 rounded-full"
-                  >
-                    <option value={10}>10</option>
-                    <option value={15}>15</option>
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                    <option value={ingredients.length}>Toți</option>
-                  </select>
-                  <ChevronDown className="w-3 h-3 text-slate-500 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <div className="px-4 sm:px-5 py-3 border-t border-black/[0.05] dark:border-white/[0.07] flex items-center justify-between flex-wrap gap-2 bg-[#fafafa] dark:bg-white/[0.02] text-xs text-[#6e6e73] dark:text-[#98989d] tabular-nums">
+              <div className="flex items-center gap-4">
+                <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                  <span>Afișează</span>
+                  <div className="relative inline-block">
+                    <select
+                      value={rowsPerPage}
+                      onChange={e => {
+                        setRowsPerPage(Number(e.target.value));
+                        setPage(1);
+                      }}
+                      className="apple-pill-control appearance-none pl-3 pr-7 h-7 text-xs text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
+                    >
+                      <option value={10}>10</option>
+                      <option value={15}>15</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={ingredients.length || 9999}>Toți</option>
+                    </select>
+                    <ChevronDown className="w-3 h-3 text-[#6e6e73] dark:text-[#98989d] absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
                 </span>
-                <span style={{ whiteSpace: 'nowrap' }}>Total înregistrări: <strong className="text-slate-900 dark:text-white">{total}</strong></span>
+                <span className="whitespace-nowrap">
+                  Total înregistrări: <strong className="text-[#1d1d1f] dark:text-[#f5f5f7]">{total}</strong>
+                </span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }} className="text-sm text-slate-600 dark:text-slate-400">
-                <span style={{ whiteSpace: 'nowrap' }}>Pagina {page} din {totalPages}</span>
-                <button 
-                  className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full disabled:opacity-50 transition-colors" 
-                  onClick={() => setPage(p => p - 1)} 
+              <div className="flex items-center gap-2">
+                <span className="whitespace-nowrap">Pagina {page} din {totalPages}</span>
+                <button
+                  type="button"
+                  className="apple-btn-glass w-7 h-7 flex items-center justify-center text-[#1d1d1f] dark:text-[#f5f5f7] disabled:opacity-40 cursor-pointer"
+                  onClick={() => setPage(p => p - 1)}
                   disabled={page === 1}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                 </button>
-                <button 
-                  className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full disabled:opacity-50 transition-colors" 
-                  onClick={() => setPage(p => p + 1)} 
+                <button
+                  type="button"
+                  className="apple-btn-glass w-7 h-7 flex items-center justify-center text-[#1d1d1f] dark:text-[#f5f5f7] disabled:opacity-40 cursor-pointer"
+                  onClick={() => setPage(p => p + 1)}
                   disabled={page === totalPages}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
@@ -341,38 +318,38 @@ function InventoryDashboard({ locationId }: { locationId: number }) {
 
       {/* MODAL ADAUGA/EDITEAZA INGREDIENT */}
       {isEditing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm p-4 overscroll-contain">
           <form
             onSubmit={handleSaveIngredient}
-            className="bg-white dark:bg-slate-900 rounded-lg shadow-xl w-full max-w-md overflow-hidden border border-slate-200 dark:border-slate-800"
+            className="bg-white dark:bg-[#1c1c1e] rounded-[20px] shadow-2xl w-full max-w-md overflow-hidden border border-black/[0.08] dark:border-white/[0.10]"
           >
-            <div className="p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30">
-              <h3 className="font-bold text-lg text-slate-900 dark:text-white">
-                {isEditing.id ? "Editează Materia Primă" : "Adaugă Materie Primă Nouă"}
+            <div className="p-5 border-b border-black/[0.06] dark:border-white/[0.08] bg-[#fafafa] dark:bg-white/[0.025]">
+              <h3 className="font-bold text-[16px] text-[#1d1d1f] dark:text-[#f5f5f7]">
+                {isEditing.id ? "Editează materia primă" : "Adaugă materie primă nouă"}
               </h3>
             </div>
             <div className="p-5 flex flex-col gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">
-                  Denumire (ex: Făină Albă, Piept de pui)
+                <label className="block text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">
+                  Denumire (ex: Făină albă, Piept de pui)
                 </label>
                 <input
                   name="name"
                   defaultValue={isEditing.name}
                   required
                   autoFocus
-                  className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                  className="apple-input w-full h-10 px-3.5 text-sm"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">
-                    Unitate Măsură
+                  <label className="block text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">
+                    Unitate măsură
                   </label>
                   <select
                     name="unit"
                     defaultValue={isEditing.unit || "kg"}
-                    className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 text-sm text-slate-900 dark:text-white"
+                    className="apple-input w-full h-10 px-3.5 text-sm cursor-pointer"
                   >
                     <option value="kg">Kilo (kg)</option>
                     <option value="g">Grame (g)</option>
@@ -382,8 +359,8 @@ function InventoryDashboard({ locationId }: { locationId: number }) {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">
-                    Cost Unitar Aprox. (RON)
+                  <label className="block text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">
+                    Cost unitar aprox. (RON)
                   </label>
                   <input
                     name="unitCost"
@@ -391,23 +368,23 @@ function InventoryDashboard({ locationId }: { locationId: number }) {
                     step="0.01"
                     defaultValue={isEditing.unitCost || 0}
                     required
-                    className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 text-sm text-slate-900 dark:text-white"
+                    className="apple-input w-full h-10 px-3.5 text-sm tabular-nums"
                   />
                 </div>
               </div>
             </div>
-            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
+            <div className="p-4 bg-[#fafafa] dark:bg-white/[0.025] border-t border-black/[0.06] dark:border-white/[0.08] flex justify-end gap-2.5">
               <button
                 type="button"
                 onClick={() => setIsEditing(null)}
-                className="px-4 py-2 text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                className="apple-btn-glass px-4 h-9 text-xs font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
               >
                 Anulează
               </button>
               <button
                 type="submit"
                 disabled={upsertMut.isPending}
-                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-lg shadow-sm"
+                className="apple-btn-prominent px-5 h-9 text-white text-xs font-semibold cursor-pointer"
               >
                 {upsertMut.isPending ? "Se salvează..." : "Salvează"}
               </button>
@@ -418,16 +395,16 @@ function InventoryDashboard({ locationId }: { locationId: number }) {
 
       {/* MODAL ADAUGA STOC (RECEPTIE) */}
       {isAddingStock && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm p-4 overscroll-contain">
           <form
             onSubmit={handleAddStock}
-            className="bg-white dark:bg-slate-900 rounded-lg shadow-xl w-full max-w-md overflow-hidden border border-slate-200 dark:border-slate-800"
+            className="bg-white dark:bg-[#1c1c1e] rounded-[20px] shadow-2xl w-full max-w-md overflow-hidden border border-black/[0.08] dark:border-white/[0.10]"
           >
-            <div className="p-5 border-b border-emerald-100 dark:border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/10">
-              <h3 className="font-bold text-lg text-emerald-800 dark:text-emerald-400">
-                Recepție Nouă (Intrare Stoc)
+            <div className="p-5 border-b border-emerald-500/20 bg-emerald-500/10">
+              <h3 className="font-bold text-[16px] text-emerald-800 dark:text-emerald-300">
+                Recepție nouă (intrare stoc)
               </h3>
-              <p className="text-sm text-emerald-600 dark:text-emerald-500 mt-1">
+              <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-1 tabular-nums">
                 Produs: <strong>{isAddingStock.name}</strong> (Stoc actual:{" "}
                 {Number(isAddingStock.currentStock).toFixed(2)}{" "}
                 {isAddingStock.unit})
@@ -436,8 +413,8 @@ function InventoryDashboard({ locationId }: { locationId: number }) {
             <div className="p-5 flex flex-col gap-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">
-                    Cantitate Intrată ({isAddingStock.unit})
+                  <label className="block text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">
+                    Cantitate intrată ({isAddingStock.unit})
                   </label>
                   <input
                     name="quantity"
@@ -445,12 +422,12 @@ function InventoryDashboard({ locationId }: { locationId: number }) {
                     step="0.0001"
                     required
                     autoFocus
-                    className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 text-lg font-black text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
+                    className="apple-input w-full h-10 px-3.5 text-base font-bold tabular-nums"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">
-                    Cost de Achiziție Nou (RON)
+                  <label className="block text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">
+                    Cost de achiziție nou (RON)
                   </label>
                   <input
                     name="unitCost"
@@ -458,35 +435,35 @@ function InventoryDashboard({ locationId }: { locationId: number }) {
                     step="0.01"
                     defaultValue={isAddingStock.unitCost}
                     required
-                    className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 text-sm font-semibold text-slate-900 dark:text-white"
+                    className="apple-input w-full h-10 px-3.5 text-sm font-semibold tabular-nums"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1">
-                  Referință Document (Nr. Factură / NIR)
+                <label className="block text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">
+                  Referință document (Nr. factură / NIR)
                 </label>
                 <input
                   name="reference"
                   placeholder="ex: F12345"
-                  className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 text-sm text-slate-900 dark:text-white"
+                  className="apple-input w-full h-10 px-3.5 text-sm"
                 />
               </div>
             </div>
-            <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
+            <div className="p-4 bg-[#fafafa] dark:bg-white/[0.025] border-t border-black/[0.06] dark:border-white/[0.08] flex justify-end gap-2.5">
               <button
                 type="button"
                 onClick={() => setIsAddingStock(null)}
-                className="px-4 py-2 text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                className="apple-btn-glass px-4 h-9 text-xs font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
               >
                 Anulează
               </button>
               <button
                 type="submit"
                 disabled={addStockMut.isPending}
-                className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-lg shadow-sm"
+                className="apple-btn-prominent px-5 h-9 text-white text-xs font-semibold cursor-pointer"
               >
-                {addStockMut.isPending ? "Se adaugă..." : "Confirmă Recepția"}
+                {addStockMut.isPending ? "Se adaugă..." : "Confirmă recepția"}
               </button>
             </div>
           </form>

@@ -389,7 +389,7 @@ export default function ReInvoice() {
   if (loadingInvoice) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#6e6e73] dark:text-[#98989d]" />
       </div>
     );
   }
@@ -397,11 +397,14 @@ export default function ReInvoice() {
   if (!invoice) {
     return (
       <div className="p-8 text-center">
-        <div className="text-slate-500">
+        <div className="text-[14px] text-[#6e6e73] dark:text-[#98989d]">
           Factura nu a fost găsită în arhivă.
         </div>
         <Link href="/facturi-primite">
-          <button className="mt-4 px-5 h-10 rounded-lg bg-blue-600 text-white text-sm font-bold">
+          <button
+            type="button"
+            className="mt-4 px-5 h-10 rounded-full apple-btn-prominent text-[13.5px] font-semibold cursor-pointer"
+          >
             ← Înapoi
           </button>
         </Link>
@@ -738,13 +741,13 @@ export default function ReInvoice() {
   };
 
   return (
-    <div className="p-3 sm:p-5 max-w-full space-y-6">
+    <div className="p-3 sm:p-5 max-w-full space-y-5 pb-20 overflow-x-hidden">
       {invoice.status === "refactured" && (
-        <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-md">
-          <div className="flex">
+        <div className="apple-surface border-amber-500/30 dark:border-amber-500/30 p-3.5">
+          <div className="flex items-center gap-2.5">
             <div className="flex-shrink-0">
               <svg
-                className="h-5 w-5 text-amber-400"
+                className="h-5 w-5 text-amber-500"
                 viewBox="0 0 20 20"
                 fill="currentColor"
               >
@@ -755,8 +758,8 @@ export default function ReInvoice() {
                 />
               </svg>
             </div>
-            <div className="ml-3">
-              <p className="text-sm text-amber-700 font-bold">
+            <div>
+              <p className="text-[13px] text-amber-800 dark:text-amber-300 font-semibold">
                 Atenție: Această factură a mai fost re-facturată anterior!
               </p>
             </div>
@@ -766,23 +769,26 @@ export default function ReInvoice() {
 
       {/* HEADER SECTION */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <Link href={`/facturi-primite/${invoice.id}`}>
-            <button className="flex items-center justify-center w-8 h-8 rounded-full apple-btn-glass border border-black/[0.06] dark:border-white/[0.09] hover:bg-black/[0.04] dark:hover:bg-white/[0.08] transition-colors cursor-pointer">
-              <ArrowLeft className="w-4 h-4 text-[#3a3a3c] dark:text-[#ebebf5]" />
+            <button
+              type="button"
+              className="flex items-center justify-center w-8 h-8 rounded-full apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7] transition-colors cursor-pointer shrink-0"
+            >
+              <ArrowLeft className="w-4 h-4" />
             </button>
           </Link>
-          <div>
-            <h1 className="text-xl font-bold text-[#1d1d1f] dark:text-white tracking-tight">
+          <div className="min-w-0">
+            <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
               Re-Facturare
             </h1>
-            <p className="text-sm text-[#636366] dark:text-[#98989d] mt-0.5 tabular-nums">
+            <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5 tabular-nums truncate">
               Bazat pe: <span>{invoice.number}</span> —{" "}
               {invoice.supplierName}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
             onClick={async () => {
@@ -906,10 +912,10 @@ export default function ReInvoice() {
               }
             }}
             disabled={downloadingPDF}
-            className="flex items-center gap-1.5 px-3.5 h-8 rounded-full apple-btn-glass text-[#3a3a3c] dark:text-[#ebebf5] text-xs font-semibold transition-colors disabled:opacity-60 cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 h-8.5 rounded-full apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-medium transition-colors disabled:opacity-60 cursor-pointer"
           >
             {downloadingPDF ? (
-              <span className="w-3.5 h-3.5 border-2 border-slate-300 border-t-slate-700 rounded-full animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : (
               <Download className="w-3.5 h-3.5" />
             )}
@@ -919,7 +925,7 @@ export default function ReInvoice() {
             type="button"
             onClick={() => handleSave(true)}
             disabled={saving}
-            className="px-3.5 h-8 rounded-full apple-btn-glass text-[#3a3a3c] dark:text-[#ebebf5] text-xs font-semibold transition-colors disabled:opacity-60 cursor-pointer"
+            className="px-3.5 h-8.5 rounded-full apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-medium transition-colors disabled:opacity-60 cursor-pointer"
           >
             Salvează ciornă
           </button>
@@ -927,10 +933,10 @@ export default function ReInvoice() {
             type="button"
             onClick={() => handleSave(false)}
             disabled={saving}
-            className="flex items-center gap-1.5 px-4 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.97] disabled:opacity-60 cursor-pointer"
+            className="flex items-center gap-1.5 px-4 h-8.5 rounded-full apple-btn-prominent text-[12.5px] font-semibold transition-all active:scale-[0.97] disabled:opacity-60 cursor-pointer"
           >
             {saving ? (
-              <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : (
               <Check className="w-3.5 h-3.5" />
             )}
@@ -941,15 +947,15 @@ export default function ReInvoice() {
 
       {/* Warning banner */}
       {invoice?.status === "refactured" && (
-        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 flex gap-3 items-start">
-          <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center shrink-0">
+        <div className="apple-surface border-amber-500/30 dark:border-amber-500/30 p-4 flex gap-3 items-start">
+          <div className="w-8 h-8 rounded-xl bg-amber-500/12 dark:bg-amber-500/18 flex items-center justify-center shrink-0">
             <Info className="w-4 h-4 text-amber-600 dark:text-amber-400" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-amber-800 dark:text-amber-300">
+            <h3 className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
               Atenție: Factură deja re-facturată
             </h3>
-            <p className="text-xs text-amber-700 dark:text-amber-400/80 mt-1">
+            <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d] mt-0.5 leading-relaxed">
               Aceste documente au mai fost re-facturate anterior. Continuarea va
               crea o nouă re-factură. Poți ignora acest mesaj dacă știi ce faci.
             </p>
@@ -957,15 +963,15 @@ export default function ReInvoice() {
         </div>
       )}
 
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-5">
         {/* Top: Lines editor */}
         <div className="w-full space-y-4">
           {/* Global markup */}
-          <div className="bg-blue-50/80 dark:bg-blue-950/30 rounded-[22px] border border-blue-200/80 dark:border-blue-800/70 p-4">
+          <div className="apple-surface px-4 py-3">
             <div className="flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-2">
-                <Percent className="w-4 h-4 text-blue-600" />
-                <span className="text-sm font-bold text-blue-900 dark:text-blue-200">
+                <Percent className="w-4 h-4 text-[#6e6e73] dark:text-[#98989d]" />
+                <span className="text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                   Adaos global:
                 </span>
               </div>
@@ -974,18 +980,18 @@ export default function ReInvoice() {
                   type="number"
                   value={globalMarkup}
                   onChange={e => setGlobalMarkup(e.target.value)}
-                  className="w-20 h-9 px-3 text-sm tabular-nums rounded-full border border-blue-300 dark:border-blue-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 text-center"
+                  className="w-20 h-8.5 px-3 text-[16px] sm:text-[13px] tabular-nums rounded-full border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none focus:border-[#0071e3] text-center transition-colors"
                   min={0}
                   max={500}
                 />
-                <span className="text-sm text-blue-700 dark:text-blue-300 font-semibold">
+                <span className="text-[13px] text-[#6e6e73] dark:text-[#98989d] font-semibold">
                   %
                 </span>
               </div>
               <button
                 type="button"
                 onClick={applyGlobalMarkupToAll}
-                className="px-4 h-9 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all active:scale-[0.97] cursor-pointer"
+                className="px-4 h-8.5 rounded-full apple-btn-prominent text-[12.5px] font-semibold transition-all active:scale-[0.97] cursor-pointer"
               >
                 Aplică pe toate liniile
               </button>
@@ -993,30 +999,30 @@ export default function ReInvoice() {
                 <button
                   type="button"
                   onClick={mergeToOneLine}
-                  className="px-4 h-9 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-all active:scale-[0.97] flex items-center gap-1.5 cursor-pointer"
+                  className="px-3.5 h-8.5 rounded-full apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-medium transition-all active:scale-[0.97] flex items-center gap-1.5 cursor-pointer"
                 >
-                  <TrendingUp className="w-3.5 h-3.5" />
+                  <TrendingUp className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                   Unifică în 1 linie
                 </button>
               )}
-              <div className="flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 ml-auto">
-                <Info className="w-3.5 h-3.5" />
-                Poți edita și individual fiecare linie
+              <div className="flex items-center gap-1.5 text-[12px] text-[#6e6e73] dark:text-[#98989d] ml-auto">
+                <Info className="w-3.5 h-3.5 shrink-0" />
+                <span>Poți edita și individual fiecare linie</span>
               </div>
             </div>
           </div>
 
           {/* Lines table */}
-          <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] shadow-sm border border-black/[0.06] dark:border-white/[0.09] overflow-hidden flex flex-col">
-            <div className="p-3.5 bg-[#f8f9fc]/90 dark:bg-white/[0.02] border-b border-black/[0.06] dark:border-white/[0.08] flex justify-between items-center">
-              <h3 className="text-sm font-semibold text-[#1d1d1f] dark:text-white">
-                Linii Re-Factură
+          <div className="apple-surface !overflow-visible flex flex-col">
+            <div className="p-3.5 sm:px-4 bg-[#fafafa] dark:bg-white/[0.025] rounded-t-[16px] border-b border-black/[0.05] dark:border-white/[0.07] flex justify-between items-center flex-wrap gap-2">
+              <h3 className="text-[14px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                Linii re-factură
               </h3>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <button
                   type="button"
                   onClick={() => setShowCodes(!showCodes)}
-                  className="flex items-center gap-1.5 px-3.5 h-8 rounded-full apple-btn-glass text-[#3a3a3c] dark:text-[#ebebf5] text-xs font-medium transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 px-3.5 h-8 rounded-full apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-medium transition-colors cursor-pointer"
                 >
                   <Info className="w-3.5 h-3.5" />
                   {showCodes ? "Ascunde coduri" : "Arată coduri"}
@@ -1024,7 +1030,7 @@ export default function ReInvoice() {
                 <button
                   type="button"
                   onClick={addLine}
-                  className="flex items-center gap-1.5 px-3.5 h-8 rounded-full apple-btn-glass text-[#3a3a3c] dark:text-[#ebebf5] text-xs font-semibold transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 px-3.5 h-8 rounded-full apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-medium transition-colors cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Adaugă linie
@@ -1033,56 +1039,56 @@ export default function ReInvoice() {
             </div>
 
             {/* Header Tabel */}
-            <div className="hidden md:grid grid-cols-12 gap-0 bg-[#f8f9fc]/90 dark:bg-white/[0.03] border-b border-black/[0.06] dark:border-white/[0.08] text-[#636366] dark:text-[#98989d] text-[10.5px] font-semibold uppercase tracking-wider">
+            <div className="hidden md:grid grid-cols-12 gap-0 bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07] text-[#6e6e73] dark:text-[#98989d] text-[12px] font-medium">
               {showCodes ? (
                 <>
                   <div className="col-span-1 px-3 py-2.5">Cod</div>
-                  <div className="col-span-3 px-3 py-2.5 border-l border-black/[0.06] dark:border-white/[0.08]">
-                    Denumire Serviciu
+                  <div className="col-span-3 px-3 py-2.5 border-l border-black/[0.05] dark:border-white/[0.07]">
+                    Denumire serviciu
                   </div>
                 </>
               ) : (
-                <div className="col-span-4 px-3 py-2.5">Denumire Serviciu</div>
+                <div className="col-span-4 px-3 py-2.5">Denumire serviciu</div>
               )}
-              <div className="col-span-1 px-2 py-2.5 text-center border-l border-black/[0.06] dark:border-white/[0.08]">
+              <div className="col-span-1 px-2 py-2.5 text-center border-l border-black/[0.05] dark:border-white/[0.07]">
                 U.M.
               </div>
-              <div className="col-span-1 px-2 py-2.5 text-center border-l border-black/[0.06] dark:border-white/[0.08]">
+              <div className="col-span-1 px-2 py-2.5 text-center border-l border-black/[0.05] dark:border-white/[0.07]">
                 Cant.
               </div>
-              <div className="col-span-2 px-2 py-2.5 text-right border-l border-black/[0.06] dark:border-white/[0.08]">
-                Preț Orig.
+              <div className="col-span-2 px-2 py-2.5 text-right border-l border-black/[0.05] dark:border-white/[0.07]">
+                Preț orig.
               </div>
-              <div className="col-span-1 px-2 py-2.5 text-center border-l border-black/[0.06] dark:border-white/[0.08]">
+              <div className="col-span-1 px-2 py-2.5 text-center border-l border-black/[0.05] dark:border-white/[0.07]">
                 Adaos %
               </div>
-              <div className="col-span-1 px-2 py-2.5 text-right border-l border-black/[0.06] dark:border-white/[0.08]">
-                Preț Nou
+              <div className="col-span-1 px-2 py-2.5 text-right border-l border-black/[0.05] dark:border-white/[0.07]">
+                Preț nou
               </div>
-              <div className="col-span-1 px-2 py-2.5 text-right border-l border-black/[0.06] dark:border-white/[0.08]">
+              <div className="col-span-1 px-2 py-2.5 text-right border-l border-black/[0.05] dark:border-white/[0.07]">
                 Total
               </div>
               <div className="col-span-1"></div>
             </div>
 
             {/* Continut Tabel */}
-            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            <div className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
               {lines.map(line => {
                 const qty = Number(line.quantity) || 0;
                 const uPrice = Number(line.unitPrice) || 0;
                 const lineTotal = qty * uPrice;
                 const lineClass = (line as any).isCustom
-                  ? "bg-amber-50/50 dark:bg-amber-900/10"
+                  ? "bg-amber-500/[0.04] dark:bg-amber-500/[0.08]"
                   : "";
 
                 return (
                   <div
                     key={line.id}
-                    className={`grid grid-cols-2 sm:grid-cols-4 md:grid-cols-12 gap-3 md:gap-0 items-start hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors p-4 md:p-0 border-b border-slate-200 dark:border-slate-800 md:border-b-0 ${lineClass}`}
+                    className={`grid grid-cols-2 sm:grid-cols-4 md:grid-cols-12 gap-3 md:gap-0 items-start md:items-center hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors p-4 md:p-0 border-b border-black/[0.045] dark:border-white/[0.06] md:border-b-0 ${lineClass}`}
                   >
                     {showCodes && (
                       <div className="col-span-2 sm:col-span-4 md:col-span-1 px-0 md:px-2 py-1 md:py-2 h-full flex flex-col md:flex-row md:items-center">
-                        <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">Cod</label>
+                        <label className="md:hidden text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">Cod</label>
                         <input
                           type="text"
                           placeholder="Cod..."
@@ -1094,14 +1100,14 @@ export default function ReInvoice() {
                               e.target.value
                             )
                           }
-                          className="w-full h-8 px-2 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 tabular-nums"
+                          className="w-full h-8 px-2 text-[16px] md:text-[12.5px] border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] rounded-xl text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] focus:outline-none focus:border-[#0071e3] tabular-nums transition-colors"
                         />
                       </div>
                     )}
                     <div
-                      className={`px-0 md:px-2 py-1 md:py-2 relative h-full flex flex-col justify-center col-span-2 sm:col-span-4 ${showCodes ? "md:col-span-3 md:border-l border-slate-100 dark:border-slate-800" : "md:col-span-4"}`}
+                      className={`px-0 md:px-2 py-1 md:py-2 relative h-full flex flex-col justify-center col-span-2 sm:col-span-4 ${showCodes ? "md:col-span-3 md:border-l border-black/[0.045] dark:border-white/[0.06]" : "md:col-span-4"}`}
                     >
-                      <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">Denumire Serviciu</label>
+                      <label className="md:hidden text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">Denumire serviciu</label>
                       <input
                         type="text"
                         placeholder="Descriere..."
@@ -1112,26 +1118,24 @@ export default function ReInvoice() {
                         }}
                         onFocus={e => {
                           setFocusedLineId(line.id);
-                          // Nu declanșa autocomplete pe textul default
                           const isDefault = line.description === "";
                           setCatalogQuery(isDefault ? "" : line.description);
-                          // Selectează tot textul ca să poți scrie imediat
                           e.target.select();
                         }}
                         onBlur={() =>
                           setTimeout(() => setFocusedLineId(null), 200)
                         }
-                        className="w-full h-8 px-2 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-full h-8 px-2.5 text-[16px] md:text-[12.5px] border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] rounded-xl text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] focus:outline-none focus:border-[#0071e3] transition-colors"
                       />
                       {focusedLineId === line.id &&
                         catalogQuery.trim().length > 0 && (
-                          <div className="absolute top-11 left-2 right-2 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl max-h-64 overflow-y-auto">
+                          <div className="absolute top-11 left-2 right-2 z-50 bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.10] rounded-2xl shadow-xl max-h-64 overflow-y-auto">
                             {catalogLoading ? (
                               <div className="p-4 flex justify-center">
-                                <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+                                <Loader2 className="w-4 h-4 animate-spin text-[#6e6e73]" />
                               </div>
                             ) : catalogData?.items?.length === 0 ? (
-                              <div className="p-4 text-xs text-slate-500 text-center">
+                              <div className="p-4 text-[12.5px] text-[#6e6e73] dark:text-[#98989d] text-center">
                                 Niciun rezultat în catalog.
                               </div>
                             ) : (
@@ -1139,21 +1143,22 @@ export default function ReInvoice() {
                                 (item: any, i: number) => (
                                   <button
                                     key={i}
+                                    type="button"
                                     onMouseDown={e => {
                                       e.preventDefault();
                                       handleSelectFromCatalog(line.id, item);
                                     }}
-                                    className="w-full text-left px-3 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 border-b border-slate-100 dark:border-slate-800 last:border-0 transition-colors"
+                                    className="apple-card-btn w-full text-left px-3.5 py-2 hover:bg-[#f2f2f7] dark:hover:bg-[#2c2c2e] border-b border-black/[0.045] dark:border-white/[0.06] last:border-0 transition-colors cursor-pointer"
                                   >
                                     <div className="flex items-center gap-2 mb-0.5">
-                                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#6e6e73] dark:text-[#98989d] border border-black/[0.06] dark:border-white/[0.08]">
                                         {item.tip}
                                       </span>
-                                      <span className="text-xs tabular-nums text-slate-500">
+                                      <span className="text-xs tabular-nums text-[#6e6e73] dark:text-[#98989d]">
                                         {item.cod}
                                       </span>
                                     </div>
-                                    <div className="text-xs font-medium text-slate-900 dark:text-slate-100 line-clamp-2 leading-tight">
+                                    <div className="text-[12.5px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] line-clamp-2 leading-tight">
                                       {item.denumire}
                                     </div>
                                   </button>
@@ -1163,63 +1168,63 @@ export default function ReInvoice() {
                           </div>
                         )}
                     </div>
-                    <div className="col-span-1 md:col-span-1 px-0 md:px-1 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 h-full flex flex-col justify-center">
-                      <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">U.M.</label>
+                    <div className="col-span-1 md:col-span-1 px-0 md:px-1.5 py-1 md:py-2 md:border-l border-black/[0.045] dark:border-white/[0.06] h-full flex flex-col justify-center">
+                      <label className="md:hidden text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">U.M.</label>
                       <input
                         value={line.unit}
                         onChange={e =>
                           updateLine(line.id, "unit", e.target.value)
                         }
-                        className="w-full text-center text-xs bg-slate-50 dark:bg-slate-800 md:bg-transparent border border-slate-200 dark:border-slate-700 md:border-0 rounded md:rounded-none h-8 md:h-auto focus:outline-none focus:ring-1 focus:ring-blue-500 md:focus:ring-0"
+                        className="w-full text-center text-[16px] md:text-[12.5px] bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.06] dark:border-white/[0.08] rounded-xl h-8 text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none focus:border-[#0071e3] transition-colors"
                       />
                     </div>
-                    <div className="col-span-1 md:col-span-1 px-0 md:px-1 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 h-full flex flex-col justify-center">
-                      <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">Cant.</label>
+                    <div className="col-span-1 md:col-span-1 px-0 md:px-1.5 py-1 md:py-2 md:border-l border-black/[0.045] dark:border-white/[0.06] h-full flex flex-col justify-center">
+                      <label className="md:hidden text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">Cant.</label>
                       <input
                         type="number"
                         value={line.quantity}
                         onChange={e =>
                           updateLine(line.id, "quantity", e.target.value)
                         }
-                        className="w-full text-center text-xs bg-slate-50 dark:bg-slate-800 md:bg-transparent border border-slate-200 dark:border-slate-700 md:border-0 rounded md:rounded-none h-8 md:h-auto focus:outline-none focus:ring-1 focus:ring-blue-500 md:focus:ring-0"
+                        className="w-full text-center text-[16px] md:text-[12.5px] tabular-nums bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.06] dark:border-white/[0.08] rounded-xl h-8 text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none focus:border-[#0071e3] transition-colors"
                       />
                     </div>
-                    <div className="col-span-1 md:col-span-2 px-0 md:px-1 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 h-full flex flex-col justify-center md:items-end text-xs text-slate-500 tabular-nums">
-                      <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">Preț Orig.</label>
+                    <div className="col-span-1 md:col-span-2 px-0 md:px-2 py-1 md:py-2 md:border-l border-black/[0.045] dark:border-white/[0.06] h-full flex flex-col justify-center md:items-end text-[12.5px] text-[#6e6e73] dark:text-[#98989d] tabular-nums">
+                      <label className="md:hidden text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">Preț orig.</label>
                       <span className="mt-1 md:mt-0">{formatCurrency(line.originalUnitPrice, currency)}</span>
                     </div>
-                    <div className="col-span-1 md:col-span-1 px-0 md:px-1 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 h-full flex flex-col justify-center">
-                      <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">Adaos %</label>
+                    <div className="col-span-1 md:col-span-1 px-0 md:px-1.5 py-1 md:py-2 md:border-l border-black/[0.045] dark:border-white/[0.06] h-full flex flex-col justify-center">
+                      <label className="md:hidden text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">Adaos %</label>
                       <input
                         type="number"
                         value={line.markupPercent}
                         onChange={e =>
                           updateLineMarkup(line.id, e.target.value)
                         }
-                        className="w-full text-center text-xs tabular-nums bg-white dark:bg-slate-800 md:bg-transparent border border-slate-200 dark:border-slate-700 md:border-0 rounded md:rounded-none h-8 md:h-auto focus:outline-none focus:ring-1 focus:ring-blue-500 md:focus:ring-0 text-amber-600 dark:text-amber-400 font-bold"
+                        className="w-full text-center text-[16px] md:text-[12.5px] tabular-nums bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.06] dark:border-white/[0.08] rounded-xl h-8 focus:outline-none focus:border-[#0071e3] text-amber-600 dark:text-amber-400 font-semibold transition-colors"
                       />
                     </div>
-                    <div className="col-span-1 md:col-span-1 px-0 md:px-1 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 h-full flex flex-col justify-center">
-                      <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">Preț Nou</label>
+                    <div className="col-span-1 md:col-span-1 px-0 md:px-1.5 py-1 md:py-2 md:border-l border-black/[0.045] dark:border-white/[0.06] h-full flex flex-col justify-center">
+                      <label className="md:hidden text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">Preț nou</label>
                       <input
                         type="number"
                         value={line.unitPrice}
                         onChange={e =>
                           updateLinePrice(line.id, e.target.value)
                         }
-                        className="w-full md:text-right text-xs tabular-nums bg-slate-50 dark:bg-slate-800 md:bg-transparent border border-slate-200 dark:border-slate-700 md:border-0 rounded md:rounded-none h-8 md:h-auto px-2 md:px-0 focus:outline-none focus:ring-1 focus:ring-blue-500 md:focus:ring-0 font-semibold text-blue-600"
+                        className="w-full md:text-right text-[16px] md:text-[12.5px] tabular-nums bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.06] dark:border-white/[0.08] rounded-xl h-8 px-2 focus:outline-none focus:border-[#0071e3] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] transition-colors"
                       />
                     </div>
-                    <div className="col-span-1 md:col-span-1 px-0 md:px-1 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 h-full flex flex-col justify-center md:items-end tabular-nums">
-                      <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">Total</label>
-                      <span className="text-xs font-bold text-slate-900 dark:text-white mt-1 md:mt-0">{formatCurrency(lineTotal, currency)}</span>
+                    <div className="col-span-1 md:col-span-1 px-0 md:px-2 py-1 md:py-2 md:border-l border-black/[0.045] dark:border-white/[0.06] h-full flex flex-col justify-center md:items-end tabular-nums">
+                      <label className="md:hidden text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">Total</label>
+                      <span className="text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] mt-1 md:mt-0">{formatCurrency(lineTotal, currency)}</span>
                     </div>
-                    <div className="col-span-2 md:col-span-1 px-0 md:px-1 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 flex items-end md:items-center justify-end md:justify-center">
+                    <div className="col-span-2 md:col-span-1 px-0 md:px-1 py-1 md:py-2 md:border-l border-black/[0.045] dark:border-white/[0.06] flex items-end md:items-center justify-end md:justify-center">
                       <button
                         type="button"
                         onClick={() => removeLine(line.id)}
                         aria-label="Șterge linia"
-                        className="w-8 h-8 md:w-7 md:h-7 flex items-center justify-center rounded-full text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors cursor-pointer"
+                        className="w-8 h-8 md:w-7 md:h-7 flex items-center justify-center rounded-full text-[#8e8e93] hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/12 transition-colors cursor-pointer"
                       >
                         <Trash2 className="w-4 h-4 md:w-3.5 md:h-3.5" />
                       </button>
@@ -1229,7 +1234,7 @@ export default function ReInvoice() {
               })}
             </div>
 
-            <div className="p-3 bg-[#f8f9fc]/80 dark:bg-white/[0.02] border-t border-black/[0.06] dark:border-white/[0.08] flex gap-2">
+            <div className="p-3.5 bg-[#fafafa] dark:bg-white/[0.02] rounded-b-[16px] border-t border-black/[0.05] dark:border-white/[0.07] flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => {
@@ -1248,22 +1253,22 @@ export default function ReInvoice() {
                     },
                   ]);
                 }}
-                className="flex items-center gap-1.5 px-3.5 h-8 text-xs font-semibold text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-full transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-3.5 h-8 text-[12.5px] font-medium apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7] rounded-full transition-colors cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" /> Adaugă rând
               </button>
               <button
                 type="button"
                 onClick={() => setShowNirModal(true)}
-                className="flex items-center gap-1.5 px-3.5 h-8 text-xs font-semibold text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-950/40 hover:bg-sky-100 dark:hover:bg-sky-900/50 rounded-full transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-3.5 h-8 text-[12.5px] font-medium apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7] rounded-full transition-colors cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" /> Adaugă din Stoc
               </button>
             </div>
 
             {bnrNoteMatch && (
-              <div className="mt-3 p-2.5 rounded-lg bg-slate-50/80 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 text-xs max-w-xl">
-                <p className="tabular-nums text-slate-800 dark:text-slate-200 leading-relaxed font-semibold text-xs">
+              <div className="mx-3.5 mb-3.5 p-3 rounded-xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.05] dark:border-white/[0.07] text-xs max-w-xl">
+                <p className="tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7] leading-relaxed font-medium text-[12px]">
                   {bnrNoteMatch}
                 </p>
               </div>
@@ -1272,20 +1277,20 @@ export default function ReInvoice() {
         </div>
 
         {/* Bottom: Config panels */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-start">
           {/* Client selector */}
-          <div className="md:col-span-2 bg-white dark:bg-[#1c1c1e] rounded-[22px] shadow-sm border border-black/[0.06] dark:border-white/[0.09] p-5">
+          <div className="md:col-span-2 apple-surface !overflow-visible p-5">
             <div className="flex items-center gap-2 mb-4">
-              <Users className="w-4 h-4 text-slate-400" />
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Client Final
+              <Users className="w-4 h-4 text-[#6e6e73] dark:text-[#98989d]" />
+              <span className="text-[14px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                Client final
               </span>
             </div>
 
             <div className="space-y-4">
               <div className="relative mb-4">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
-                  Nume sau Cod Fiscal Client *
+                <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1.5">
+                  Nume sau cod fiscal client *
                 </label>
                 <input
                   type="text"
@@ -1301,23 +1306,23 @@ export default function ReInvoice() {
                   onBlur={() =>
                     setTimeout(() => setShowClientDropdown(false), 200)
                   }
-                  className="w-full h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full h-9 px-3 text-[16px] sm:text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none focus:border-[#0071e3] transition-colors"
                 />
                 {showClientDropdown && (
-                  <div className="absolute z-20 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded shadow-lg max-h-64 overflow-y-auto">
+                  <div className="absolute z-20 w-full mt-1.5 bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.10] rounded-2xl shadow-xl max-h-64 overflow-y-auto">
                     {filteredClients.length > 0 &&
                       filteredClients.map(c => (
                         <button
                           key={c.id}
                           type="button"
                           onMouseDown={() => selectClient(c)}
-                          className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm border-b border-slate-100 dark:border-slate-800 last:border-0"
+                          className="apple-card-btn w-full text-left px-3.5 py-2.5 hover:bg-[#f2f2f7] dark:hover:bg-[#2c2c2e] text-[13px] border-b border-black/[0.045] dark:border-white/[0.06] last:border-0 transition-colors cursor-pointer"
                         >
-                          <div className="font-medium text-slate-900 dark:text-white">
+                          <div className="font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">
                             {c.name}
                           </div>
                           {c.cui && (
-                            <div className="text-xs text-slate-400">
+                            <div className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] tabular-nums">
                               CUI: {c.cui}
                             </div>
                           )}
@@ -1330,7 +1335,7 @@ export default function ReInvoice() {
                           e.preventDefault();
                           lookupCuiFromSearch(clientName || clientSearch);
                         }}
-                        className="w-full flex items-center gap-2 px-3 py-2.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-sm font-semibold transition-colors"
+                        className="apple-card-btn w-full flex items-center gap-2 px-3.5 py-2.5 bg-[#0071e3]/10 hover:bg-[#0071e3]/15 text-[#0071e3] dark:text-[#409cff] text-[13px] font-semibold transition-colors cursor-pointer"
                       >
                         <Search className="w-4 h-4" />
                         <span>
@@ -1348,19 +1353,20 @@ export default function ReInvoice() {
 
               <div>
                 <button
+                  type="button"
                   onClick={() => setShowAdvancedClientInfo(!showAdvancedClientInfo)}
-                  className="flex items-center gap-1.5 text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                  className="flex items-center gap-1.5 text-[12.5px] font-semibold text-[#0071e3] dark:text-[#409cff] hover:opacity-80 transition-opacity cursor-pointer"
                 >
                   {showAdvancedClientInfo ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                  {showAdvancedClientInfo ? "Ascunde Informații Opționale Client" : "Arată Informații Opționale Client (CUI, Adresă, etc.)"}
+                  {showAdvancedClientInfo ? "Ascunde informații opționale client" : "Arată informații opționale client (CUI, adresă, etc.)"}
                 </button>
               </div>
 
               {showAdvancedClientInfo && (
-                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                <div className="pt-4 border-t border-black/[0.05] dark:border-white/[0.07] space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+                      <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1.5">
                         CUI / CIF{" "}
                         {cuiLoading && (
                           <Loader2 className="w-3 h-3 ml-1 inline animate-spin" />
@@ -1370,63 +1376,63 @@ export default function ReInvoice() {
                         value={clientCUI}
                         onChange={e => setClientCUI(e.target.value)}
                         onBlur={lookupCui}
-                        className="w-full h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full h-9 px-3 text-[16px] sm:text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none focus:border-[#0071e3] transition-colors"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+                      <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1.5">
                         Reg. Com.
                       </label>
                       <input
                         value={clientRegCom}
                         onChange={e => setClientRegCom(e.target.value)}
-                        className="w-full h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full h-9 px-3 text-[16px] sm:text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none focus:border-[#0071e3] transition-colors"
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
-                        Telefon Client
+                      <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1.5">
+                        Telefon client
                       </label>
                       <input
                         value={clientPhone}
                         onChange={e => setClientPhone(e.target.value)}
-                        className="w-full h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full h-9 px-3 text-[16px] sm:text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none focus:border-[#0071e3] transition-colors"
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+                      <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1.5">
                         Email
                       </label>
                       <input
                         value={clientEmail}
                         onChange={e => setClientEmail(e.target.value)}
-                        className="w-full h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full h-9 px-3 text-[16px] sm:text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none focus:border-[#0071e3] transition-colors"
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-12 gap-4">
-                    <div className="col-span-8">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
+                    <div className="sm:col-span-8">
+                      <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1.5">
                         Adresă
                       </label>
                       <input
                         value={clientAddress}
                         onChange={e => setClientAddress(e.target.value)}
-                        className="w-full h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full h-9 px-3 text-[16px] sm:text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none focus:border-[#0071e3] transition-colors"
                       />
                     </div>
-                    <div className="col-span-4">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+                    <div className="sm:col-span-4">
+                      <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1.5">
                         Localitate
                       </label>
                       <input
                         value={clientCity}
                         onChange={e => setClientCity(e.target.value)}
-                        className="w-full h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full h-9 px-3 text-[16px] sm:text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none focus:border-[#0071e3] transition-colors"
                       />
                     </div>
                   </div>
@@ -1436,14 +1442,14 @@ export default function ReInvoice() {
           </div>
 
           {/* Invoice settings */}
-          <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] shadow-sm border border-black/[0.06] dark:border-white/[0.09] p-5 space-y-4">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Setări Re-Factură
+          <div className="apple-surface p-5 space-y-4">
+            <span className="text-[14px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] block">
+              Setări re-factură
             </span>
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
                   Monedă
                 </label>
                 <InvoiceCurrencyCalculator
@@ -1468,7 +1474,7 @@ export default function ReInvoice() {
               <select
                 value={currency}
                 onChange={e => setCurrency(e.target.value as Currency)}
-                className="w-full h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full h-9 px-3 text-[16px] sm:text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none focus:border-[#0071e3] cursor-pointer transition-colors"
               >
                 {currencies.map(c => (
                   <option key={c} value={c}>
@@ -1479,14 +1485,14 @@ export default function ReInvoice() {
             </div>
 
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+              <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1.5">
                 Scadență
               </label>
               <input
                 type="date"
                 value={dueDate}
                 onChange={e => setDueDate(e.target.value)}
-                className="w-full h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full h-9 px-3 text-[16px] sm:text-[13px] tabular-nums rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none focus:border-[#0071e3] transition-colors"
               />
             </div>
 
@@ -1502,7 +1508,7 @@ export default function ReInvoice() {
             />
 
             <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+              <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1.5">
                 Observații
               </label>
               <textarea
@@ -1510,20 +1516,20 @@ export default function ReInvoice() {
                 onChange={e => setNotes(e.target.value)}
                 rows={3}
                 placeholder="Mențiuni, condiții de plată..."
-                className="w-full px-4 py-3 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                className="w-full px-3.5 py-2.5 text-[16px] sm:text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none focus:border-[#0071e3] resize-none transition-colors"
               />
             </div>
           </div>
 
           {/* Summary */}
-          <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] shadow-sm border border-black/[0.06] dark:border-white/[0.09] p-5 tabular-nums">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-4">
+          <div className="apple-surface p-5 tabular-nums">
+            <span className="text-[14px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] block mb-4">
               Sumar
             </span>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between text-slate-500">
+            <div className="space-y-2 text-[13px]">
+              <div className="flex justify-between text-[#6e6e73] dark:text-[#98989d]">
                 <span>Cost original (fără TVA):</span>
-                <span>
+                <span className="font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">
                   {formatCurrency(
                     invoice.lines.reduce(
                       (s: number, l: any) => s + l.quantity * l.unitPrice,
@@ -1533,48 +1539,48 @@ export default function ReInvoice() {
                   )}
                 </span>
               </div>
-              <div className="flex justify-between text-slate-500">
+              <div className="flex justify-between text-[#6e6e73] dark:text-[#98989d]">
                 <span>Subtotal re-factură:</span>
-                <span>{formatCurrency(subtotal, currency)}</span>
+                <span className="font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">{formatCurrency(subtotal, currency)}</span>
               </div>
-              <div className="flex justify-between text-slate-500">
+              <div className="flex justify-between text-[#6e6e73] dark:text-[#98989d]">
                 <span>TVA ({lines[0]?.vatRate ?? 21}%):</span>
-                <span>{formatCurrency(totalVAT, currency)}</span>
+                <span className="font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">{formatCurrency(totalVAT, currency)}</span>
               </div>
-              <div className="flex justify-between text-slate-900 dark:text-white border-t border-slate-100 dark:border-slate-800 pt-2 mt-2">
+              <div className="flex justify-between text-[15px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] border-t border-black/[0.06] dark:border-white/[0.08] pt-2.5 mt-2">
                 <span>Total cu TVA:</span>
-                <span className="text-blue-600">
+                <span className="text-[#1d1d1f] dark:text-[#f5f5f7]">
                   {formatCurrency(total, currency)}
                 </span>
               </div>
             </div>
             {/* Margin highlight */}
             <div
-              className={`mt-4 p-3 rounded-lg flex items-center justify-between ${
+              className={`mt-4 p-3 rounded-xl flex items-center justify-between ${
                 margin >= 0
-                  ? "bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800"
-                  : "bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800"
+                  ? "bg-emerald-500/[0.08] dark:bg-emerald-500/[0.14] border border-emerald-500/20"
+                  : "bg-rose-500/[0.08] dark:bg-rose-500/[0.14] border border-rose-500/20"
               }`}
             >
               <div className="flex items-center gap-2">
                 <TrendingUp
-                  className={`w-4 h-4 ${margin >= 0 ? "text-emerald-600" : "text-rose-600"}`}
+                  className={`w-4 h-4 ${margin >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}
                 />
                 <span
-                  className={`text-xs font-bold ${margin >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400"}`}
+                  className={`text-[12.5px] font-semibold ${margin >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400"}`}
                 >
                   Adaos comercial
                 </span>
               </div>
               <div className="text-right">
                 <div
-                  className={`text-sm ${margin >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400"}`}
+                  className={`text-[13.5px] font-bold ${margin >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400"}`}
                 >
                   {margin >= 0 ? "+" : ""}
                   {formatCurrency(margin, currency)}
                 </div>
                 <div
-                  className={`text-[11px] ${margin >= 0 ? "text-emerald-600" : "text-rose-600"}`}
+                  className={`text-[11px] ${margin >= 0 ? "text-emerald-600 dark:text-emerald-400/80" : "text-rose-600 dark:text-rose-400/80"}`}
                 >
                   {invoice.lines.reduce(
                     (s: number, l: any) => s + l.quantity * l.unitPrice,

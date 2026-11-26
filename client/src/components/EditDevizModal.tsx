@@ -1,5 +1,13 @@
 import { useState, useEffect } from "react";
-import { Loader2, Plus, Trash2, Save, X, FileText, AlertCircle, Calendar } from "lucide-react";
+import {
+  Loader2,
+  Plus,
+  Trash2,
+  Save,
+  FileText,
+  AlertCircle,
+  Calendar,
+} from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import {
@@ -8,6 +16,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface EditDevizModalProps {
   isOpen: boolean;
@@ -86,13 +101,13 @@ export function EditDevizModal({
       onSuccess?.();
       onClose();
     },
-    onError: (err) => {
+    onError: err => {
       setErrorMsg(err.message || "A apărut o eroare la salvarea devizului.");
     },
   });
 
   const handleAddLine = () => {
-    setLines((prev) => [
+    setLines(prev => [
       ...prev,
       {
         type: "MATERIAL",
@@ -109,7 +124,7 @@ export function EditDevizModal({
       setErrorMsg("Devizul trebuie să conțină cel puțin un rând.");
       return;
     }
-    setLines((prev) => prev.filter((_, i) => i !== index));
+    setLines(prev => prev.filter((_, i) => i !== index));
     setErrorMsg(null);
   };
 
@@ -118,7 +133,7 @@ export function EditDevizModal({
     field: keyof DevizLineItem,
     val: any
   ) => {
-    setLines((prev) =>
+    setLines(prev =>
       prev.map((l, i) => {
         if (i !== index) return l;
         return { ...l, [field]: val };
@@ -127,12 +142,20 @@ export function EditDevizModal({
   };
 
   const totalMaterials = lines
-    .filter((l) => l.type === "MATERIAL")
-    .reduce((sum, l) => sum + (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0), 0);
+    .filter(l => l.type === "MATERIAL")
+    .reduce(
+      (sum, l) => sum + (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0),
+      0
+    );
 
   const totalLabor = lines
-    .filter((l) => l.type === "MANOPERA" || l.type === "NORMA" || l.type === "UTILAJ")
-    .reduce((sum, l) => sum + (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0), 0);
+    .filter(
+      l => l.type === "MANOPERA" || l.type === "NORMA" || l.type === "UTILAJ"
+    )
+    .reduce(
+      (sum, l) => sum + (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0),
+      0
+    );
 
   const totalDeviz = lines.reduce(
     (sum, l) => sum + (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0),
@@ -172,7 +195,7 @@ export function EditDevizModal({
       number: devizNumber || undefined,
       date: devizDate,
       notes,
-      lines: lines.map((l) => ({
+      lines: lines.map(l => ({
         type: l.type,
         code: l.code || null,
         description: l.description.trim(),
@@ -183,18 +206,18 @@ export function EditDevizModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl">
-        <DialogHeader className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex flex-row items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800 flex items-center justify-center text-sky-600 dark:text-sky-400">
+    <Dialog open={isOpen} onOpenChange={open => !open && onClose()}>
+      <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.10] rounded-[20px] shadow-2xl overscroll-contain">
+        <DialogHeader className="p-4 sm:p-5 border-b border-black/[0.06] dark:border-white/[0.08] flex flex-row items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-[10px] bg-[#f2f4f7] dark:bg-[#2c2c2e] flex items-center justify-center text-[#0071e3] dark:text-[#0a84ff] shrink-0">
               <FileText className="w-4 h-4" />
             </div>
             <div>
-              <DialogTitle className="text-base font-bold text-slate-900 dark:text-white">
-                Editare Deviz {data?.deviz?.number || `#${devizId}`}
+              <DialogTitle className="text-[16px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
+                Editare deviz {data?.deviz?.number || `#${devizId}`}
               </DialogTitle>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
                 Modifică data, numărul, rândurile și prețurile din deviz
               </p>
             </div>
@@ -203,147 +226,174 @@ export function EditDevizModal({
 
         {isLoading ? (
           <div className="p-12 flex flex-col items-center justify-center gap-2">
-            <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
-            <span className="text-xs text-slate-400 font-medium">Se încarcă datele devizului...</span>
+            <Loader2 className="w-6 h-6 animate-spin text-[#6e6e73]" />
+            <span className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] font-medium">
+              Se încarcă datele devizului...
+            </span>
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 overscroll-contain">
             {errorMsg && (
-              <div className="flex items-center gap-2 p-3 text-xs rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <div className="flex items-center gap-2 p-3 text-[12.5px] rounded-xl bg-[#ff3b30]/10 dark:bg-[#ff453a]/16 text-[#d70015] dark:text-[#ff6961] border border-[#ff3b30]/20">
+                <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{errorMsg}</span>
               </div>
             )}
 
             {/* Antet Deviz: Număr, Data, Factură asociată */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 bg-[#f2f2f7]/65 dark:bg-[#2c2c2e]/50 border border-black/[0.05] dark:border-white/[0.07] rounded-2xl">
               <div>
-                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">
-                  Nr. Deviz
+                <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">
+                  Nr. deviz
                 </label>
                 <input
                   type="text"
                   value={devizNumber}
-                  onChange={(e) => setDevizNumber(e.target.value)}
+                  onChange={e => setDevizNumber(e.target.value)}
                   placeholder="DEV-..."
-                  className="w-full h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-sky-500 outline-none"
+                  className="apple-input w-full h-9 px-3 text-[13px] font-semibold tabular-nums outline-none"
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-sky-600" />
-                  Data Devizului
+                <label className="flex items-center gap-1.5 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">
+                  <Calendar className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d]" />
+                  Data devizului
                 </label>
                 <input
                   type="date"
                   value={devizDate}
-                  onChange={(e) => setDevizDate(e.target.value)}
-                  className="w-full h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-sky-500 outline-none"
+                  onChange={e => setDevizDate(e.target.value)}
+                  className="apple-input w-full h-9 px-3 text-[13px] font-semibold tabular-nums outline-none"
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">
                   Factură asociată
                 </label>
-                <div className="h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100/60 dark:bg-slate-800 text-xs font-medium text-slate-600 dark:text-slate-300 flex items-center">
-                  {data?.deviz?.invoiceId ? `Factura #${data.deviz.invoiceId}` : "Neasociată"}
+                <div className="h-9 px-3 rounded-[12px] bg-black/[0.04] dark:bg-white/[0.06] text-[13px] font-medium text-[#6e6e73] dark:text-[#98989d] flex items-center tabular-nums">
+                  {data?.deviz?.invoiceId
+                    ? `Factura #${data.deviz.invoiceId}`
+                    : "Neasociată"}
                 </div>
               </div>
             </div>
 
             {/* Tabelul de rânduri */}
-            <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+            <div className="apple-surface overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800">
+                <table className="w-full text-[12.5px]">
+                  <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
                     <tr>
-                      <th className="px-2.5 py-2.5 text-center text-slate-400 font-semibold w-8">#</th>
-                      <th className="px-2.5 py-2.5 text-left text-slate-600 dark:text-slate-300 font-semibold w-32">Tip</th>
-                      <th className="px-2.5 py-2.5 text-left text-slate-600 dark:text-slate-300 font-semibold min-w-[200px]">Denumire articol / serviciu</th>
-                      <th className="px-2.5 py-2.5 text-left text-slate-600 dark:text-slate-300 font-semibold w-24">Cod</th>
-                      <th className="px-2.5 py-2.5 text-right text-slate-600 dark:text-slate-300 font-semibold w-24">Cantitate</th>
-                      <th className="px-2.5 py-2.5 text-right text-slate-600 dark:text-slate-300 font-semibold w-28">Preț unitar</th>
-                      <th className="px-2.5 py-2.5 text-right text-slate-600 dark:text-slate-300 font-semibold w-28">Total RON</th>
+                      <th className="px-3 py-2.5 text-center text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] w-10">
+                        Nr.
+                      </th>
+                      <th className="px-3 py-2.5 text-left text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] w-36">
+                        Tip
+                      </th>
+                      <th className="px-3 py-2.5 text-left text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] min-w-[200px]">
+                        Denumire articol / serviciu
+                      </th>
+                      <th className="px-3 py-2.5 text-left text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] w-24">
+                        Cod
+                      </th>
+                      <th className="px-3 py-2.5 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] w-24">
+                        Cantitate
+                      </th>
+                      <th className="px-3 py-2.5 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] w-28">
+                        Preț unitar
+                      </th>
+                      <th className="px-3 py-2.5 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] w-28">
+                        Total RON
+                      </th>
                       <th className="px-2 py-2.5 w-10"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
                     {lines.map((line, idx) => {
-                      const rowTotal = (Number(line.quantity) || 0) * (Number(line.unitPrice) || 0);
+                      const rowTotal =
+                        (Number(line.quantity) || 0) *
+                        (Number(line.unitPrice) || 0);
                       return (
-                        <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                          <td className="px-2.5 py-2 text-center text-slate-400 tabular-nums text-[11px]">
+                        <tr
+                          key={idx}
+                          className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors"
+                        >
+                          <td className="px-3 py-2 text-center text-[#8e8e93] tabular-nums text-[12px]">
                             {idx + 1}
                           </td>
-                          <td className="px-2.5 py-2">
-                            <select
+                          <td className="px-3 py-2">
+                            <Select
                               value={line.type}
-                              onChange={(e) =>
-                                handleLineChange(idx, "type", e.target.value as any)
+                              onValueChange={val =>
+                                handleLineChange(idx, "type", val as any)
                               }
-                              className="w-full h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-sky-500 outline-none"
                             >
-                              <option value="MATERIAL">Material</option>
-                              <option value="MANOPERA">Manoperă</option>
-                              <option value="UTILAJ">Utilaj</option>
-                              <option value="NORMA">Normă</option>
-                            </select>
+                              <SelectTrigger className="apple-input h-8 px-2.5 text-[12.5px] w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="MATERIAL">Material</SelectItem>
+                                <SelectItem value="MANOPERA">Manoperă</SelectItem>
+                                <SelectItem value="UTILAJ">Utilaj</SelectItem>
+                                <SelectItem value="NORMA">Normă</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </td>
-                          <td className="px-2.5 py-2">
+                          <td className="px-3 py-2">
                             <input
                               type="text"
                               value={line.description}
-                              onChange={(e) =>
+                              onChange={e =>
                                 handleLineChange(idx, "description", e.target.value)
                               }
                               placeholder="Descriere articol..."
-                              className="w-full h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500 outline-none"
+                              className="apple-input w-full h-8 px-2.5 text-[12.5px] outline-none"
                             />
                           </td>
-                          <td className="px-2.5 py-2">
+                          <td className="px-3 py-2">
                             <input
                               type="text"
                               value={line.code || ""}
-                              onChange={(e) =>
+                              onChange={e =>
                                 handleLineChange(idx, "code", e.target.value)
                               }
                               placeholder="Cod opț."
-                              className="w-full h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500 outline-none"
+                              className="apple-input w-full h-8 px-2 text-[12.5px] tabular-nums outline-none"
                             />
                           </td>
-                          <td className="px-2.5 py-2">
+                          <td className="px-3 py-2">
                             <input
                               type="number"
                               step="0.01"
                               min="0"
                               value={line.quantity}
-                              onChange={(e) =>
+                              onChange={e =>
                                 handleLineChange(
                                   idx,
                                   "quantity",
                                   parseFloat(e.target.value) || 0
                                 )
                               }
-                              className="w-full h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs tabular-nums text-right text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500 outline-none"
+                              className="apple-input w-full h-8 px-2 text-[12.5px] tabular-nums text-right outline-none"
                             />
                           </td>
-                          <td className="px-2.5 py-2">
+                          <td className="px-3 py-2">
                             <input
                               type="number"
                               step="0.01"
                               min="0"
                               value={line.unitPrice}
-                              onChange={(e) =>
+                              onChange={e =>
                                 handleLineChange(
                                   idx,
                                   "unitPrice",
                                   parseFloat(e.target.value) || 0
                                 )
                               }
-                              className="w-full h-8 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs tabular-nums text-right text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500 outline-none"
+                              className="apple-input w-full h-8 px-2 text-[12.5px] tabular-nums text-right outline-none"
                             />
                           </td>
-                          <td className="px-2.5 py-2 text-right tabular-nums font-bold text-slate-900 dark:text-white">
+                          <td className="px-3 py-2 text-right tabular-nums font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                             {rowTotal.toFixed(2)}
                           </td>
                           <td className="px-2 py-2 text-center">
@@ -351,7 +401,8 @@ export function EditDevizModal({
                               type="button"
                               onClick={() => handleRemoveLine(idx)}
                               title="Șterge rând"
-                              className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                              aria-label="Șterge rând"
+                              className="w-7 h-7 rounded-full apple-btn-glass flex items-center justify-center text-[#6e6e73] dark:text-[#98989d] hover:text-[#ff3b30] dark:hover:text-[#ff453a] transition-colors cursor-pointer mx-auto"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -363,54 +414,55 @@ export function EditDevizModal({
                 </table>
               </div>
 
-              <div className="p-2.5 bg-slate-50/70 dark:bg-slate-800/40 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <div className="p-2.5 bg-[#fafafa] dark:bg-white/[0.02] border-t border-black/[0.05] dark:border-white/[0.07] flex items-center justify-between">
                 <button
                   type="button"
                   onClick={handleAddLine}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-950/50 transition-colors"
+                  className="apple-btn-glass flex items-center gap-1.5 h-8 px-3.5 rounded-full text-[12px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Adaugă rând
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Adaugă rând</span>
                 </button>
               </div>
             </div>
 
             {/* Observații */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">
                 Observații deviz (opțional)
               </label>
               <textarea
                 value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+                onChange={e => setNotes(e.target.value)}
                 placeholder="Observații despre lucrări, condiții etc..."
                 rows={2}
-                className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-sky-500 outline-none resize-none"
+                className="apple-input w-full px-3 py-2 text-[13px] outline-none resize-none"
               />
             </div>
 
             {/* Totale */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-[#f2f2f7]/65 dark:bg-[#2c2c2e]/50 p-3.5 rounded-2xl border border-black/[0.05] dark:border-white/[0.07]">
               <div className="text-right sm:text-left">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                <span className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block">
                   Materiale
                 </span>
-                <span className="tabular-nums text-sm font-bold text-slate-700 dark:text-slate-200">
+                <span className="tabular-nums text-[14px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                   {totalMaterials.toFixed(2)} RON
                 </span>
               </div>
               <div className="text-right sm:text-left">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                <span className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block">
                   Manoperă / Utilaje
                 </span>
-                <span className="tabular-nums text-sm font-bold text-slate-700 dark:text-slate-200">
+                <span className="tabular-nums text-[14px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                   {totalLabor.toFixed(2)} RON
                 </span>
               </div>
               <div className="text-right">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 block">
-                  TOTAL DEVIZ
+                <span className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block">
+                  Total deviz
                 </span>
-                <span className="tabular-nums text-base font-black text-sky-700 dark:text-sky-300">
+                <span className="tabular-nums text-[18px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.02em]">
                   {totalDeviz.toFixed(2)} RON
                 </span>
               </div>
@@ -418,12 +470,12 @@ export function EditDevizModal({
           </div>
         )}
 
-        <div className="p-3 sm:p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-end gap-2">
+        <div className="p-3.5 sm:p-4 border-t border-black/[0.06] dark:border-white/[0.08] bg-[#fafafa] dark:bg-white/[0.02] flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={onClose}
             disabled={updateMutation.isPending}
-            className="px-4 h-9 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
+            className="apple-btn-glass px-4 h-9 rounded-full text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] disabled:opacity-50 cursor-pointer"
           >
             Anulează
           </button>
@@ -431,14 +483,14 @@ export function EditDevizModal({
             type="button"
             onClick={handleSave}
             disabled={updateMutation.isPending || isLoading}
-            className="flex items-center gap-1.5 px-4 h-9 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold transition-all shadow-sm active:scale-95 disabled:opacity-50"
+            className="apple-btn-prominent flex items-center justify-center gap-1.5 px-4 h-9 rounded-full text-white text-[12.5px] font-semibold disabled:opacity-50 cursor-pointer"
           >
             {updateMutation.isPending ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : (
               <Save className="w-3.5 h-3.5" />
             )}
-            Salvează deviz
+            <span>Salvează deviz</span>
           </button>
         </div>
       </DialogContent>

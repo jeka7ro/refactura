@@ -2,7 +2,6 @@ import { useState, useRef, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -22,8 +21,6 @@ import {
 import {
   Upload,
   Search,
-  FileText,
-  Eye,
   Trash2,
   RefreshCw,
   Download,
@@ -34,10 +31,8 @@ import {
   ChevronRight,
   X,
   Loader2,
-  FileUp,
   FolderOpen,
-  Tag,
-  ArrowUpDown,
+  Globe,
 } from "lucide-react";
 import { useTableSort } from "@/hooks/useTableSort";
 import { useLocation } from "wouter";
@@ -53,22 +48,24 @@ const SOURCE_LABELS: Record<string, string> = {
   other: "Altă sursă",
 };
 
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  pending: { label: "Neîncasate", color: "text-amber-600 dark:text-amber-500" },
-  processed: { label: "Încasate", color: "text-blue-600 dark:text-blue-400" },
+const STATUS_LABELS: Record<string, { label: string; pill: string }> = {
+  pending: {
+    label: "Neîncasate",
+    pill: "bg-amber-500/10 text-amber-700 border-amber-500/20 dark:bg-amber-500/18 dark:text-amber-300 dark:border-amber-500/25",
+  },
+  processed: {
+    label: "Încasate",
+    pill: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:bg-emerald-500/18 dark:text-emerald-300 dark:border-emerald-500/25",
+  },
   refactured: {
     label: "Re-facturată",
-    color: "text-emerald-600 dark:text-emerald-400",
+    pill: "bg-teal-500/10 text-teal-700 border-teal-500/20 dark:bg-teal-500/18 dark:text-teal-300 dark:border-teal-500/25",
   },
-  archived: { label: "Arhivată", color: "text-slate-500 dark:text-slate-400" },
+  archived: {
+    label: "Arhivată",
+    pill: "bg-[#f2f2f7] text-[#3a3a3c] border-black/[0.08] dark:bg-[#2c2c2e] dark:text-[#ebebf5] dark:border-white/[0.10]",
+  },
 };
-
-function formatBytes(bytes: number) {
-  if (!bytes) return "-";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 function formatDate(str: string | null | undefined) {
   if (!str) return "—";
@@ -97,8 +94,9 @@ export default function InvoiceArchive() {
   const [filterSource, setFilterSource] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [page, setPage] = useState(0);
+  const [limit, setLimit] = useState(20);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [isDragging, setIsDragging] = useState(false);
+  const [, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
   const [showMetaModal, setShowMetaModal] = useState(false);
@@ -107,14 +105,13 @@ export default function InvoiceArchive() {
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const LIMIT = 20;
 
   const { data, isLoading, refetch } = trpc.invoiceArchive.list.useQuery({
     source: filterSource !== "all" ? filterSource : undefined,
     status: filterStatus !== "all" ? filterStatus : undefined,
     search: search || undefined,
-    limit: LIMIT,
-    offset: page * LIMIT,
+    limit,
+    offset: page * limit,
   });
 
   const { data: stats } = trpc.invoiceArchive.stats.useQuery();
@@ -241,23 +238,6 @@ export default function InvoiceArchive() {
   };
   const handleDragLeave = () => setIsDragging(false);
 
-  const openMetaModal = (entry: any) => {
-    setSelectedEntry(entry);
-    setMetaForm({
-      invoiceNumber: entry.invoiceNumber || "",
-      supplierName: entry.supplierName || "",
-      supplierCUI: entry.supplierCUI || "",
-      issueDate: entry.issueDate || "",
-      dueDate: entry.dueDate || "",
-      total: entry.total || "",
-      totalVAT: entry.totalVAT || "",
-      currency: entry.currency || "RON",
-      status: entry.status || "pending",
-      notes: entry.notes || "",
-    });
-    setShowMetaModal(true);
-  };
-
   const itemsRaw = data?.items ?? [];
   const {
     sortedData: items,
@@ -265,36 +245,58 @@ export default function InvoiceArchive() {
     getSortIcon,
   } = useTableSort(itemsRaw, "invoice_archive");
   const total = data?.total ?? 0;
-  const totalPages = Math.ceil(total / LIMIT);
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const hasActiveFilters =
+    Boolean(search) || filterSource !== "all" || filterStatus !== "all";
 
   return (
-    <div className="p-3 sm:p-5 max-w-full space-y-6">
+    <div
+      className="p-3 sm:p-5 max-w-full space-y-4"
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap px-0.5">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900 dark:text-white">
-            Arhivă Facturi
+          <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
+            Arhivă facturi
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Evidență și păstrare facturi din orice sursă
+          <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5 tabular-nums">
+            Evidență și păstrare facturi din orice sursă ·{" "}
+            <strong className="text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold">
+              {stats?.total ?? total}
+            </strong>{" "}
+            documente
+            {hasActiveFilters && (
+              <span className="ml-1.5 text-[#1d1d1f] dark:text-white font-medium">
+                ({total} afișate)
+              </span>
+            )}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
             onClick={() => refetch()}
-            className="gap-1.5 rounded-full border-slate-200 dark:border-slate-700"
+            className="apple-btn-glass flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-full text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
           >
-            <RefreshCw className="w-3.5 h-3.5" /> Reîncarcă
-          </Button>
-          <Button
-            size="sm"
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
+            <span>Reîncarcă</span>
+          </button>
+          <button
+            type="button"
+            disabled={uploading}
             onClick={() => fileInputRef.current?.click()}
-            className="gap-1.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+            className="apple-btn-prominent flex items-center justify-center gap-1.5 h-9 px-4 rounded-full text-white text-[12.5px] font-semibold disabled:opacity-60 cursor-pointer"
           >
-            <Upload className="w-3.5 h-3.5" /> Încarcă Facturi
-          </Button>
+            {uploading ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Upload className="w-3.5 h-3.5" />
+            )}
+            <span>{uploading ? "Se încarcă..." : "Încarcă facturi"}</span>
+          </button>
           <input
             ref={fileInputRef}
             type="file"
@@ -306,173 +308,229 @@ export default function InvoiceArchive() {
         </div>
       </div>
 
-      {/* Stats bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+      {/* KPI Cards Strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           {
-            label: "Total",
+            id: "all",
+            label: "Total arhivă",
             value: stats?.total ?? 0,
             icon: Archive,
-            color:
-              "text-slate-600 bg-slate-100 dark:bg-slate-800 dark:text-slate-300",
+            badgeCls:
+              "bg-[#f2f4f7] dark:bg-[#2c2c2e] text-[#0071e3] dark:text-[#0a84ff]",
           },
           {
+            id: "pending",
             label: "Neîncasate",
             value: stats?.pending ?? 0,
             icon: Clock,
-            color:
-              "text-amber-600 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-400",
+            badgeCls:
+              "bg-[#fff6eb] dark:bg-amber-500/18 text-amber-600 dark:text-amber-400",
           },
           {
+            id: "processed",
             label: "Încasate",
             value: stats?.processed ?? 0,
             icon: CheckCircle,
-            color:
-              "text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400",
+            badgeCls:
+              "bg-[#eefbf3] dark:bg-emerald-500/18 text-emerald-600 dark:text-emerald-400",
           },
           {
+            id: "refactured",
             label: "Re-facturate",
             value: stats?.refactured ?? 0,
             icon: RefreshCw,
-            color:
-              "text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-400",
+            badgeCls:
+              "bg-[#f2f4f7] dark:bg-[#2c2c2e] text-[#6e6e73] dark:text-[#98989d]",
           },
         ].map(s => (
           <div
-            key={s.label}
-            className="bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] rounded-2xl px-3.5 py-2.5 shadow-2xs flex items-center gap-3 transition-all hover:shadow-sm"
+            key={s.id}
+            role="button"
+            tabIndex={0}
+            onClick={() => {
+              setFilterStatus(
+                s.id === "all" ? "all" : filterStatus === s.id ? "all" : s.id
+              );
+              setPage(0);
+            }}
+            onKeyDown={e => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setFilterStatus(
+                  s.id === "all" ? "all" : filterStatus === s.id ? "all" : s.id
+                );
+                setPage(0);
+              }
+            }}
+            className="apple-surface outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 transition-all hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none"
           >
-            <div
-              className={`w-8 h-8 flex items-center justify-center rounded-xl shrink-0 ${s.color}`}
-            >
-              <s.icon className="w-4 h-4" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-[11px] font-medium text-[#636366] dark:text-[#98989d] truncate">
+            <div className="flex items-center justify-between gap-2 w-full">
+              <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
                 {s.label}
-              </div>
-              <div className="text-lg font-bold tabular-nums text-[#1d1d1f] dark:text-white leading-tight">
-                {s.value}
-              </div>
+              </span>
+              <span
+                className={`w-7 h-7 rounded-[8px] flex items-center justify-center shrink-0 ${s.badgeCls}`}
+              >
+                <s.icon className="w-3.5 h-3.5" />
+              </span>
             </div>
+            <span className="text-[22px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none tabular-nums">
+              {s.value}
+            </span>
           </div>
         ))}
       </div>
 
-      {/* Filters and Table in a single card */}
-      <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] shadow-sm overflow-hidden mt-6">
-        {/* Filters */}
-        <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-wrap gap-3">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <Input
-              placeholder="Caută furnizor, număr factură..."
-              value={search}
-              onChange={e => {
-                setSearch(e.target.value);
-                setPage(0);
-              }}
-              className="!pl-9 h-9 rounded-full text-sm border-slate-200 dark:border-slate-700 bg-transparent"
-            />
+      {/* Unified Single-Row Filter & Search Toolbar */}
+      <div className="apple-surface px-3 py-2.5">
+        <div className="flex flex-wrap xl:flex-nowrap items-center gap-1.5 2xl:gap-2 w-full min-w-0">
+          <div className="apple-segmented max-w-full overflow-x-auto no-scrollbar shrink-0">
+            {[
+              { id: "all", label: "Toate" },
+              { id: "pending", label: "Neîncasate" },
+              { id: "processed", label: "Încasate" },
+              { id: "refactured", label: "Re-facturate" },
+              { id: "archived", label: "Arhivate" },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                type="button"
+                data-active={filterStatus === tab.id}
+                onClick={() => {
+                  setFilterStatus(
+                    tab.id === "all"
+                      ? "all"
+                      : filterStatus === tab.id
+                        ? "all"
+                        : tab.id
+                  );
+                  setPage(0);
+                }}
+                className="apple-segmented-item px-2.5 shrink-0"
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
-          <Select
-            value={filterSource}
-            onValueChange={v => {
-              setFilterSource(v);
-              setPage(0);
-            }}
-          >
-            <SelectTrigger
-              data-filtered={filterSource !== "all"}
-              className="apple-pill-control w-auto h-9 px-3.5 rounded-full text-sm shrink-0"
-            >
-              <SelectValue placeholder="Sursă" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Toate sursele</SelectItem>
-              {Object.entries(SOURCE_LABELS).map(([k, v]) => (
-                <SelectItem key={k} value={k}>
-                  {v}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={filterStatus}
-            onValueChange={v => {
-              setFilterStatus(v);
-              setPage(0);
-            }}
-          >
-            <SelectTrigger
-              data-filtered={filterStatus !== "all"}
-              className="apple-pill-control w-auto h-9 px-3.5 rounded-full text-sm shrink-0"
-            >
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Toate statusurile</SelectItem>
-              {Object.entries(STATUS_LABELS).map(([k, v]) => (
-                <SelectItem key={k} value={k}>
-                  {v.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {(search || filterSource !== "all" || filterStatus !== "all") && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setSearch("");
-                setFilterSource("all");
-                setFilterStatus("all");
+
+          <div className="xl:ml-auto flex flex-wrap sm:flex-nowrap items-center gap-1.5 2xl:gap-2 w-full xl:w-auto xl:flex-1 justify-end min-w-0">
+            <Select
+              value={filterSource}
+              onValueChange={v => {
+                setFilterSource(v);
                 setPage(0);
               }}
-              className="h-9 rounded-full gap-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white"
             >
-              <X className="w-3.5 h-3.5" /> Resetează
-            </Button>
-          )}
-        </div>
+              <SelectTrigger
+                data-filtered={filterSource !== "all"}
+                className="apple-pill-control h-[34px] w-auto shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 2xl:px-3"
+              >
+                <Globe className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
+                <SelectValue placeholder="Toate sursele" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toate sursele</SelectItem>
+                {Object.entries(SOURCE_LABELS).map(([k, v]) => (
+                  <SelectItem key={k} value={k}>
+                    {v}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-        {/* Table Content */}
-        <div>
-          {selectedIds.size > 0 && (
-            <div className="flex items-center justify-between gap-3 px-4 py-2 bg-blue-600 text-white shadow-md">
-              <span className="text-sm font-semibold tabular-nums">
-                {selectedIds.size} facturi selectate
-              </span>
-              <div className="flex items-center gap-2">
+            <div className="relative flex-1 min-w-[140px] max-w-full sm:max-w-[280px]">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#8e8e93] pointer-events-none" />
+              <input
+                placeholder="Caută furnizor, număr factură..."
+                value={search}
+                onChange={e => {
+                  setSearch(e.target.value);
+                  setPage(0);
+                }}
+                style={{ paddingLeft: 34, paddingRight: search ? 34 : 14 }}
+                className="apple-pill-control rounded-full w-full h-[34px] outline-none text-[13px] text-[#1d1d1f] dark:text-white placeholder:text-[#8e8e93] focus:bg-white dark:focus:bg-[#2c2c2e] focus:border-black/15 dark:focus:border-white/20"
+              />
+              {search && (
                 <button
-                  onClick={() => setSelectedIds(new Set())}
-                  className="px-3.5 h-7 rounded-full bg-white/20 hover:bg-white/30 text-white text-xs font-semibold transition-colors"
+                  type="button"
+                  onClick={() => {
+                    setSearch("");
+                    setPage(0);
+                  }}
+                  aria-label="Șterge căutarea"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center hover:bg-black/[0.07] dark:hover:bg-white/[0.12] cursor-pointer"
                 >
-                  Anulează
+                  <X className="w-3 h-3 text-[#6e6e73] dark:text-[#98989d]" />
                 </button>
-                <button
-                  onClick={() => setShowBulkDeleteDialog(true)}
-                  className="px-3.5 h-7 rounded-full bg-red-600 text-white hover:bg-red-700 text-xs font-bold transition-colors shadow-sm"
-                >
-                  Șterge selectate
-                </button>
-              </div>
+              )}
             </div>
-          )}
+
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  setFilterSource("all");
+                  setFilterStatus("all");
+                  setPage(0);
+                }}
+                title="Elimină toate filtrele"
+                aria-label="Elimină toate filtrele"
+                className="apple-pill-control w-[34px] h-[34px] shrink-0 flex items-center justify-center text-[#6e6e73] hover:text-[#1d1d1f] dark:text-[#98989d] dark:hover:text-white cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Table Surface */}
+      <div className="apple-surface overflow-hidden">
+        {selectedIds.size > 0 && (
+          <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-[#f2f2f7]/90 dark:bg-[#2c2c2e]/85 border-b border-black/[0.06] dark:border-white/[0.08]">
+            <span className="text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums">
+              {selectedIds.size} facturi selectate
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedIds(new Set())}
+                className="apple-btn-glass px-3.5 h-7 rounded-full text-[12px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
+              >
+                Anulează
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowBulkDeleteDialog(true)}
+                className="apple-btn-destructive-soft px-3.5 h-7 rounded-full text-[12px] font-semibold cursor-pointer"
+              >
+                Șterge selectate
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="overflow-x-auto">
           {isLoading ? (
-            <div className="flex items-center justify-center py-16 text-slate-400">
+            <div className="flex items-center justify-center py-14 text-[#6e6e73] dark:text-[#98989d] text-[13px]">
               <Loader2 className="w-5 h-5 animate-spin mr-2" /> Se încarcă...
             </div>
           ) : items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-slate-400">
-              <FolderOpen className="w-10 h-10 mb-3 opacity-30" />
-              <p className="text-sm font-medium">Nicio factură în arhivă</p>
-              <p className="text-xs mt-1">Încarcă primul fișier PDF sau XML</p>
+            <div className="flex flex-col items-center justify-center py-14 text-[#6e6e73] dark:text-[#98989d]">
+              <FolderOpen className="w-9 h-9 mb-2.5 opacity-40" />
+              <p className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                Nicio factură în arhivă
+              </p>
+              <p className="text-[12.5px] mt-0.5">
+                Încarcă primul fișier PDF sau XML
+              </p>
             </div>
           ) : (
-            <table className="w-full text-sm text-slate-700 dark:text-slate-300">
-              <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+            <table className="w-full text-[13px]">
+              <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+                <tr>
                   <th className="px-4 py-3 w-10 text-center">
                     <input
                       type="checkbox"
@@ -486,84 +544,84 @@ export default function InvoiceArchive() {
                           setSelectedIds(new Set());
                         }
                       }}
-                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 bg-white"
+                      className="w-4 h-4 rounded border-black/20 dark:border-white/25 text-primary cursor-pointer"
                     />
                   </th>
-                  <th className="text-left px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider w-16">
-                    Nr. Crt.
+                  <th className="text-center px-3 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] w-14 whitespace-nowrap">
+                    Nr.
                   </th>
                   <th
-                    className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700"
+                    className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] cursor-pointer hover:text-[#1d1d1f] dark:hover:text-white select-none transition-colors"
                     onClick={() => handleSort("supplierName")}
                   >
                     <div className="flex items-center gap-1">
-                      Furnizor{" "}
-                      <span className="text-blue-500">
+                      <span>Furnizor</span>
+                      <span className="text-[#1d1d1f] dark:text-white opacity-60">
                         {getSortIcon("supplierName")}
                       </span>
                     </div>
                   </th>
                   <th
-                    className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700"
+                    className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] cursor-pointer hover:text-[#1d1d1f] dark:hover:text-white whitespace-nowrap select-none transition-colors"
                     onClick={() => handleSort("invoiceNumber")}
                   >
                     <div className="flex items-center gap-1">
-                      Nr. Factură{" "}
-                      <span className="text-blue-500">
+                      <span>Nr. factură</span>
+                      <span className="text-[#1d1d1f] dark:text-white opacity-60">
                         {getSortIcon("invoiceNumber")}
                       </span>
                     </div>
                   </th>
                   <th
-                    className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700"
+                    className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] cursor-pointer hover:text-[#1d1d1f] dark:hover:text-white whitespace-nowrap select-none transition-colors"
                     onClick={() => handleSort("issueDate")}
                   >
                     <div className="flex items-center gap-1">
-                      Dată{" "}
-                      <span className="text-blue-500">
+                      <span>Dată</span>
+                      <span className="text-[#1d1d1f] dark:text-white opacity-60">
                         {getSortIcon("issueDate")}
                       </span>
                     </div>
                   </th>
                   <th
-                    className="text-right px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700"
+                    className="text-right px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] cursor-pointer hover:text-[#1d1d1f] dark:hover:text-white whitespace-nowrap select-none transition-colors"
                     onClick={() => handleSort("total")}
                   >
                     <div className="flex items-center justify-end gap-1">
-                      Total{" "}
-                      <span className="text-blue-500">
+                      <span>Total</span>
+                      <span className="text-[#1d1d1f] dark:text-white opacity-60">
                         {getSortIcon("total")}
                       </span>
                     </div>
                   </th>
                   <th
-                    className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700"
+                    className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] cursor-pointer hover:text-[#1d1d1f] dark:hover:text-white whitespace-nowrap select-none transition-colors"
                     onClick={() => handleSort("source")}
                   >
                     <div className="flex items-center gap-1">
-                      Sursă{" "}
-                      <span className="text-blue-500">
+                      <span>Sursă</span>
+                      <span className="text-[#1d1d1f] dark:text-white opacity-60">
                         {getSortIcon("source")}
                       </span>
                     </div>
                   </th>
                   <th
-                    className="text-left px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide cursor-pointer hover:text-slate-700"
+                    className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] cursor-pointer hover:text-[#1d1d1f] dark:hover:text-white whitespace-nowrap select-none transition-colors"
                     onClick={() => handleSort("status")}
                   >
                     <div className="flex items-center gap-1">
-                      Status{" "}
-                      <span className="text-blue-500">
+                      <span>Status</span>
+                      <span className="text-[#1d1d1f] dark:text-white opacity-60">
                         {getSortIcon("status")}
                       </span>
                     </div>
                   </th>
-                  <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                  <th className="text-right px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
                     Acțiuni
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
                 {items.map((item: any, index: number) => {
                   const st =
                     STATUS_LABELS[item.status] ?? STATUS_LABELS.pending;
@@ -571,8 +629,12 @@ export default function InvoiceArchive() {
                   return (
                     <tr
                       key={item.id}
-                      className={`hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors group ${
-                        isUnread ? "bg-blue-50/20 dark:bg-blue-950/20" : ""
+                      className={`hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors group ${
+                        selectedIds.has(item.id)
+                          ? "bg-[#0071e3]/[0.05] dark:bg-[#0a84ff]/[0.12]"
+                          : isUnread
+                            ? "bg-[#0071e3]/[0.025] dark:bg-[#0a84ff]/[0.06]"
+                            : ""
                       }`}
                     >
                       <td className="px-4 py-3 text-center">
@@ -585,100 +647,108 @@ export default function InvoiceArchive() {
                             else newIds.delete(item.id);
                             setSelectedIds(newIds);
                           }}
-                          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 bg-white"
+                          className="w-4 h-4 rounded border-black/20 dark:border-white/25 text-primary cursor-pointer"
                         />
                       </td>
-                      <td className="px-4 py-3 text-[11px] font-medium tabular-nums text-slate-500">
-                        {page * LIMIT + index + 1}
+                      <td className="px-3 py-3 text-center text-[12px] font-medium tabular-nums text-[#8e8e93]">
+                        {page * limit + index + 1}
                       </td>
                       <td className="px-4 py-3">
                         {item.supplierName ? (
                           <div
-                            className={`text-xs max-w-[180px] truncate ${
+                            className={`text-[13.5px] max-w-[210px] truncate ${
                               isUnread
-                                ? "font-bold text-slate-900 dark:text-white"
-                                : "font-normal text-slate-600 dark:text-slate-400"
+                                ? "font-bold text-[#1d1d1f] dark:text-white"
+                                : "font-medium text-[#1d1d1f] dark:text-[#f5f5f7]"
                             }`}
                             title={item.supplierName}
                           >
                             {item.supplierName}
                           </div>
                         ) : (
-                          <span className="text-slate-300 dark:text-slate-600">
-                            —
-                          </span>
+                          <span className="text-[#8e8e93]">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         {item.invoiceNumber ? (
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-2">
                             {isUnread && (
                               <span
-                                className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0 inline-block shadow-sm"
+                                className="w-2 h-2 rounded-full bg-[#0071e3] dark:bg-[#0a84ff] shrink-0"
                                 title="Factură nouă (necitită)"
                               />
                             )}
-                            <span
+                            <button
+                              type="button"
                               onClick={() => {
                                 if (isUnread) markAsRead.mutate({ id: item.id });
                                 setLocation(`/facturi-primite/${item.id}`);
                               }}
-                              className={`text-sm tabular-nums hover:underline cursor-pointer ${
+                              className={`text-[13.5px] tabular-nums hover:underline cursor-pointer text-left ${
                                 isUnread
-                                  ? "font-bold text-blue-700 dark:text-blue-400"
-                                  : "font-normal text-blue-600 dark:text-blue-500"
+                                  ? "font-bold text-[#1d1d1f] dark:text-white"
+                                  : "font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]"
                               }`}
                             >
                               {item.invoiceNumber}
-                            </span>
+                            </button>
                           </div>
                         ) : (
-                          <span className="text-slate-300 dark:text-slate-600">
-                            —
-                          </span>
+                          <span className="text-[#8e8e93]">—</span>
                         )}
                       </td>
-                      <td className={`px-4 py-3 tabular-nums ${isUnread ? "font-bold text-slate-900 dark:text-white" : "text-slate-600 dark:text-slate-400 font-normal"}`}>
+                      <td
+                        className={`px-4 py-3 tabular-nums whitespace-nowrap text-[13px] ${
+                          isUnread
+                            ? "font-semibold text-[#1d1d1f] dark:text-white"
+                            : "font-medium text-[#1d1d1f] dark:text-[#ebebf5]"
+                        }`}
+                      >
                         {formatDate(item.issueDate)}
                       </td>
-                      <td className={`px-4 py-3 text-right tabular-nums ${isUnread ? "font-bold text-slate-900 dark:text-white" : "text-slate-700 dark:text-slate-300 font-normal"}`}>
+                      <td
+                        className={`px-4 py-3 text-right tabular-nums whitespace-nowrap text-[13.5px] ${
+                          isUnread
+                            ? "font-bold text-[#1d1d1f] dark:text-white"
+                            : "font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]"
+                        }`}
+                      >
                         {formatAmount(item.total, item.currency)}
                       </td>
-                      <td className="px-4 py-3">
-                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                          {item.source === "spv_anaf" ? (
-                            <div className="flex flex-col leading-tight">
-                              <span>SPV</span>
-                              <span>ANAF</span>
-                            </div>
-                          ) : (
-                            (SOURCE_LABELS[item.source] ?? item.source)
-                          )}
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#ebebf5]">
+                          {SOURCE_LABELS[item.source] ?? item.source}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <span
-                          className={`inline-flex items-center text-xs font-bold ${st.color}`}
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium border leading-none ${st.pill}`}
                         >
                           {st.label}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-center gap-1.5">
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5">
                           {(item.fileUrl || item.source === "spv_anaf") && (
                             <a
-                              href={item.source === "spv_anaf" || item.fileUrl === "spv_import" ? `/api/pdf/archive/${item.id}` : item.fileUrl}
+                              href={
+                                item.source === "spv_anaf" ||
+                                item.fileUrl === "spv_import"
+                                  ? `/api/pdf/archive/${item.id}`
+                                  : item.fileUrl
+                              }
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-200 dark:hover:border-blue-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-slate-500 dark:text-slate-400"
+                              className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white transition-colors cursor-pointer"
                               title="Descarcă"
                             >
                               <Download className="w-3.5 h-3.5" />
                             </a>
                           )}
                           <button
+                            type="button"
                             onClick={() => setSingleDeleteItem(item)}
-                            className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/30 hover:border-red-200 dark:hover:border-red-800 hover:text-red-600 dark:hover:text-red-400 transition-colors text-slate-500 dark:text-slate-400"
+                            className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-[#6e6e73] dark:text-[#98989d] hover:text-[#ff3b30] dark:hover:text-[#ff453a] transition-colors cursor-pointer"
                             title="Șterge"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -692,52 +762,88 @@ export default function InvoiceArchive() {
             </table>
           )}
         </div>
-      </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-4">
-          <p className="text-xs tabular-nums text-slate-500">
-            {page * LIMIT + 1}–{Math.min((page + 1) * LIMIT, total)} din {total}{" "}
-            înregistrări
-          </p>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="sm"
+        {/* Pagination Footer */}
+        <div className="px-4 py-3 bg-[#fafafa] dark:bg-white/[0.02] border-t border-black/[0.05] dark:border-white/[0.07] flex items-center justify-between flex-wrap gap-2 tabular-nums">
+          <div className="flex items-center gap-3 text-[12px] text-[#6e6e73] dark:text-[#98989d]">
+            <div className="flex items-center gap-1.5 whitespace-nowrap">
+              <span>Afișează</span>
+              <Select
+                value={String(limit)}
+                onValueChange={val => {
+                  setLimit(Number(val));
+                  setPage(0);
+                }}
+              >
+                <SelectTrigger className="h-7 px-2.5 text-xs border-black/[0.08] bg-white dark:bg-[#2c2c2e] dark:border-white/[0.10] w-[68px] rounded-full tabular-nums">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <span>
+              <strong className="text-[#1d1d1f] dark:text-white font-semibold">
+                {total === 0 ? 0 : page * limit + 1}–
+                {Math.min((page + 1) * limit, total)}
+              </strong>{" "}
+              din{" "}
+              <strong className="text-[#1d1d1f] dark:text-white font-semibold">
+                {total}
+              </strong>{" "}
+              înregistrări
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 text-[12px] text-[#6e6e73] dark:text-[#98989d]">
+            <span className="mr-1.5">
+              Pagina{" "}
+              <strong className="text-[#1d1d1f] dark:text-white font-semibold">
+                {page + 1}
+              </strong>{" "}
+              din{" "}
+              <strong className="text-[#1d1d1f] dark:text-white font-semibold">
+                {totalPages}
+              </strong>
+            </span>
+            <button
+              type="button"
               onClick={() => setPage(p => Math.max(0, p - 1))}
               disabled={page === 0}
-              className="h-8 w-8 p-0 rounded-full"
+              aria-label="Pagina anterioară"
+              className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white disabled:opacity-35 transition-colors cursor-pointer"
             >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <span className="text-xs tabular-nums text-slate-600 dark:text-slate-300 px-2">
-              Pagina {page + 1} din {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
               onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
               disabled={page >= totalPages - 1}
-              className="h-8 w-8 p-0 rounded-full"
+              aria-label="Pagina următoare"
+              className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white disabled:opacity-35 transition-colors cursor-pointer"
             >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
-      )}
+      </div>
 
       {/* Single Delete Confirmation */}
       <AlertDialog
         open={!!singleDeleteItem}
         onOpenChange={open => !open && setSingleDeleteItem(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.10] rounded-[20px]">
           <AlertDialogHeader>
-            <AlertDialogTitle>Ștergi această factură din arhivă?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-[#1d1d1f] dark:text-[#f5f5f7]">
+              Ștergi această factură din arhivă?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-[#6e6e73] dark:text-[#98989d]">
               Înregistrarea{" "}
-              <strong>
+              <strong className="text-[#1d1d1f] dark:text-[#f5f5f7]">
                 {singleDeleteItem?.invoiceNumber ||
                   singleDeleteItem?.fileName ||
                   `#${singleDeleteItem?.id}`}
@@ -752,7 +858,7 @@ export default function InvoiceArchive() {
               variant="destructive"
               disabled={deleteMutation.isPending}
               onClick={handleConfirmSingleDelete}
-              className="rounded-full bg-red-600 hover:bg-red-700 text-white"
+              className="rounded-full bg-[#ff3b30] hover:bg-[#d70015] text-white"
             >
               {deleteMutation.isPending ? "Se șterge..." : "Șterge"}
             </Button>
@@ -765,12 +871,12 @@ export default function InvoiceArchive() {
         open={showBulkDeleteDialog}
         onOpenChange={open => !bulkDeleting && setShowBulkDeleteDialog(open)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.10] rounded-[20px]">
           <AlertDialogHeader>
-            <AlertDialogTitle>
+            <AlertDialogTitle className="text-[#1d1d1f] dark:text-[#f5f5f7]">
               Ștergi {selectedIds.size} facturi selectate?
             </AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-[#6e6e73] dark:text-[#98989d]">
               Cele {selectedIds.size} înregistrări selectate vor fi șterse definitiv din arhivă. Această acțiune nu poate fi anulată.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -783,7 +889,7 @@ export default function InvoiceArchive() {
               variant="destructive"
               disabled={bulkDeleting}
               onClick={handleConfirmBulkDelete}
-              className="rounded-full bg-red-600 hover:bg-red-700 text-white"
+              className="rounded-full bg-[#ff3b30] hover:bg-[#d70015] text-white"
             >
               {bulkDeleting ? "Se șterg..." : "Șterge selectate"}
             </Button>
@@ -793,120 +899,121 @@ export default function InvoiceArchive() {
 
       {/* Meta Edit Modal */}
       {showMetaModal && selectedEntry && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/65 backdrop-blur-sm overscroll-contain">
-          <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] shadow-2xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto overscroll-contain border border-black/[0.08] dark:border-white/[0.12]">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-white/[0.08]">
-              <h2 className="text-base font-semibold text-slate-900 dark:text-white">
-                Editează Metadate
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 dark:bg-black/65 backdrop-blur-sm overscroll-contain">
+          <div className="bg-white dark:bg-[#1c1c1e] rounded-[20px] shadow-2xl w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto overscroll-contain border border-black/[0.08] dark:border-white/[0.10]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-black/[0.06] dark:border-white/[0.08]">
+              <h2 className="text-[16px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                Editează metadate
               </h2>
               <button
+                type="button"
                 onClick={() => setShowMetaModal(false)}
                 aria-label="Închide fereastra"
-                className="w-7 h-7 rounded-full border border-slate-200 dark:border-white/[0.15] bg-white dark:bg-[#2c2c2e] text-slate-700 dark:text-slate-200 flex items-center justify-center hover:bg-slate-50 dark:hover:bg-[#3a3a3c] transition-colors"
+                className="w-7 h-7 rounded-full apple-btn-glass text-[#3a3a3c] dark:text-[#ebebf5] flex items-center justify-center cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             </div>
-            <div className="p-5 space-y-3 [&_label]:dark:text-slate-300">
+            <div className="p-5 space-y-3">
               <div>
-                <label className="text-xs text-slate-600 mb-1 block">
+                <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1 block">
                   Furnizor
                 </label>
-                <Input
+                <input
                   value={metaForm.supplierName}
                   onChange={e =>
                     setMetaForm({ ...metaForm, supplierName: e.target.value })
                   }
                   placeholder="Denumire furnizor"
-                  className="h-9 text-sm"
+                  className="apple-input w-full h-9 px-3 text-[13.5px] outline-none"
                   autoComplete="organization"
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-600 mb-1 block">
-                  CUI Furnizor
+                <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1 block">
+                  CUI furnizor
                 </label>
-                <Input
+                <input
                   value={metaForm.supplierCUI}
                   onChange={e =>
                     setMetaForm({ ...metaForm, supplierCUI: e.target.value })
                   }
                   placeholder="RO12345678"
-                  className="h-9 text-sm"
+                  className="apple-input w-full h-9 px-3 text-[13.5px] tabular-nums outline-none"
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-600 mb-1 block">
-                  Nr. Factură
+                <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1 block">
+                  Nr. factură
                 </label>
-                <Input
+                <input
                   value={metaForm.invoiceNumber}
                   onChange={e =>
                     setMetaForm({ ...metaForm, invoiceNumber: e.target.value })
                   }
                   placeholder="FAC-2024-001"
-                  className="h-9 text-sm"
+                  className="apple-input w-full h-9 px-3 text-[13.5px] tabular-nums outline-none"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2.5">
                 <div>
-                  <label className="text-xs text-slate-600 mb-1 block">
+                  <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1 block">
                     Dată emitere
                   </label>
-                  <Input
+                  <input
                     type="date"
                     value={metaForm.issueDate}
                     onChange={e =>
                       setMetaForm({ ...metaForm, issueDate: e.target.value })
                     }
-                    className="h-9 text-sm"
+                    className="apple-input w-full h-9 px-3 text-[13px] tabular-nums outline-none"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-600 mb-1 block">
+                  <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1 block">
                     Dată scadență
                   </label>
-                  <Input
+                  <input
                     type="date"
                     value={metaForm.dueDate}
                     onChange={e =>
                       setMetaForm({ ...metaForm, dueDate: e.target.value })
                     }
-                    className="h-9 text-sm"
+                    className="apple-input w-full h-9 px-3 text-[13px] tabular-nums outline-none"
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2.5">
                 <div>
-                  <label className="text-xs text-slate-600 mb-1 block">
+                  <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1 block">
                     Total (cu TVA)
                   </label>
-                  <Input
+                  <input
                     value={metaForm.total}
                     onChange={e =>
                       setMetaForm({ ...metaForm, total: e.target.value })
                     }
                     placeholder="1250.00"
-                    className="h-9 text-sm"
+                    className="apple-input w-full h-9 px-3 text-[13.5px] tabular-nums outline-none"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-600 mb-1 block">
+                  <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1 block">
                     TVA
                   </label>
-                  <Input
+                  <input
                     value={metaForm.totalVAT}
                     onChange={e =>
                       setMetaForm({ ...metaForm, totalVAT: e.target.value })
                     }
                     placeholder="237.50"
-                    className="h-9 text-sm"
+                    className="apple-input w-full h-9 px-3 text-[13.5px] tabular-nums outline-none"
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2.5">
                 <div>
-                  <label className="text-xs text-slate-600 mb-1 block">
+                  <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1 block">
                     Valută
                   </label>
                   <Select
@@ -915,7 +1022,7 @@ export default function InvoiceArchive() {
                       setMetaForm({ ...metaForm, currency: v })
                     }
                   >
-                    <SelectTrigger className="h-9 text-sm">
+                    <SelectTrigger className="apple-input h-9 text-[13px] w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -926,14 +1033,14 @@ export default function InvoiceArchive() {
                   </Select>
                 </div>
                 <div>
-                  <label className="text-xs text-slate-600 mb-1 block">
+                  <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1 block">
                     Status
                   </label>
                   <Select
                     value={metaForm.status}
                     onValueChange={v => setMetaForm({ ...metaForm, status: v })}
                   >
-                    <SelectTrigger className="h-9 text-sm">
+                    <SelectTrigger className="apple-input h-9 text-[13px] w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -947,7 +1054,7 @@ export default function InvoiceArchive() {
                 </div>
               </div>
               <div>
-                <label className="text-xs text-slate-600 mb-1 block">
+                <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1 block">
                   Note
                 </label>
                 <textarea
@@ -957,31 +1064,32 @@ export default function InvoiceArchive() {
                   }
                   placeholder="Note interne..."
                   rows={2}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-white/[0.12] bg-white dark:bg-[#2c2c2e] text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="apple-input w-full px-3 py-2 text-[13px] outline-none resize-none"
                 />
               </div>
             </div>
             <div className="flex gap-2 px-5 pb-5">
-              <Button
-                variant="outline"
+              <button
+                type="button"
                 onClick={() => setShowMetaModal(false)}
-                className="flex-1 rounded-full"
+                className="flex-1 apple-btn-glass h-9 rounded-full text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
               >
                 Anulează
-              </Button>
-              <Button
+              </button>
+              <button
+                type="button"
                 onClick={() =>
                   updateMutation.mutate({ id: selectedEntry.id, ...metaForm })
                 }
                 disabled={updateMutation.isPending}
-                className="flex-1 rounded-full bg-blue-600 hover:bg-blue-700 text-white"
+                className="flex-1 apple-btn-prominent flex items-center justify-center h-9 rounded-full text-white text-[12.5px] font-semibold disabled:opacity-60 cursor-pointer"
               >
                 {updateMutation.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   "Salvează"
                 )}
-              </Button>
+              </button>
             </div>
           </div>
         </div>

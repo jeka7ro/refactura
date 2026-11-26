@@ -917,36 +917,41 @@ export default function Settings() {
   };
 
   return (
-    <div className="p-3 sm:p-5 max-w-full overflow-x-hidden space-y-3">
+    <div className="p-3 sm:p-5 max-w-full overflow-x-hidden space-y-4">
       {/* Header */}
       <div>
-        <h1 className="text-base font-bold text-slate-900 dark:text-white">
+        <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
           Setări
         </h1>
-        <p className="text-xs text-slate-500 dark:text-slate-400">
+        <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
           Firmă, facturare și preferințe
         </p>
       </div>
 
-      <div className="flex gap-4 flex-col md:flex-row">
+      <div className="flex gap-4 flex-col md:flex-row items-start">
         {/* Sidebar tabs */}
-        <div className="md:w-40 flex-shrink-0">
-          <nav className="space-y-0.5">
+        <div className="w-full md:w-52 shrink-0 apple-surface p-2">
+          <nav className="flex md:flex-col gap-1 overflow-x-auto no-scrollbar">
             {tabs.map(tab => {
               const Icon = tab.icon;
               return (
                 <button
                   key={tab.id}
+                  type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  style={activeTab === tab.id ? { backgroundColor: themeColor || "#2563eb" } : undefined}
-                  className={`w-full flex items-center gap-2 px-3.5 py-2 rounded-full text-xs font-medium transition-all ${
+                  style={
                     activeTab === tab.id
-                      ? "text-white shadow-sm font-bold"
-                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      ? { backgroundColor: "var(--tenant-theme-color, " + (themeColor || "#0071e3") + ")" }
+                      : undefined
+                  }
+                  className={`md:w-full shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-full text-[12.5px] transition-all cursor-pointer ${
+                    activeTab === tab.id
+                      ? "text-white shadow-xs font-semibold"
+                      : "font-medium text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7] hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
                   }`}
                 >
-                  <Icon className="w-3.5 h-3.5" />
-                  {tab.label}
+                  <Icon className="w-3.5 h-3.5 shrink-0" />
+                  <span>{tab.label}</span>
                 </button>
               );
             })}
@@ -954,13 +959,13 @@ export default function Settings() {
         </div>
 
         {/* Content */}
-        <div className="flex-1 space-y-3 min-w-0">
+        <div className="flex-1 space-y-4 min-w-0 w-full">
           {/* Company tab */}
           {activeTab === "company" && (
-            <div className="bg-white/96 dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] p-5 space-y-3 shadow-xs">
+            <div className="apple-surface p-5 sm:p-6 space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-xs font-bold text-slate-700 dark:text-white uppercase tracking-wide">
-                  Date Firmă
+                <h2 className="text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                  Date firmă
                 </h2>
                 {entityPair?.pf && (
                   entityPair.activeType === "pj" ? (
@@ -971,7 +976,7 @@ export default function Settings() {
                         switchingToTypeRef.current = "pf";
                         switchTenantMutation.mutate({ tenantId: Number(entityPair.pf!.id) });
                       }}
-                      className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                      className="apple-btn-glass px-3 h-8 text-[12px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] inline-flex items-center gap-1.5 cursor-pointer"
                     >
                       <User className="w-3.5 h-3.5" />
                       <span>Comută pe {entityPair.pf.name} (PF)</span>
@@ -984,15 +989,15 @@ export default function Settings() {
                         switchingToTypeRef.current = "pj";
                         switchTenantMutation.mutate({ tenantId: Number(entityPair.pj!.id) });
                       }}
-                      className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                      className="apple-btn-glass px-3 h-8 text-[12px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] inline-flex items-center gap-1.5 cursor-pointer"
                     >
                       <Building2 className="w-3.5 h-3.5" />
-                      <span>Activează Firmă ({entityPair.pj.name})</span>
+                      <span>Activează firmă ({entityPair.pj.name})</span>
                     </button>
                   ) : null
                 )}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <SettingField
                   label="Denumire firmă"
                   value={settings.name}
@@ -1002,10 +1007,10 @@ export default function Settings() {
                 />
                 {/* CUI with ANAF lookup */}
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                  <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
                     CUI / CIF
                   </label>
-                  <div className="flex gap-1.5">
+                  <div className="flex gap-2">
                     <input
                       value={settings.cui}
                       onChange={e => {
@@ -1015,27 +1020,26 @@ export default function Settings() {
                       onKeyDown={e => e.key === "Enter" && lookupCui()}
                       placeholder="RO12345678"
                       autoComplete="off"
-                      className="flex-1 px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-800 outline-none text-slate-900 dark:text-white tabular-nums"
+                      className="flex-1 min-w-0 px-3 h-9 text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] outline-none text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] tabular-nums"
                     />
                     <button
                       type="button"
                       onClick={lookupCui}
                       disabled={cuiLookupLoading || !settings.cui}
                       title="Caută date firmă după CUI (ANAF)"
-                      style={{ backgroundColor: themeColor }}
-                      className="flex items-center gap-1 px-2.5 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-[10px] font-bold transition-colors flex-shrink-0"
+                      className="apple-btn-prominent inline-flex items-center gap-1.5 px-3.5 h-9 disabled:opacity-50 text-[12px] font-semibold shrink-0 cursor-pointer"
                     >
                       {cuiLookupLoading ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       ) : (
-                        <Search className="w-3 h-3" />
+                        <Search className="w-3.5 h-3.5" />
                       )}
                       Auto-fill
                     </button>
                   </div>
                   {cuiLookupError && (
-                    <div className="flex items-center gap-1 mt-1 text-[10px] text-red-500">
-                      <AlertCircle className="w-3 h-3 flex-shrink-0" />
+                    <div className="flex items-center gap-1 mt-1 text-[11px] text-rose-500">
+                      <AlertCircle className="w-3 h-3 shrink-0" />
                       {cuiLookupError}
                     </div>
                   )}
@@ -1076,13 +1080,13 @@ export default function Settings() {
                   placeholder="București"
                 />
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                  <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
                     Țară
                   </label>
                   <select
                     value={settings.country}
                     onChange={e => update("country", e.target.value as Country)}
-                    className="w-full h-8 px-3 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full h-9 px-3 text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none cursor-pointer"
                   >
                     {countries.map(c => (
                       <option key={c.code} value={c.code}>
@@ -1102,13 +1106,13 @@ export default function Settings() {
               />
 
               {/* Logo firmă */}
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
+              <div className="pt-4 border-t border-black/[0.05] dark:border-white/[0.07] space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-                    Logo Firmă
+                  <h3 className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                    Logo firmă
                   </h3>
                   {logoBase64 && (
-                    <span className="text-[10px] text-slate-400">
+                    <span className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d]">
                       PNG, JPG sau SVG (Max 2MB)
                     </span>
                   )}
@@ -1117,10 +1121,10 @@ export default function Settings() {
                 <div className="flex items-start gap-4">
                   {logoBase64 ? (
                     <div
-                      className={`relative inline-flex items-center justify-center p-2 rounded-xl transition-all shadow-sm ${
+                      className={`relative inline-flex items-center justify-center p-2 rounded-xl transition-all shadow-xs ${
                         logoHasBackground
                           ? "border border-black/10"
-                          : "bg-slate-50 dark:bg-slate-800/60 border border-dashed border-slate-200 dark:border-slate-700"
+                          : "bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-dashed border-black/[0.12] dark:border-white/[0.14]"
                       }`}
                       style={{
                         backgroundColor: logoHasBackground ? logoBgColor : undefined,
@@ -1134,14 +1138,14 @@ export default function Settings() {
                       <button
                         type="button"
                         onClick={() => setLogoBase64("")}
-                        className="absolute -top-2.5 -right-2.5 w-7 h-7 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 shadow transition-colors"
+                        className="absolute -top-2.5 -right-2.5 w-7 h-7 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 shadow transition-colors cursor-pointer"
                         title="Șterge logo"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ) : (
-                    <div className="h-12 w-28 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center text-slate-400 text-[10px] gap-0.5">
+                    <div className="h-12 w-28 rounded-xl border-2 border-dashed border-black/[0.12] dark:border-white/[0.14] flex flex-col items-center justify-center text-[#8e8e93] text-[11px] gap-0.5">
                       <ImageIcon className="w-4 h-4 opacity-40" />
                       <span>Niciun logo</span>
                     </div>
@@ -1169,12 +1173,12 @@ export default function Settings() {
                     <button
                       type="button"
                       onClick={() => logoInputRef.current?.click()}
-                      className="flex items-center gap-1.5 px-3 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium transition-colors"
+                      className="apple-btn-glass inline-flex items-center gap-1.5 px-3.5 h-8 text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-medium cursor-pointer"
                     >
-                      <Upload className="w-3 h-3" />
+                      <Upload className="w-3.5 h-3.5" />
                       {logoBase64 ? "Schimbă logo" : "Încarcă logo"}
                     </button>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                    <p className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d]">
                       Recomandat PNG transparent.
                     </p>
                   </div>
@@ -1182,37 +1186,37 @@ export default function Settings() {
 
                 {/* Toggle Fundal Logo & Color Picker */}
                 {logoBase64 && (
-                  <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3">
-                    <div className="flex items-center justify-between">
+                  <div className="mt-3 pt-3 border-t border-black/[0.05] dark:border-white/[0.07] space-y-3">
+                    <div className="flex items-center justify-between gap-3">
                       <div>
-                        <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                        <div className="text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                           Fundal pentru logo (pe Facturi și PDF-uri)
                         </div>
-                        <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                        <div className="text-[12px] text-[#6e6e73] dark:text-[#98989d]">
                           {logoHasBackground
                             ? "Logo-ul va fi afișat într-un card cu fundalul selectat mai jos."
                             : "Logo-ul va fi afișat fără fundal (transparent, direct pe albul paginii)."}
                         </div>
                       </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
+                      <label className="relative inline-flex items-center cursor-pointer shrink-0">
                         <input
                           type="checkbox"
                           checked={logoHasBackground}
                           onChange={e => setLogoHasBackground(e.target.checked)}
                           className="sr-only peer"
                         />
-                        <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                        <div className="w-10 h-5 bg-black/[0.12] peer-focus:outline-none rounded-full peer dark:bg-white/[0.16] peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#0071e3]"></div>
                       </label>
                     </div>
 
                     {/* Color picker când toggle-ul este activ */}
                     {logoHasBackground && (
-                      <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2">
-                        <label className="text-xs font-bold text-slate-600 dark:text-slate-300 block">
-                          Culoare fundal logo:
+                      <div className="p-3.5 bg-[#f2f2f7] dark:bg-[#2c2c2e] rounded-xl border border-black/[0.05] dark:border-white/[0.07] space-y-2.5">
+                        <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block">
+                          Culoare fundal logo
                         </label>
                         <div className="flex flex-wrap items-center gap-2">
-                          <div className="flex items-center gap-2 bg-white dark:bg-slate-900 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                          <div className="flex items-center gap-2 bg-white dark:bg-[#1c1c1e] px-2.5 py-1 rounded-xl border border-black/[0.06] dark:border-white/[0.08]">
                             <input
                               type="color"
                               value={logoBgColor}
@@ -1224,14 +1228,16 @@ export default function Settings() {
                               value={logoBgColor}
                               onChange={e => setLogoBgColor(e.target.value)}
                               placeholder="#0f172a"
-                              className="w-20 text-xs tabular-nums uppercase bg-transparent outline-none text-slate-800 dark:text-slate-200"
+                              className="w-20 text-xs tabular-nums uppercase bg-transparent outline-none text-[#1d1d1f] dark:text-[#f5f5f7]"
                             />
                           </div>
 
-                          <div className="flex items-center gap-1.5 ml-2">
-                            <span className="text-[10px] text-slate-400 font-medium mr-1">Paletă rapidă:</span>
+                          <div className="flex items-center gap-1.5 ml-1 flex-wrap">
+                            <span className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] font-medium mr-1">
+                              Paletă rapidă:
+                            </span>
                             {[
-                              { label: "Dark Slate", color: "#0f172a" },
+                              { label: "Graphite", color: "#1c1c1e" },
                               { label: "Negru", color: "#000000" },
                               { label: "Navy", color: "#1e3a5f" },
                               { label: "Smarald", color: "#065f46" },
@@ -1243,10 +1249,10 @@ export default function Settings() {
                                 type="button"
                                 onClick={() => setLogoBgColor(c.color)}
                                 title={`${c.label} (${c.color})`}
-                                className={`w-7 h-7 rounded-full border transition-all ${
+                                className={`w-7 h-7 rounded-full border transition-all cursor-pointer ${
                                   logoBgColor.toLowerCase() === c.color.toLowerCase()
-                                    ? "ring-2 ring-blue-500 scale-110 border-white"
-                                    : "border-slate-300 dark:border-slate-600 hover:scale-105"
+                                    ? "ring-2 ring-[#0071e3] scale-110 border-white"
+                                    : "border-black/[0.15] dark:border-white/[0.20] hover:scale-105"
                                 }`}
                                 style={{ backgroundColor: c.color }}
                               />
@@ -1261,15 +1267,15 @@ export default function Settings() {
             </div>
           )}
 
-          {/* Persoană Fizică tab (profil separat pe CNP, izolat de datele firmei) */}
+          {/* Persoană Fizică tab */}
           {activeTab === "pf" && (
-            <div className="bg-white/96 dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] p-5 space-y-3 shadow-xs">
+            <div className="apple-surface p-5 sm:p-6 space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <h2 className="text-xs font-bold text-slate-700 dark:text-white uppercase tracking-wide">
-                    Date Persoană Fizică
+                  <h2 className="text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                    Date persoană fizică
                   </h2>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
                     Profil separat pe CNP cu mesaje SPV și facturi complet izolate de firmă.
                   </p>
                 </div>
@@ -1282,14 +1288,14 @@ export default function Settings() {
                         switchingToTypeRef.current = "pf";
                         switchTenantMutation.mutate({ tenantId: Number(entityPair.pf!.id) });
                       }}
-                      className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                      className="apple-btn-glass px-3 h-8 text-[12px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] inline-flex items-center gap-1.5 cursor-pointer"
                     >
                       <User className="w-3.5 h-3.5" />
                       <span>Comută pe Persoană Fizică</span>
                     </button>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800">
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300">
                         Profil activ acum
                       </span>
                       {entityPair.pj && (
@@ -1300,7 +1306,7 @@ export default function Settings() {
                             switchingToTypeRef.current = "pj";
                             switchTenantMutation.mutate({ tenantId: Number(entityPair.pj!.id) });
                           }}
-                          className="rounded-lg px-2.5 py-1.5 text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                          className="apple-btn-glass px-3 h-8 text-[12px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] inline-flex items-center gap-1.5 cursor-pointer"
                         >
                           <Building2 className="w-3.5 h-3.5" />
                           <span>Comută pe Firmă</span>
@@ -1311,8 +1317,8 @@ export default function Settings() {
                 )}
               </div>
 
-              <div className="space-y-2.5">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <SettingField
                     label="Nume"
                     value={pfLastName}
@@ -1329,9 +1335,9 @@ export default function Settings() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                    <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
                       CNP (13 cifre)
                     </label>
                     <input
@@ -1343,7 +1349,7 @@ export default function Settings() {
                       }
                       placeholder="1850101123456"
                       autoComplete="off"
-                      className="w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-800 outline-none text-slate-900 dark:text-white tabular-nums"
+                      className="w-full px-3 h-9 text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] outline-none text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] tabular-nums"
                     />
                   </div>
                   <SettingField
@@ -1362,7 +1368,7 @@ export default function Settings() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="md:col-span-2">
                     <SettingField
                       label="Adresă domiciliu"
@@ -1378,13 +1384,13 @@ export default function Settings() {
                     placeholder="București"
                   />
                   <div>
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                    <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
                       Țară
                     </label>
                     <select
                       value={pfCountry}
                       onChange={e => setPfCountry(e.target.value as Country)}
-                      className="w-full h-8 px-3 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full h-9 px-3 text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none cursor-pointer"
                     >
                       {countries.map(c => (
                         <option key={c.code} value={c.code}>
@@ -1412,12 +1418,12 @@ export default function Settings() {
           {activeTab === "appearance" && (
             <div className="space-y-4">
               {/* Tema culori */}
-              <div className="bg-white/96 dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] p-5 space-y-4 shadow-xs">
+              <div className="apple-surface p-5 sm:p-6 space-y-4">
                 <div>
-                  <h2 className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wide">
+                  <h2 className="text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                     Culoare temă & accent factură
                   </h2>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
                     Această culoare este folosită pentru butoane, elemente active și caseta <strong>TOTAL DE PLATĂ</strong> din facturi și PDF.
                   </p>
                 </div>
@@ -1432,10 +1438,10 @@ export default function Settings() {
                         onClick={() => saveAppearance(t.id, t.color, activeTemplate)}
                         title={`${t.label} (${t.color})`}
                         style={{ background: t.color }}
-                        className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all shadow-sm ${
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all shadow-xs cursor-pointer ${
                           !isCustomColor && activeTheme === t.id
-                            ? "ring-2 ring-offset-2 ring-blue-500 scale-105"
-                            : "opacity-80 hover:opacity-100 hover:scale-105"
+                            ? "ring-2 ring-offset-2 ring-[#0071e3] scale-105"
+                            : "opacity-85 hover:opacity-100 hover:scale-105"
                         }`}
                       >
                         {!isCustomColor && activeTheme === t.id && (
@@ -1444,12 +1450,12 @@ export default function Settings() {
                       </button>
                     ))}
 
-                    {/* Selector de culoare (Color Picker) direct în rând */}
+                    {/* Selector de culoare (Color Picker) */}
                     <div className="relative" title="Apasă pentru a alege orice culoare dorită din paletă">
                       <div
-                        className={`relative w-8 h-8 rounded-xl flex items-center justify-center transition-all shadow-sm cursor-pointer overflow-hidden ${
+                        className={`relative w-9 h-9 rounded-xl flex items-center justify-center transition-all shadow-xs cursor-pointer overflow-hidden ${
                           isCustomColor
-                            ? "ring-2 ring-offset-2 ring-blue-500 scale-105"
+                            ? "ring-2 ring-offset-2 ring-[#0071e3] scale-105"
                             : "opacity-85 hover:opacity-100 hover:scale-105"
                         }`}
                         style={{
@@ -1473,9 +1479,9 @@ export default function Settings() {
                       </div>
                     </div>
 
-                    {/* Etichetă & input HEX direct în rând */}
-                    <div className="flex items-center gap-2 ml-1 bg-slate-50 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
-                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                    {/* Etichetă & input HEX */}
+                    <div className="flex items-center gap-2 ml-1 bg-[#f2f2f7] dark:bg-[#2c2c2e] px-3 py-1.5 rounded-xl border border-black/[0.06] dark:border-white/[0.08]">
+                      <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d]">
                         {isCustomColor ? "Personalizată:" : `${THEMES.find(t => t.id === activeTheme)?.label || "Verde"}:`}
                       </span>
                       <div className="flex items-center gap-1.5">
@@ -1485,7 +1491,7 @@ export default function Settings() {
                           value={themeColor}
                           onChange={e => saveAppearance("custom", e.target.value, activeTemplate)}
                           placeholder="#16A34A"
-                          className="w-20 text-xs tabular-nums uppercase bg-transparent outline-none text-slate-800 dark:text-slate-200 font-bold"
+                          className="w-20 text-[12.5px] tabular-nums uppercase bg-transparent outline-none text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold"
                         />
                       </div>
                     </div>
@@ -1493,21 +1499,21 @@ export default function Settings() {
                 </div>
 
                 {/* Previzualizare card Total de plată */}
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
-                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide block mb-2">
-                    Previzualizare total factură:
+                <div className="pt-3 border-t border-black/[0.05] dark:border-white/[0.07]">
+                  <span className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-2">
+                    Previzualizare total factură
                   </span>
-                  <div className="max-w-xs bg-white dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-1.5">
-                    <div className="flex justify-between text-xs text-slate-500">
+                  <div className="max-w-xs bg-[#f2f2f7] dark:bg-[#2c2c2e] p-3.5 rounded-2xl border border-black/[0.05] dark:border-white/[0.07] space-y-1.5">
+                    <div className="flex justify-between text-[12.5px] text-[#6e6e73] dark:text-[#98989d]">
                       <span>Total fără TVA:</span>
-                      <span className="font-semibold tabular-nums text-slate-700 dark:text-slate-300">733.44 RON</span>
+                      <span className="font-semibold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">733.44 RON</span>
                     </div>
-                    <div className="flex justify-between text-xs text-slate-500">
+                    <div className="flex justify-between text-[12.5px] text-[#6e6e73] dark:text-[#98989d]">
                       <span>Total TVA:</span>
-                      <span className="font-semibold tabular-nums text-slate-700 dark:text-slate-300">154.02 RON</span>
+                      <span className="font-semibold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">154.02 RON</span>
                     </div>
                     <div
-                      className="flex justify-between py-2 px-3 text-sm font-black text-white rounded-lg shadow-sm transition-colors"
+                      className="flex justify-between py-2 px-3 text-[13.5px] font-bold text-white rounded-xl shadow-xs transition-colors"
                       style={{ backgroundColor: themeColor }}
                     >
                       <span>TOTAL DE PLATĂ:</span>
@@ -1518,46 +1524,45 @@ export default function Settings() {
               </div>
 
               {/* Sablon factura */}
-              <div className="bg-white/96 dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] p-5 shadow-xs">
-                <h2 className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wide mb-3">
+              <div className="apple-surface p-5 sm:p-6">
+                <h2 className="text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] mb-3">
                   Model factură PDF
                 </h2>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   {INVOICE_TEMPLATES.map(tmpl => (
                     <button
                       key={tmpl.id}
                       type="button"
                       onClick={() => saveAppearance(activeTheme, themeColor, tmpl.id)}
-                      className={`p-3 rounded-lg border-2 text-left transition-all ${
+                      className={`apple-card-btn p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
                         activeTemplate === tmpl.id
-                          ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20"
-                          : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                          ? "border-[#0071e3] bg-[#0071e3]/[0.05] dark:bg-[#0a84ff]/[0.10]"
+                          : "border-black/[0.08] dark:border-white/[0.10] bg-[#f2f2f7]/60 dark:bg-[#2c2c2e]/60 hover:border-black/[0.16] dark:hover:border-white/[0.20]"
                       }`}
                     >
-                      {/* Preview compact */}
                       <div
-                        className={`w-full h-10 rounded mb-2 flex items-center justify-center ${
+                        className={`w-full h-10 rounded-xl mb-2.5 flex items-center justify-center ${
                           tmpl.id === "classic"
-                            ? "bg-slate-900"
+                            ? "bg-[#1d1d1f]"
                             : tmpl.id === "modern"
-                              ? "bg-gradient-to-br from-slate-900 to-blue-900"
-                              : "bg-white border border-slate-200"
+                              ? "bg-gradient-to-br from-[#1d1d1f] to-[#0071e3]"
+                              : "bg-white border border-black/[0.08]"
                         }`}
                       >
                         <FileText
                           className={`w-5 h-5 ${
                             tmpl.id === "minimal"
-                              ? "text-slate-400"
+                              ? "text-[#8e8e93]"
                               : "text-white"
                           }`}
                         />
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-900 dark:text-white">
+                        <span className="text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                           {tmpl.label}
                         </span>
                         {activeTemplate === tmpl.id && (
-                          <Check className="w-3.5 h-3.5 text-blue-600" />
+                          <Check className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#0a84ff]" />
                         )}
                       </div>
                     </button>
@@ -1569,9 +1574,9 @@ export default function Settings() {
 
           {/* Invoicing tab */}
           {activeTab === "invoicing" && (
-            <div className="bg-white/96 dark:bg-[#1c1c1e] rounded-[22px] shadow-xs border border-black/[0.06] dark:border-white/[0.09] p-6 space-y-5">
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-                Setări Facturare
+            <div className="apple-surface p-5 sm:p-6 space-y-5">
+              <h2 className="text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                Setări facturare
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <SettingField
@@ -1582,7 +1587,7 @@ export default function Settings() {
                   mono
                 />
                 <div>
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+                  <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
                     Număr start
                   </label>
                   <input
@@ -1591,22 +1596,22 @@ export default function Settings() {
                     onChange={e =>
                       update("invoiceStartNumber", +e.target.value)
                     }
-                    className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 outline-none text-slate-900 dark:text-white"
+                    className="w-full px-3.5 h-9 text-[13px] tabular-nums rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] outline-none text-[#1d1d1f] dark:text-[#f5f5f7]"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+                  <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
                     Zile scadență implicite
                   </label>
                   <input
                     type="number"
                     value={settings.defaultDueDays}
                     onChange={e => update("defaultDueDays", +e.target.value)}
-                    className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 outline-none text-slate-900 dark:text-white"
+                    className="w-full px-3.5 h-9 text-[13px] tabular-nums rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] outline-none text-[#1d1d1f] dark:text-[#f5f5f7]"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+                  <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
                     Adaos implicit (%)
                   </label>
                   <input
@@ -1615,17 +1620,17 @@ export default function Settings() {
                     onChange={e =>
                       update("defaultMarkupPercent", +e.target.value)
                     }
-                    className="w-full px-4 h-10 text-sm rounded-full border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-800 outline-none text-slate-900 dark:text-white"
+                    className="w-full px-3.5 h-9 text-[13px] tabular-nums rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] outline-none text-[#1d1d1f] dark:text-[#f5f5f7]"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+                  <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
                     Cotă TVA implicită (%)
                   </label>
                   <select
                     value={settings.defaultVatRate}
                     onChange={e => update("defaultVatRate", +e.target.value)}
-                    className="w-full h-10 px-4 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full h-9 px-3.5 text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none cursor-pointer"
                   >
                     <option value={21}>21% — Standard</option>
                     <option value={11}>11% — Redusă (din 01.08.2025)</option>
@@ -1637,16 +1642,16 @@ export default function Settings() {
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                <div className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
+              <div className="pt-4 border-t border-black/[0.05] dark:border-white/[0.07]">
+                <div className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-2">
                   Previzualizare numerotare
                 </div>
-                <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                  <span className="text-sm font-bold tabular-nums text-slate-900 dark:text-white">
+                <div className="flex items-center gap-2 p-3.5 bg-[#f2f2f7] dark:bg-[#2c2c2e] rounded-xl">
+                  <span className="text-[14px] font-semibold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">
                     {settings.invoicePrefix}-2024-
                     {String(settings.invoiceStartNumber).padStart(4, "0")}
                   </span>
-                  <span className="text-xs text-slate-400">
+                  <span className="text-[12px] text-[#6e6e73] dark:text-[#98989d]">
                     → prima re-factură
                   </span>
                 </div>
@@ -1656,14 +1661,14 @@ export default function Settings() {
 
           {/* Localization tab */}
           {activeTab === "localization" && (
-            <div className="bg-white/96 dark:bg-[#1c1c1e] rounded-[22px] shadow-xs border border-black/[0.06] dark:border-white/[0.09] p-6 space-y-5">
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-                Localizare & Multi-Currency
+            <div className="apple-surface p-5 sm:p-6 space-y-5">
+              <h2 className="text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                Localizare & multi-currency
               </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+                  <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
                     Monedă implicită
                   </label>
                   <select
@@ -1671,7 +1676,7 @@ export default function Settings() {
                     onChange={e =>
                       update("defaultCurrency", e.target.value as Currency)
                     }
-                    className="w-full h-10 px-4 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full h-9 px-3.5 text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none cursor-pointer"
                   >
                     {currencies.map(c => (
                       <option key={c} value={c}>
@@ -1681,7 +1686,7 @@ export default function Settings() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+                  <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
                     Limbă implicită facturi
                   </label>
                   <select
@@ -1689,7 +1694,7 @@ export default function Settings() {
                     onChange={e =>
                       update("defaultLanguage", e.target.value as Language)
                     }
-                    className="w-full h-10 px-4 text-sm rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full h-9 px-3.5 text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none cursor-pointer"
                   >
                     {languages.map(l => (
                       <option key={l.code} value={l.code}>
@@ -1700,60 +1705,70 @@ export default function Settings() {
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                <div className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
+              <div className="pt-4 border-t border-black/[0.05] dark:border-white/[0.07]">
+                <div className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-2.5">
                   Monede suportate
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {currencies.map(c => (
                     <div
                       key={c}
-                      className={`px-3 py-1.5 rounded-full text-xs font-bold border ${
+                      style={
                         c === settings.defaultCurrency
-                          ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800"
-                          : "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
+                          ? { backgroundColor: "var(--tenant-theme-color, #0071e3)" }
+                          : undefined
+                      }
+                      className={`px-3 py-1.5 rounded-full text-[12px] font-semibold ${
+                        c === settings.defaultCurrency
+                          ? "text-white"
+                          : "bg-[#f2f2f7] text-[#3a3a3c] dark:bg-[#2c2c2e] dark:text-[#ebebf5]"
                       }`}
                     >
-                      {c} {c === settings.defaultCurrency && ""}
+                      {c}
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                <div className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
+              <div className="pt-4 border-t border-black/[0.05] dark:border-white/[0.07]">
+                <div className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-2.5">
                   Țări suportate
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {countries.map(c => (
                     <div
                       key={c.code}
-                      className="px-3 py-1.5 rounded-full text-xs font-bold border bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
+                      className="px-3 py-1.5 rounded-full text-[12px] font-medium bg-[#f2f2f7] text-[#3a3a3c] dark:bg-[#2c2c2e] dark:text-[#ebebf5]"
                     >
                       {c.flag} {c.label}
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-slate-400 mt-2">
+                <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d] mt-2">
                   Mai multe țări vor fi adăugate în versiunile viitoare.
                 </p>
               </div>
 
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                <div className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
+              <div className="pt-4 border-t border-black/[0.05] dark:border-white/[0.07]">
+                <div className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-2.5">
                   Limbi facturi
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {languages.map(l => (
                     <div
                       key={l.code}
-                      className={`px-3 py-1.5 rounded-full text-xs font-bold border ${
+                      style={
                         l.code === settings.defaultLanguage
-                          ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800"
-                          : "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
+                          ? { backgroundColor: "var(--tenant-theme-color, #0071e3)" }
+                          : undefined
+                      }
+                      className={`px-3 py-1.5 rounded-full text-[12px] font-semibold ${
+                        l.code === settings.defaultLanguage
+                          ? "text-white"
+                          : "bg-[#f2f2f7] text-[#3a3a3c] dark:bg-[#2c2c2e] dark:text-[#ebebf5]"
                       }`}
                     >
-                      {l.label} {l.code === settings.defaultLanguage && ""}
+                      {l.label}
                     </div>
                   ))}
                 </div>
@@ -1763,8 +1778,8 @@ export default function Settings() {
 
           {/* Notifications tab */}
           {activeTab === "notifications" && (
-            <div className="bg-white/96 dark:bg-[#1c1c1e] rounded-[22px] shadow-xs border border-black/[0.06] dark:border-white/[0.09] p-6 space-y-4">
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+            <div className="apple-surface p-5 sm:p-6 space-y-2">
+              <h2 className="text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] mb-2">
                 Notificări
               </h2>
               {[
@@ -1796,22 +1811,32 @@ export default function Settings() {
               ].map((notif, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between py-3 border-b border-slate-100 dark:border-slate-800 last:border-0"
+                  className="flex items-center justify-between py-3 border-b border-black/[0.05] dark:border-white/[0.07] last:border-0"
                 >
                   <div>
-                    <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                    <div className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                       {notif.label}
                     </div>
-                    <div className="text-xs text-slate-500 mt-0.5">
+                    <div className="text-[12px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
                       {notif.desc}
                     </div>
                   </div>
                   <button
+                    type="button"
                     onClick={() => toast.info("Setare actualizată")}
-                    className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${notif.enabled ? "bg-blue-600" : "bg-slate-200 dark:bg-slate-700"}`}
+                    style={
+                      notif.enabled
+                        ? { backgroundColor: "var(--tenant-theme-color, #0071e3)" }
+                        : undefined
+                    }
+                    className={`relative w-11 h-6 rounded-full transition-colors duration-200 cursor-pointer ${
+                      notif.enabled ? "" : "bg-black/[0.12] dark:bg-white/[0.16]"
+                    }`}
                   >
                     <span
-                      className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ${notif.enabled ? "translate-x-5" : "translate-x-0"}`}
+                      className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-xs transition-transform duration-200 ${
+                        notif.enabled ? "translate-x-5" : "translate-x-0"
+                      }`}
                     />
                   </button>
                 </div>
@@ -1821,40 +1846,40 @@ export default function Settings() {
 
           {/* Security tab */}
           {activeTab === "security" && (
-            <div className="bg-white/96 dark:bg-[#1c1c1e] rounded-[22px] shadow-xs border border-black/[0.06] dark:border-white/[0.09] p-6 space-y-4">
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+            <div className="apple-surface p-5 sm:p-6 space-y-4">
+              <h2 className="text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                 Securitate
               </h2>
 
               {/* Card PIN de acces companie */}
-              <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-4 sm:p-5 bg-slate-50/50 dark:bg-slate-800/30 space-y-4">
+              <div className="border border-black/[0.05] dark:border-white/[0.07] rounded-2xl p-4 sm:p-5 bg-[#f2f2f7]/60 dark:bg-[#2c2c2e]/60 space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
-                      <Lock className="w-5 h-5" />
+                    <div className="w-9 h-9 rounded-xl bg-white dark:bg-[#3a3a3c] flex items-center justify-center text-[#0071e3] dark:text-[#0a84ff] shrink-0 shadow-2xs">
+                      <Lock className="w-4 h-4" />
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                          Cod PIN de Acces Firmă
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-[14px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                          Cod PIN de acces firmă
                         </h3>
                         {pinStatus?.pinEnabled ? (
                           <>
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300">
                               <ShieldCheck className="w-3 h-3" />
-                              PIN Activ
+                              PIN activ
                             </span>
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-white dark:bg-[#3a3a3c] text-[#6e6e73] dark:text-[#ebebf5]">
                               Auto-blocare la 10 min
                             </span>
                           </>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-black/[0.06] text-[#6e6e73] dark:bg-white/[0.10] dark:text-[#98989d]">
                             Inactiv
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xl">
+                      <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d] mt-1 max-w-xl leading-relaxed">
                         Protejează datele firmei în birourile unde computerul sau adresa de email sunt partajate.
                         Când este activ, se va cere codul PIN la fiecare conectare și ecranul se va bloca automat după 10 minute de inactivitate.
                       </p>
@@ -1871,7 +1896,7 @@ export default function Settings() {
                               resetPinForm();
                               setPinFormMode("change");
                             }}
-                            className="px-3.5 h-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-colors"
+                            className="apple-btn-glass px-3.5 h-8 text-[#1d1d1f] dark:text-[#f5f5f7] text-[12px] font-medium cursor-pointer"
                           >
                             Modifică PIN
                           </button>
@@ -1881,7 +1906,7 @@ export default function Settings() {
                               resetPinForm();
                               setPinFormMode("disable");
                             }}
-                            className="px-3.5 h-8 rounded-lg border border-rose-200 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-700 dark:text-rose-300 text-xs font-bold transition-colors"
+                            className="apple-btn-glass px-3.5 h-8 text-rose-600 dark:text-rose-400 text-[12px] font-medium cursor-pointer"
                           >
                             Dezactivează
                           </button>
@@ -1893,7 +1918,7 @@ export default function Settings() {
                             resetPinForm();
                             setPinFormMode("set");
                           }}
-                          className="px-4 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition-colors"
+                          className="apple-btn-prominent px-4 h-8 text-[12px] font-semibold cursor-pointer"
                         >
                           Setează cod acces
                         </button>
@@ -1904,9 +1929,9 @@ export default function Settings() {
 
                 {/* Formulare Setare / Modificare / Dezactivare PIN */}
                 {pinFormMode !== "idle" && (
-                  <div className="pt-3 border-t border-slate-200 dark:border-slate-700/80">
+                  <div className="pt-3 border-t border-black/[0.06] dark:border-white/[0.08]">
                     {pinError && (
-                      <div className="mb-3 p-2.5 rounded-lg bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 flex items-center gap-2 text-rose-700 dark:text-rose-300 text-xs font-medium">
+                      <div className="mb-3 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/25 flex items-center gap-2 text-rose-700 dark:text-rose-300 text-[12px] font-medium">
                         <AlertCircle className="w-4 h-4 shrink-0" />
                         <span>{pinError}</span>
                       </div>
@@ -1914,7 +1939,7 @@ export default function Settings() {
 
                     {(pinFormMode === "set" || pinFormMode === "change") && (
                       <form onSubmit={handleSavePin} className="space-y-3 max-w-md">
-                        <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                        <div className="text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                           {pinFormMode === "set"
                             ? "Configurare cod PIN nou"
                             : "Modificare cod PIN existent"}
@@ -1922,7 +1947,7 @@ export default function Settings() {
 
                         {pinFormMode === "change" && (
                           <div>
-                            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+                            <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
                               Cod PIN actual (4 cifre)
                             </label>
                             <input
@@ -1938,14 +1963,14 @@ export default function Settings() {
                               }}
                               required
                               placeholder="••••"
-                              className="w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-900 outline-none tabular-nums"
+                              className="w-full px-3 h-9 text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none tabular-nums"
                             />
                           </div>
                         )}
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
-                            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+                            <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
                               Cod PIN nou (exact 4 cifre)
                             </label>
                             <input
@@ -1961,11 +1986,11 @@ export default function Settings() {
                               }}
                               required
                               placeholder="••••"
-                              className="w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-900 outline-none tabular-nums"
+                              className="w-full px-3 h-9 text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none tabular-nums"
                             />
                           </div>
                           <div>
-                            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+                            <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
                               Confirmă codul PIN
                             </label>
                             <input
@@ -1981,7 +2006,7 @@ export default function Settings() {
                               }}
                               required
                               placeholder="••••"
-                              className="w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-900 outline-none tabular-nums"
+                              className="w-full px-3 h-9 text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none tabular-nums"
                             />
                           </div>
                         </div>
@@ -1990,14 +2015,14 @@ export default function Settings() {
                           <button
                             type="button"
                             onClick={resetPinForm}
-                            className="px-3 h-8 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                            className="apple-btn-glass px-3.5 h-8 text-[12px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
                           >
                             Anulează
                           </button>
                           <button
                             type="submit"
                             disabled={setPinMutation.isPending}
-                            className="px-4 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs"
+                            className="apple-btn-prominent px-4 h-8 text-[12px] font-semibold inline-flex items-center justify-center gap-1.5 cursor-pointer"
                           >
                             {setPinMutation.isPending ? (
                               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -2012,14 +2037,14 @@ export default function Settings() {
 
                     {pinFormMode === "disable" && (
                       <form onSubmit={handleDisablePin} className="space-y-3 max-w-md">
-                        <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                        <div className="text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                           Dezactivare cod PIN de acces
                         </div>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d]">
                           Introduceți codul PIN actual pentru a confirma oprirea protecției cu PIN.
                         </p>
                         <div>
-                          <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">
+                          <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
                             Cod PIN actual
                           </label>
                           <input
@@ -2033,7 +2058,7 @@ export default function Settings() {
                             }}
                             required
                             placeholder="••••"
-                            className="w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-rose-500 bg-white dark:bg-slate-900 outline-none tabular-nums"
+                            className="w-full px-3 h-9 text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none tabular-nums"
                           />
                         </div>
 
@@ -2041,14 +2066,14 @@ export default function Settings() {
                           <button
                             type="button"
                             onClick={resetPinForm}
-                            className="px-3 h-8 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                            className="apple-btn-glass px-3.5 h-8 text-[12px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
                           >
                             Anulează
                           </button>
                           <button
                             type="submit"
                             disabled={disablePinMutation.isPending}
-                            className="px-4 h-8 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs"
+                            className="px-4 h-8 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-[12px] font-semibold inline-flex items-center justify-center gap-1.5 cursor-pointer"
                           >
                             {disablePinMutation.isPending ? (
                               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -2063,44 +2088,88 @@ export default function Settings() {
                   </div>
                 )}
               </div>
-              
+
               {showPasswordForm ? (
-                <form onSubmit={handleChangePassword} className="space-y-4 border border-slate-200 dark:border-slate-800 p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-2">Schimbă Parola</h3>
+                <form
+                  onSubmit={handleChangePassword}
+                  className="space-y-3 border border-black/[0.05] dark:border-white/[0.07] p-4 rounded-2xl bg-[#f2f2f7]/60 dark:bg-[#2c2c2e]/60"
+                >
+                  <h3 className="text-[14px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                    Schimbă parola
+                  </h3>
                   <div>
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">Parola curentă</label>
-                    <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required className="w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-900 outline-none" />
+                    <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
+                      Parola curentă
+                    </label>
+                    <input
+                      type="password"
+                      value={currentPassword}
+                      onChange={e => setCurrentPassword(e.target.value)}
+                      required
+                      className="w-full px-3 h-9 text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
+                    />
                   </div>
                   <div>
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">Parola nouă</label>
-                    <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={8} className="w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-900 outline-none" />
+                    <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
+                      Parola nouă
+                    </label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={e => setNewPassword(e.target.value)}
+                      required
+                      minLength={8}
+                      className="w-full px-3 h-9 text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
+                    />
                   </div>
                   <div>
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1">Confirmă parola nouă</label>
-                    <input type="password" value={confirmNewPassword} onChange={e => setConfirmNewPassword(e.target.value)} required minLength={8} className="w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-900 outline-none" />
+                    <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
+                      Confirmă parola nouă
+                    </label>
+                    <input
+                      type="password"
+                      value={confirmNewPassword}
+                      onChange={e => setConfirmNewPassword(e.target.value)}
+                      required
+                      minLength={8}
+                      className="w-full px-3 h-9 text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
+                    />
                   </div>
-                  <div className="flex gap-2 justify-end mt-2">
-                    <button type="button" onClick={() => setShowPasswordForm(false)} className="px-3 h-8 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">Anulează</button>
-                    <button type="submit" disabled={changePasswordMutation.isPending} className="px-3 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center min-w-[80px]">
-                      {changePasswordMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Salvează"}
+                  <div className="flex gap-2 justify-end pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswordForm(false)}
+                      className="apple-btn-glass px-3.5 h-8 text-[12px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
+                    >
+                      Anulează
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={changePasswordMutation.isPending}
+                      className="apple-btn-prominent px-4 h-8 text-[12px] font-semibold inline-flex items-center justify-center min-w-[85px] cursor-pointer"
+                    >
+                      {changePasswordMutation.isPending ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        "Salvează"
+                      )}
                     </button>
                   </div>
                 </form>
               ) : (
-                <div
-                  className="flex items-center justify-between py-3 border-b border-slate-100 dark:border-slate-800"
-                >
+                <div className="flex items-center justify-between py-3 border-b border-black/[0.05] dark:border-white/[0.07]">
                   <div>
-                    <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                    <div className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                       Schimbă parola
                     </div>
-                    <div className="text-xs text-slate-500 mt-0.5">
+                    <div className="text-[12px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
                       Actualizează parola contului tău
                     </div>
                   </div>
                   <button
+                    type="button"
                     onClick={() => setShowPasswordForm(true)}
-                    className="flex items-center gap-1.5 px-4 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-colors"
+                    className="apple-btn-glass inline-flex items-center gap-1.5 px-4 h-8 text-[#1d1d1f] dark:text-[#f5f5f7] text-[12px] font-medium cursor-pointer"
                   >
                     Schimbă
                     <ChevronRight className="w-3 h-3" />
@@ -2127,23 +2196,24 @@ export default function Settings() {
               ].map((item, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between py-3 border-b border-slate-100 dark:border-slate-800 last:border-0"
+                  className="flex items-center justify-between py-3 border-b border-black/[0.05] dark:border-white/[0.07] last:border-0"
                 >
                   <div>
-                    <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                    <div className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                       {item.label}
                     </div>
-                    <div className="text-xs text-slate-500 mt-0.5">
+                    <div className="text-[12px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
                       {item.desc}
                     </div>
                   </div>
                   <button
+                    type="button"
                     onClick={() =>
                       toast.info(item.label, {
                         description: "Funcție disponibilă în curând",
                       })
                     }
-                    className="flex items-center gap-1.5 px-4 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-colors"
+                    className="apple-btn-glass inline-flex items-center gap-1.5 px-4 h-8 text-[#1d1d1f] dark:text-[#f5f5f7] text-[12px] font-medium cursor-pointer"
                   >
                     {item.action}
                     <ChevronRight className="w-3 h-3" />
@@ -2155,40 +2225,45 @@ export default function Settings() {
 
           {/* Portal Contabil tab */}
           {activeTab === "accountant" && (
-            <div className="bg-white/96 dark:bg-[#1c1c1e] rounded-[22px] shadow-xs border border-black/[0.06] dark:border-white/[0.09] p-6 space-y-6">
+            <div className="apple-surface p-5 sm:p-6 space-y-5">
               <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-                    Portalul Contabilului
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                    Portalul contabilului
                   </h2>
-                  <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-                    Vizualizare Securizată
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300">
+                    Vizualizare securizată
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-1 leading-relaxed">
                   Oferă contabilului un link securizat protejat prin cod PIN. Contabilul poate vizualiza facturile primite, descărca fișele NIR, fișierele PDF și XML-ul pentru SAGA C, fără acces la restul aplicației.
                 </p>
               </div>
 
               {/* Activare Portal */}
-              <div className="flex items-center justify-between py-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-between py-3.5 border-b border-black/[0.05] dark:border-white/[0.07]">
                 <div className="pr-4">
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Stare Portal
+                  <div className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                    Stare portal
                   </div>
-                  <div className="text-xs text-slate-500 mt-0.5">
+                  <div className="text-[12px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
                     Activează sau dezactivează accesul contabilului pe baza link-ului.
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setPortalEnabled(!portalEnabled)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                    portalEnabled ? "bg-emerald-600" : "bg-slate-200 dark:bg-slate-700"
+                  style={
+                    portalEnabled
+                      ? { backgroundColor: "var(--tenant-theme-color, #16a34a)" }
+                      : undefined
+                  }
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none cursor-pointer ${
+                    portalEnabled ? "" : "bg-black/[0.12] dark:bg-white/[0.16]"
                   }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-xs transition-transform ${
                       portalEnabled ? "translate-x-6" : "translate-x-1"
                     }`}
                   />
@@ -2196,12 +2271,12 @@ export default function Settings() {
               </div>
 
               {/* Mod Interfață Portal (Normală vs SAGA) */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3.5 border-b border-black/[0.05] dark:border-white/[0.07]">
                 <div className="pr-4">
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Interfață Implicită Portal
+                  <div className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                    Interfață implicită portal
                   </div>
-                  <div className="text-xs text-slate-500 mt-0.5">
+                  <div className="text-[12px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
                     Alegeți interfața în care se deschide automat portalul pentru contabil, fără comutare manuală.
                   </div>
                 </div>
@@ -2234,17 +2309,17 @@ export default function Settings() {
               </div>
 
               {/* Link de acces */}
-              <div className="space-y-3 py-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="space-y-3 py-3 border-b border-black/[0.05] dark:border-white/[0.07]">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-900 dark:text-white">
-                    Link de Acces Contabil
+                  <label className="block text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                    Link de acces contabil
                   </label>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
+                  <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
                     Trimiteți acest link contabilului pe WhatsApp sau Email.
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 tabular-nums text-xs text-slate-700 dark:text-slate-200 select-all truncate">
+                <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
+                  <div className="flex-1 min-w-0 px-3.5 py-2 rounded-xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.06] dark:border-white/[0.08] tabular-nums text-[12.5px] text-[#1d1d1f] dark:text-[#f5f5f7] select-all truncate">
                     {portalShareUrl || "Se generează link-ul..."}
                   </div>
                   <button
@@ -2256,7 +2331,7 @@ export default function Settings() {
                       toast.success("Link-ul portalului a fost copiat în clipboard!");
                       setTimeout(() => setIsCopiedPortalLink(false), 2000);
                     }}
-                    className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition shrink-0"
+                    className="apple-btn-glass inline-flex items-center gap-1.5 h-9 px-4 text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-medium shrink-0 cursor-pointer"
                   >
                     {isCopiedPortalLink ? (
                       <>
@@ -2274,7 +2349,7 @@ export default function Settings() {
                     href={portalShareUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="h-9 px-4 rounded-full apple-btn-prominent inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition shrink-0"
+                    className="apple-btn-prominent h-9 px-4 inline-flex items-center gap-1.5 text-[12.5px] font-semibold shrink-0"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                     <span>Deschide Portalul</span>
@@ -2283,15 +2358,23 @@ export default function Settings() {
               </div>
 
               {/* Cod / Identificator URL Personalizat */}
-              <div className="space-y-2 py-3 border-b border-slate-100 dark:border-slate-800">
-                <label className="block text-xs font-semibold text-slate-900 dark:text-white">
-                  Identificator URL Personalizat (Codul din link)
+              <div className="space-y-2 py-3 border-b border-black/[0.05] dark:border-white/[0.07]">
+                <label className="block text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                  Identificator URL personalizat (codul din link)
                 </label>
-                <p className="text-[11px] text-slate-500">
-                  Puteți personaliza codul din link cu denumirea firmei sau orice text doriți (ex: <code className="font-sans font-semibold tabular-nums px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">wood-glass</code>, <code className="font-sans font-semibold tabular-nums px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">contabilitate-wood</code>).
+                <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d]">
+                  Puteți personaliza codul din link cu denumirea firmei sau orice text doriți (ex:{" "}
+                  <code className="font-sans font-semibold tabular-nums px-1.5 py-0.5 rounded bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7]">
+                    wood-glass
+                  </code>
+                  ,{" "}
+                  <code className="font-sans font-semibold tabular-nums px-1.5 py-0.5 rounded bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7]">
+                    contabilitate-wood
+                  </code>
+                  ).
                 </p>
-                <div className="flex items-center gap-2 max-w-md">
-                  <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums select-none px-3 py-2 rounded-l-lg bg-slate-100 dark:bg-slate-800 border border-r-0 border-slate-200 dark:border-slate-700">
+                <div className="flex items-center max-w-md">
+                  <span className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] tabular-nums select-none px-3 py-2 rounded-l-xl bg-[#e5e5ea] dark:bg-[#3a3a3c] border border-r-0 border-black/[0.06] dark:border-white/[0.08]">
                     facturaspv.ro/contabil/
                   </span>
                   <input
@@ -2306,16 +2389,16 @@ export default function Settings() {
                       )
                     }
                     placeholder="cod-firma"
-                    className="flex-1 -ml-2 px-3 py-2 rounded-r-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 tabular-nums text-xs text-slate-900 dark:text-white outline-none focus:border-emerald-500"
+                    className="flex-1 min-w-0 px-3 py-2 rounded-r-xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.06] dark:border-white/[0.08] tabular-nums text-[12.5px] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
                   />
                 </div>
-                <div className="text-[11px] text-slate-400">
+                <div className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d]">
                   Sau puteți{" "}
                   <button
                     type="button"
                     onClick={() => handleSavePortalConfig(true)}
                     disabled={updateAccountantConfigMutation.isPending}
-                    className="text-emerald-600 dark:text-emerald-400 hover:underline"
+                    className="text-[#0071e3] dark:text-[#64d2ff] hover:underline cursor-pointer"
                   >
                     genera automat un cod aleator nou
                   </button>
@@ -2324,27 +2407,27 @@ export default function Settings() {
               </div>
 
               {/* Cod PIN Securitate */}
-              <div className="space-y-3 py-3">
-                <div className="flex items-center justify-between">
+              <div className="space-y-3 py-2">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-900 dark:text-white">
-                      Cod PIN Acces Contabil (4 cifre)
+                    <label className="block text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                      Cod PIN acces contabil (4 cifre)
                     </label>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
+                    <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
                       {accountantPortalConfig?.hasPin
                         ? "Protecția prin cod PIN este activată. Pentru a schimba codul, introduceți un PIN nou de 4 cifre și salvați."
                         : "Setați un cod PIN de 4 cifre pentru a bloca accesul neautorizat la documente."}
                     </p>
                   </div>
                   {accountantPortalConfig?.hasPin && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300">
                       <Lock className="w-3 h-3" />
-                      PIN Activ
+                      PIN activ
                     </span>
                   )}
                 </div>
 
-                <div className="flex items-center gap-3 max-w-sm">
+                <div className="flex items-center gap-3 max-w-sm flex-wrap">
                   <input
                     type="password"
                     inputMode="numeric"
@@ -2352,9 +2435,9 @@ export default function Settings() {
                     value={portalPin}
                     onChange={(e) => setPortalPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
                     placeholder="ex: 1234"
-                    className="w-36 px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center tabular-nums font-bold tracking-widest text-slate-900 dark:text-white text-base outline-none focus:border-emerald-500"
+                    className="w-36 px-3 py-2 rounded-xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.06] dark:border-white/[0.08] text-center tabular-nums font-bold tracking-widest text-[#1d1d1f] dark:text-[#f5f5f7] text-base outline-none"
                   />
-                  <span className="text-[11px] text-slate-400">
+                  <span className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d]">
                     {portalPin.length === 4 ? "Gata de actualizare" : "Maxim 4 cifre"}
                   </span>
                   {accountantPortalConfig?.hasPin && (
@@ -2362,7 +2445,7 @@ export default function Settings() {
                       type="button"
                       onClick={() => handleSavePortalConfig(false, true)}
                       disabled={updateAccountantConfigMutation.isPending}
-                      className="text-xs text-rose-500 hover:text-rose-600 underline ml-2"
+                      className="text-xs text-rose-600 dark:text-rose-400 hover:underline cursor-pointer"
                     >
                       Elimină PIN-ul
                     </button>
@@ -2371,17 +2454,17 @@ export default function Settings() {
               </div>
 
               {/* Buton Salvare */}
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+              <div className="pt-4 border-t border-black/[0.05] dark:border-white/[0.07] flex justify-end">
                 <button
                   type="button"
                   onClick={() => handleSavePortalConfig(false)}
                   disabled={updateAccountantConfigMutation.isPending}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-sm transition disabled:opacity-50"
+                  className="apple-btn-prominent inline-flex items-center gap-2 px-5 h-9 font-semibold text-[13px] disabled:opacity-50 cursor-pointer"
                 >
                   {updateAccountantConfigMutation.isPending && (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   )}
-                  <span>Salvează Modificările</span>
+                  <span>Salvează modificările</span>
                 </button>
               </div>
             </div>
@@ -2389,53 +2472,55 @@ export default function Settings() {
 
           {/* GDPR tab */}
           {activeTab === "gdpr" && (
-            <div className="bg-white/96 dark:bg-[#1c1c1e] rounded-[22px] shadow-xs border border-black/[0.06] dark:border-white/[0.09] p-6 space-y-6">
+            <div className="apple-surface p-5 sm:p-6 space-y-5">
               <div>
-                <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-                  Confidențialitate & Date Personale
+                <h2 className="text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                  Confidențialitate & date personale
                 </h2>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-1">
                   Gestionează datele contului tău conform normelor GDPR.
                 </p>
               </div>
 
-              <div className="space-y-4">
-                <div className="flex items-center justify-between py-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-3 py-3 border-b border-black/[0.05] dark:border-white/[0.07]">
                   <div className="pr-4">
-                    <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                      Exportă Datele Mele
+                    <div className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                      Exportă datele mele
                     </div>
-                    <div className="text-xs text-slate-500 mt-0.5">
+                    <div className="text-[12px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
                       Descarcă o copie completă a datelor tale (facturi, clienți, istoric) în format JSON.
                     </div>
                   </div>
                   <button
+                    type="button"
                     onClick={handleExportData}
                     disabled={exportDataMutation.isPending}
-                    className="flex items-center justify-center gap-1.5 px-4 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-950/50 dark:text-blue-300 dark:hover:bg-blue-900/60 border border-blue-200/70 dark:border-blue-800/70 text-xs font-bold transition-colors whitespace-nowrap shrink-0"
+                    className="apple-btn-glass inline-flex items-center justify-center gap-1.5 px-4 h-8 text-[#1d1d1f] dark:text-[#f5f5f7] text-[12px] font-medium whitespace-nowrap shrink-0 cursor-pointer"
                   >
                     {exportDataMutation.isPending ? "Se descarcă..." : "Exportă JSON"}
                   </button>
                 </div>
 
-                <div className="flex items-center justify-between py-3">
+                <div className="flex items-center justify-between gap-3 py-3">
                   <div className="pr-4">
-                    <div className="text-sm font-semibold text-red-600 dark:text-red-500">
-                      Șterge Contul
+                    <div className="text-[13.5px] font-semibold text-rose-600 dark:text-rose-400">
+                      Șterge contul
                     </div>
-                    <div className="text-xs text-slate-500 mt-0.5">
+                    <div className="text-[12px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
                       Șterge permanent datele de autentificare. Facturile emise vor fi păstrate anonimizat conform obligațiilor fiscale (10 ani).
                     </div>
                   </div>
                   <button
+                    type="button"
                     onClick={() => {
                       setDeleteConfirmText("");
                       setShowDeleteAccountDialog(true);
                     }}
                     disabled={deleteAccountMutation.isPending}
-                    className="flex items-center justify-center gap-1.5 px-4 h-8 rounded-full bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/50 dark:text-red-400 dark:hover:bg-red-900/60 border border-red-200/70 dark:border-red-800/70 text-xs font-bold transition-colors whitespace-nowrap shrink-0"
+                    className="apple-btn-glass inline-flex items-center justify-center gap-1.5 px-4 h-8 text-rose-600 dark:text-rose-400 text-[12px] font-medium whitespace-nowrap shrink-0 cursor-pointer"
                   >
-                    {deleteAccountMutation.isPending ? "Se șterge..." : "Șterge Contul"}
+                    {deleteAccountMutation.isPending ? "Se șterge..." : "Șterge contul"}
                   </button>
                 </div>
               </div>
@@ -2449,10 +2534,12 @@ export default function Settings() {
               if (!open) setDeleteConfirmText("");
             }}
           >
-            <AlertDialogContent>
+            <AlertDialogContent className="bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.10] rounded-2xl">
               <AlertDialogHeader>
-                <AlertDialogTitle>Șterge definitiv contul?</AlertDialogTitle>
-                <AlertDialogDescription>
+                <AlertDialogTitle className="text-[#1d1d1f] dark:text-[#f5f5f7]">
+                  Șterge definitiv contul?
+                </AlertDialogTitle>
+                <AlertDialogDescription className="text-[#6e6e73] dark:text-[#98989d]">
                   Ești sigur că vrei să-ți ștergi definitiv contul? Acest proces este ireversibil.
                   Scrie cuvântul <strong>STERGE</strong> pentru a confirma.
                 </AlertDialogDescription>
@@ -2462,12 +2549,12 @@ export default function Settings() {
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
                 placeholder="STERGE"
                 autoComplete="off"
-                className="tabular-nums"
+                className="tabular-nums bg-[#f2f2f7] dark:bg-[#2c2c2e] border-black/[0.06] dark:border-white/[0.08]"
               />
               <AlertDialogFooter>
                 <AlertDialogCancel
                   onClick={() => setDeleteConfirmText("")}
-                  className="rounded-full"
+                  className="rounded-full apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7]"
                 >
                   Anulează
                 </AlertDialogCancel>
@@ -2491,15 +2578,15 @@ export default function Settings() {
             activeTab === "localization") && (
             <div className="flex justify-end">
               <button
+                type="button"
                 onClick={activeTab === "pf" ? handleSavePf : handleSave}
                 disabled={activeTab === "pf" ? savingPf : saving}
-                style={{ backgroundColor: themeColor }}
-                className="flex items-center gap-1.5 px-5 h-9 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all disabled:opacity-60"
+                className="apple-btn-prominent inline-flex items-center gap-1.5 px-5 h-9 text-[13px] font-semibold disabled:opacity-60 cursor-pointer"
               >
                 {(activeTab === "pf" ? savingPf : saving) ? (
-                  <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
-                  <Check className="w-3 h-3" />
+                  <Check className="w-3.5 h-3.5" />
                 )}
                 {activeTab === "pf" && !entityPair?.pf
                   ? "Salvează și activează Persoana Fizică"
@@ -2527,21 +2614,21 @@ function BankAccountsSection({
   onRemove: (index: number) => void;
 }) {
   return (
-    <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3">
-      <div className="flex items-center justify-between">
+    <div className="pt-4 border-t border-black/[0.05] dark:border-white/[0.07] space-y-3">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
-          <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-            Date Bancare & Conturi (IBAN)
+          <h3 className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+            Date bancare & conturi (IBAN)
           </h3>
-          <p className="text-[11px] text-slate-500">{subtitle}</p>
+          <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d]">{subtitle}</p>
         </div>
         <button
           type="button"
           onClick={onAdd}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg transition-colors border border-blue-200 dark:border-blue-800"
+          className="apple-btn-glass inline-flex items-center gap-1.5 px-3.5 h-8 text-[12px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5" />
-          Adaugă Cont / IBAN
+          Adaugă cont / IBAN
         </button>
       </div>
 
@@ -2549,15 +2636,15 @@ function BankAccountsSection({
         {accounts.map((acc, idx) => (
           <div
             key={acc.id || idx}
-            className="p-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg space-y-2 relative"
+            className="p-3.5 bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.05] dark:border-white/[0.07] rounded-2xl space-y-2.5 relative"
           >
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                <span className="text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                   Cont {idx + 1}
                 </span>
                 {idx === 0 && (
-                  <span className="px-1.5 py-0.5 text-[10px] font-bold uppercase rounded bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300">
+                  <span className="px-2 py-0.5 text-[10.5px] font-medium rounded-full bg-emerald-500/12 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300">
                     Principal
                   </span>
                 )}
@@ -2566,7 +2653,7 @@ function BankAccountsSection({
                 <button
                   type="button"
                   onClick={() => onRemove(idx)}
-                  className="text-slate-400 hover:text-red-500 p-1 transition-colors"
+                  className="text-[#8e8e93] hover:text-rose-500 p-1 transition-colors cursor-pointer"
                   title="Șterge acest cont"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -2576,13 +2663,13 @@ function BankAccountsSection({
 
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
               <div className="sm:col-span-3">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                <label className="text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
                   Valută
                 </label>
                 <select
                   value={acc.currency || "RON"}
                   onChange={e => onUpdate(idx, "currency", e.target.value)}
-                  className="w-full h-8 px-2 text-xs font-semibold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full h-9 px-2.5 text-[12.5px] font-semibold rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none cursor-pointer"
                 >
                   <option value="RON">RON (Lei)</option>
                   <option value="EUR">EUR (€)</option>
@@ -2592,7 +2679,7 @@ function BankAccountsSection({
                 </select>
               </div>
               <div className="sm:col-span-5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                <label className="text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
                   IBAN
                 </label>
                 <input
@@ -2600,11 +2687,11 @@ function BankAccountsSection({
                   value={acc.iban}
                   onChange={e => onUpdate(idx, "iban", e.target.value.toUpperCase())}
                   placeholder="RO49AAAA..."
-                  className="w-full h-8 px-2.5 text-xs tabular-nums rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full h-9 px-3 text-[12.5px] tabular-nums rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none"
                 />
               </div>
               <div className="sm:col-span-4">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                <label className="text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
                   Bancă
                 </label>
                 <input
@@ -2612,7 +2699,7 @@ function BankAccountsSection({
                   value={acc.bank}
                   onChange={e => onUpdate(idx, "bank", e.target.value)}
                   placeholder="ex: Unicredit, BCR..."
-                  className="w-full h-8 px-2.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full h-9 px-3 text-[12.5px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none"
                 />
               </div>
             </div>
@@ -2640,7 +2727,7 @@ function SettingField({
 }) {
   return (
     <div>
-      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+      <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
         {label}
       </label>
       <input
@@ -2648,7 +2735,9 @@ function SettingField({
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         autoComplete={autocomplete || "on"}
-        className={`w-full px-3 h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-blue-500 bg-white dark:bg-slate-800 outline-none text-slate-900 dark:text-white transition-all${mono ? " tabular-nums" : ""}`}
+        className={`w-full px-3 h-9 text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] outline-none text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] transition-all${
+          mono ? " tabular-nums" : ""
+        }`}
       />
     </div>
   );

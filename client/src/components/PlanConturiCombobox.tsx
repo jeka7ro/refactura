@@ -243,10 +243,10 @@ export default function PlanConturiCombobox({
     <PopoverPrimitive.Root open={isOpen} onOpenChange={setIsOpen}>
       <PopoverPrimitive.Anchor asChild>
         <div
-          className={`flex items-center gap-1 rounded-lg bg-white dark:bg-slate-800 border transition-all ${
+          className={`flex items-center gap-1 rounded-lg bg-[#f2f2f7] dark:bg-[#2c2c2e] border transition-all ${
             isOpen
-              ? "border-[var(--tenant-theme-color,#16a34a)] ring-2 ring-[var(--tenant-theme-color,#16a34a)]/20 shadow-xs"
-              : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+              ? "bg-white dark:bg-[#2c2c2e] border-[var(--tenant-theme-color,#16a34a)] ring-2 ring-[var(--tenant-theme-color,#16a34a)]/20 shadow-xs"
+              : "border-black/[0.08] dark:border-white/[0.10] hover:border-black/[0.15] dark:hover:border-white/[0.16]"
           } ${stacked ? "min-h-[36px] py-0.5 px-2" : isSmall ? "h-7 px-2" : "h-8 px-2.5"} ${className}`}
           title={title || (selectedAccount ? `${selectedAccount.cod} — ${selectedAccount.denumire}` : value)}
         >
@@ -320,7 +320,7 @@ export default function PlanConturiCombobox({
                 }
               }
             }}
-            className={`${stacked ? "absolute inset-0 opacity-0 cursor-pointer " : ""}w-full bg-transparent text-slate-900 dark:text-white focus:outline-none truncate ${
+            className={`${stacked ? "absolute inset-0 opacity-0 cursor-pointer " : ""}w-full bg-transparent text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] focus:outline-none truncate ${
               displayMode === "name"
                 ? `font-medium ${isSmall ? "text-xs text-left" : "text-sm text-left"}`
                 : `font-bold tabular-nums ${isSmall ? "text-xs text-left pl-1" : "text-sm text-left pl-1"}`
@@ -328,10 +328,10 @@ export default function PlanConturiCombobox({
           />
           {stacked && selectedAccount && (
             <div className="pointer-events-none leading-tight py-0.5">
-              <div className="tabular-nums font-bold text-xs text-slate-900 dark:text-white truncate">
+              <div className="tabular-nums font-bold text-xs text-[#1d1d1f] dark:text-[#f5f5f7] truncate">
                 {selectedAccount.cod}
               </div>
-              <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 truncate">
+              <div className="text-[10px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
                 {selectedAccount.shortLabel || getCleanShortLabel(selectedAccount) || selectedAccount.denumire}
               </div>
             </div>
@@ -340,7 +340,7 @@ export default function PlanConturiCombobox({
 
           {/* Selected account badge description in md size for code mode */}
           {displayMode === "code" && !isSmall && selectedAccount && !isOpen && (
-            <span className="hidden sm:inline-block px-1.5 py-0.5 rounded text-[11px] font-sans font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/50 truncate max-w-[130px]">
+            <span className="hidden sm:inline-block px-1.5 py-0.5 rounded-md text-[11px] font-sans font-medium text-[#6e6e73] dark:text-[#98989d] bg-black/[0.05] dark:bg-white/[0.08] truncate max-w-[130px]">
               {selectedAccount.denumire}
             </span>
           )}
@@ -353,7 +353,7 @@ export default function PlanConturiCombobox({
                 borderColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 30%, transparent)",
                 color: "var(--tenant-theme-color, #16a34a)",
               }}
-              className="hidden sm:inline-block px-1.5 py-0.5 rounded text-[11px] tabular-nums font-bold border shrink-0"
+              className="hidden sm:inline-block px-1.5 py-0.5 rounded-md text-[11px] tabular-nums font-bold border shrink-0"
             >
               {selectedAccount.cod}
             </span>
@@ -370,7 +370,7 @@ export default function PlanConturiCombobox({
                 onChange("", "");
                 inputRef.current?.focus();
               }}
-              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-0.5"
+              className="text-[#8e8e93] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7] transition-colors p-0.5"
               title="Șterge"
             >
               <X className="w-3 h-3" />
@@ -384,7 +384,7 @@ export default function PlanConturiCombobox({
               setIsOpen(!isOpen);
               if (!isOpen) inputRef.current?.focus();
             }}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors p-0.5"
+            className="text-[#8e8e93] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7] transition-colors p-0.5"
           >
             <ChevronDown
               className={`w-3.5 h-3.5 transition-transform ${isOpen ? "rotate-180" : ""}`}
@@ -399,18 +399,18 @@ export default function PlanConturiCombobox({
           align="start"
           sideOffset={4}
           onOpenAutoFocus={(e) => e.preventDefault()}
-          className={`z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 ${
+          className={`z-50 bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.10] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 overscroll-contain ${
             isSmall ? "w-80 min-w-[340px]" : "w-80 sm:w-96 min-w-[360px]"
           }`}
           style={{ maxHeight: "350px" }}
         >
           {/* Quick chips for popular NIR accounts */}
-          <div className="p-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/50">
+          <div className="p-2.5 border-b border-black/[0.06] dark:border-white/[0.08] bg-[#fafafa] dark:bg-white/[0.025]">
             <div className="flex items-center justify-between mb-1.5 px-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                Conturi Frecvente NIR
+              <span className="text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                Conturi frecvente NIR
               </span>
-              <span className="text-[10px] text-slate-400 tabular-nums">
+              <span className="text-[11px] text-[#8e8e93] tabular-nums">
                 {filteredAccounts.length} rezultate
               </span>
             </div>
@@ -432,10 +432,10 @@ export default function PlanConturiCombobox({
                           }
                         : {}
                     }
-                    className={`px-2 py-0.5 rounded text-[11px] font-semibold border transition-all cursor-pointer ${
+                    className={`px-2 py-0.5 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
                       isSelected
                         ? "shadow-xs"
-                        : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-400"
+                        : "bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#ebebf5] border-black/[0.06] dark:border-white/[0.08] hover:border-black/[0.15] dark:hover:border-white/[0.18]"
                     }`}
                   >
                     <span className="tabular-nums font-bold">{pop.cod}</span>{" "}
@@ -451,11 +451,11 @@ export default function PlanConturiCombobox({
           {/* List of Accounts */}
           <div
             ref={listRef}
-            className="overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60"
+            className="overflow-y-auto divide-y divide-black/[0.045] dark:divide-white/[0.06]"
             style={{ maxHeight: "250px" }}
           >
             {filteredAccounts.length === 0 ? (
-              <div className="p-4 text-center text-xs text-slate-400">
+              <div className="p-4 text-center text-xs text-[#6e6e73] dark:text-[#98989d]">
                 Niciun cont găsit pentru „{search}”.
               </div>
             ) : (
@@ -480,11 +480,11 @@ export default function PlanConturiCombobox({
                     className={`w-full text-left p-2.5 flex items-center justify-between gap-2.5 transition-colors cursor-pointer ${
                       isActive
                         ? ""
-                        : "hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                        : "hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.04]"
                     } ${
                       isSelected
                         ? "font-semibold"
-                        : "text-slate-700 dark:text-slate-200"
+                        : "text-[#1d1d1f] dark:text-[#ebebf5]"
                     }`}
                   >
                     <div className="flex items-center gap-2 min-w-0">
@@ -498,10 +498,10 @@ export default function PlanConturiCombobox({
                               }
                             : {}
                         }
-                        className={`px-1.5 py-0.5 rounded tabular-nums font-bold text-xs shrink-0 border ${
+                        className={`px-1.5 py-0.5 rounded-md tabular-nums font-bold text-xs shrink-0 border ${
                           isSelected
                             ? ""
-                            : "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700"
+                            : "bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] border-black/[0.08] dark:border-white/[0.10]"
                         }`}
                       >
                         {account.cod}

@@ -304,14 +304,14 @@ export default function ContractVisualEditor({
       {/* ═════════════════════════════════════════════════════════════════
           TOP TOOLBAR & QUICK ACTIONS
           ═════════════════════════════════════════════════════════════════ */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+      <div className="apple-surface overflow-visible">
         {/* Row 1: Font, Size, Style & Colors */}
-        <div className="p-2 sm:p-2.5 flex flex-wrap items-center gap-1.5 border-b border-slate-100 dark:border-slate-800 text-xs">
+        <div className="p-2 sm:p-2.5 flex flex-wrap items-center gap-1.5 text-xs">
           {/* Font Family Selector */}
           <select
             value={activeFont}
             onChange={(e) => handleFontChange(e.target.value)}
-            className="h-8 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs px-2.5 font-medium focus:outline-none focus:ring-1 focus:ring-primary"
+            className="h-8 rounded-xl border border-black/[0.08] dark:border-white/[0.10] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] text-xs px-2.5 font-medium focus:outline-none focus:ring-2 focus:ring-primary/25 cursor-pointer"
           >
             <option value="Inter, system-ui, sans-serif">Modern Sans (Inter)</option>
             <option value="Georgia, Merriweather, serif">Serif Tradițional (Georgia)</option>
@@ -325,7 +325,7 @@ export default function ContractVisualEditor({
           <select
             value={activeFontSize}
             onChange={(e) => handleFontSizeChange(e.target.value)}
-            className="h-8 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs px-2 font-medium focus:outline-none focus:ring-1 focus:ring-primary"
+            className="h-8 rounded-xl border border-black/[0.08] dark:border-white/[0.10] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] text-xs px-2 font-medium focus:outline-none focus:ring-2 focus:ring-primary/25 cursor-pointer"
           >
             <option value="10px">10 px</option>
             <option value="11px">11 px</option>
@@ -337,14 +337,14 @@ export default function ContractVisualEditor({
             <option value="22px">22 px (Titlu Mare)</option>
           </select>
 
-          <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
+          <div className="h-5 w-px bg-black/[0.08] dark:bg-white/[0.10] mx-1" />
 
           {/* Text Formatting: B, I, U, S */}
-          <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-xl">
+          <div className="flex items-center gap-0.5 bg-[#f2f2f7] dark:bg-[#2c2c2e] p-0.5 rounded-xl">
             <button
               type="button"
               onClick={() => execCmd("bold")}
-              className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold transition-colors"
+              className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-[#3a3a3c] text-[#1d1d1f] dark:text-[#ebebf5] font-bold transition-colors cursor-pointer"
               title="Îngroșat (Ctrl+B)"
             >
               <Bold className="h-3.5 w-3.5" />
@@ -352,7 +352,7 @@ export default function ContractVisualEditor({
             <button
               type="button"
               onClick={() => execCmd("italic")}
-              className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 italic transition-colors"
+              className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-[#3a3a3c] text-[#1d1d1f] dark:text-[#ebebf5] italic transition-colors cursor-pointer"
               title="Cursiv (Ctrl+I)"
             >
               <Italic className="h-3.5 w-3.5" />
@@ -360,7 +360,7 @@ export default function ContractVisualEditor({
             <button
               type="button"
               onClick={() => execCmd("underline")}
-              className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 underline transition-colors"
+              className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-[#3a3a3c] text-[#1d1d1f] dark:text-[#ebebf5] underline transition-colors cursor-pointer"
               title="Subliniat (Ctrl+U)"
             >
               <Underline className="h-3.5 w-3.5" />
@@ -368,14 +368,14 @@ export default function ContractVisualEditor({
             <button
               type="button"
               onClick={() => execCmd("strikeThrough")}
-              className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 line-through transition-colors"
+              className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-[#3a3a3c] text-[#1d1d1f] dark:text-[#ebebf5] line-through transition-colors cursor-pointer"
               title="Tăiat"
             >
               <Strikethrough className="h-3.5 w-3.5" />
             </button>
           </div>
 
-          <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
+          <div className="h-5 w-px bg-black/[0.08] dark:bg-white/[0.10] mx-1" />
 
           {/* Text Color Dropdown */}
           <div className="relative">
@@ -385,37 +385,37 @@ export default function ContractVisualEditor({
                 setShowColorPicker(!showColorPicker);
                 setShowBgPicker(false);
               }}
-              className="flex items-center gap-1.5 h-8 px-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium"
+              className="apple-btn-glass flex items-center gap-1.5 h-8 px-2.5 text-xs font-medium text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
               title="Culoare text"
             >
-              <Palette className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
+              <Palette className="h-3.5 w-3.5 text-[#6e6e73] dark:text-[#98989d]" />
               <span
-                className="h-3.5 w-3.5 rounded-full border border-slate-300 inline-block"
+                className="h-3.5 w-3.5 rounded-full border border-black/20 dark:border-white/25 inline-block"
                 style={{ backgroundColor: textColor }}
               />
             </button>
 
             {showColorPicker && (
-              <div className="absolute top-10 left-0 z-50 p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl w-48 space-y-2">
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Culoare Text:
+              <div className="absolute top-10 left-0 z-50 p-2.5 bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.10] rounded-2xl shadow-2xl w-48 space-y-2">
+                <div className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                  Culoare text
                 </div>
                 <div className="grid grid-cols-5 gap-1.5">
                   {[
                     { color: "#0f172a", name: "Negru" },
                     { color: "#1e3a8a", name: "Bleumarin" },
-                    { color: "#334155", name: "Slate Închis" },
-                    { color: "#475569", name: "Gri Închis" },
-                    { color: "#64748b", name: "Gri Mediu" },
-                    { color: "#94a3b8", name: "Gri Muted" },
-                    { color: "#000000", name: "Pure Black" },
+                    { color: "#334155", name: "Antracit" },
+                    { color: "#475569", name: "Gri închis" },
+                    { color: "#64748b", name: "Gri mediu" },
+                    { color: "#94a3b8", name: "Gri deschis" },
+                    { color: "#000000", name: "Negru pur" },
                   ].map((c) => (
                     <button
                       key={c.color}
                       type="button"
                       onClick={() => handleTextColor(c.color)}
                       style={{ backgroundColor: c.color }}
-                      className="h-6 w-6 rounded-lg border border-slate-200 hover:scale-110 transition-transform"
+                      className="h-6 w-6 rounded-lg border border-black/15 dark:border-white/20 hover:scale-110 transition-transform cursor-pointer"
                       title={c.name}
                     />
                   ))}
@@ -432,37 +432,37 @@ export default function ContractVisualEditor({
                 setShowBgPicker(!showBgPicker);
                 setShowColorPicker(false);
               }}
-              className="flex items-center gap-1.5 h-8 px-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium"
+              className="apple-btn-glass flex items-center gap-1.5 h-8 px-2.5 text-xs font-medium text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
               title="Culoare fundal text (Evidențiere)"
             >
-              <Highlighter className="h-3.5 w-3.5 text-slate-600 dark:text-slate-400" />
+              <Highlighter className="h-3.5 w-3.5 text-[#6e6e73] dark:text-[#98989d]" />
               <span
-                className="h-3.5 w-3.5 rounded-full border border-slate-300 inline-block"
+                className="h-3.5 w-3.5 rounded-full border border-black/20 dark:border-white/25 inline-block"
                 style={{ backgroundColor: bgColor === "transparent" ? "#ffffff" : bgColor }}
               />
             </button>
 
             {showBgPicker && (
-              <div className="absolute top-10 left-0 z-50 p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl w-48 space-y-2">
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  Fundal / Evidențiere:
+              <div className="absolute top-10 left-0 z-50 p-2.5 bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.10] rounded-2xl shadow-2xl w-48 space-y-2">
+                <div className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                  Fundal / evidențiere
                 </div>
                 <div className="grid grid-cols-5 gap-1.5">
                   {[
                     { color: "transparent", name: "Fără evidențiere" },
-                    { color: "#fef08a", name: "Galben Pal" },
-                    { color: "#e2e8f0", name: "Gri Pal" },
-                    { color: "#f1f5f9", name: "Alb-Gri Deschis" },
+                    { color: "#fef08a", name: "Galben pal" },
+                    { color: "#e5e5ea", name: "Gri pal" },
+                    { color: "#f2f2f7", name: "Alb-gri deschis" },
                   ].map((c) => (
                     <button
                       key={c.color}
                       type="button"
                       onClick={() => handleBgColor(c.color)}
                       style={{ backgroundColor: c.color === "transparent" ? "#ffffff" : c.color }}
-                      className="h-6 w-6 rounded-lg border border-slate-300 hover:scale-110 transition-transform relative flex items-center justify-center"
+                      className="h-6 w-6 rounded-lg border border-black/15 dark:border-white/20 hover:scale-110 transition-transform relative flex items-center justify-center cursor-pointer"
                       title={c.name}
                     >
-                      {c.color === "transparent" && <Minus className="h-3 w-3 text-slate-400" />}
+                      {c.color === "transparent" && <Minus className="h-3 w-3 text-[#8e8e93]" />}
                     </button>
                   ))}
                 </div>
@@ -470,14 +470,14 @@ export default function ContractVisualEditor({
             )}
           </div>
 
-          <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 mx-1 hidden sm:block" />
+          <div className="h-5 w-px bg-black/[0.08] dark:bg-white/[0.10] mx-1 hidden sm:block" />
 
           {/* Alignments */}
-          <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-xl">
+          <div className="flex items-center gap-0.5 bg-[#f2f2f7] dark:bg-[#2c2c2e] p-0.5 rounded-xl">
             <button
               type="button"
               onClick={() => execCmd("justifyLeft")}
-              className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-[#3a3a3c] text-[#1d1d1f] dark:text-[#ebebf5] transition-colors cursor-pointer"
               title="Aliniere la Stânga"
             >
               <AlignLeft className="h-3.5 w-3.5" />
@@ -485,7 +485,7 @@ export default function ContractVisualEditor({
             <button
               type="button"
               onClick={() => execCmd("justifyCenter")}
-              className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-[#3a3a3c] text-[#1d1d1f] dark:text-[#ebebf5] transition-colors cursor-pointer"
               title="Aliniere Centrată"
             >
               <AlignCenter className="h-3.5 w-3.5" />
@@ -493,7 +493,7 @@ export default function ContractVisualEditor({
             <button
               type="button"
               onClick={() => execCmd("justifyRight")}
-              className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-[#3a3a3c] text-[#1d1d1f] dark:text-[#ebebf5] transition-colors cursor-pointer"
               title="Aliniere la Dreapta"
             >
               <AlignRight className="h-3.5 w-3.5" />
@@ -501,7 +501,7 @@ export default function ContractVisualEditor({
             <button
               type="button"
               onClick={() => execCmd("justifyFull")}
-              className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-[#3a3a3c] text-[#1d1d1f] dark:text-[#ebebf5] transition-colors cursor-pointer"
               title="Aliniere Stânga-Dreapta (Justify)"
             >
               <AlignJustify className="h-3.5 w-3.5" />
@@ -509,11 +509,11 @@ export default function ContractVisualEditor({
           </div>
 
           {/* Lists */}
-          <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-xl">
+          <div className="flex items-center gap-0.5 bg-[#f2f2f7] dark:bg-[#2c2c2e] p-0.5 rounded-xl">
             <button
               type="button"
               onClick={() => execCmd("insertUnorderedList")}
-              className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-[#3a3a3c] text-[#1d1d1f] dark:text-[#ebebf5] transition-colors cursor-pointer"
               title="Listă cu Puncte"
             >
               <List className="h-3.5 w-3.5" />
@@ -521,7 +521,7 @@ export default function ContractVisualEditor({
             <button
               type="button"
               onClick={() => execCmd("insertOrderedList")}
-              className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-[#3a3a3c] text-[#1d1d1f] dark:text-[#ebebf5] transition-colors cursor-pointer"
               title="Listă Numerotată"
             >
               <ListOrdered className="h-3.5 w-3.5" />
@@ -529,7 +529,7 @@ export default function ContractVisualEditor({
             <button
               type="button"
               onClick={() => execCmd("indent")}
-              className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-[#3a3a3c] text-[#1d1d1f] dark:text-[#ebebf5] transition-colors cursor-pointer"
               title="Mărește Indent"
             >
               <Indent className="h-3.5 w-3.5" />
@@ -537,7 +537,7 @@ export default function ContractVisualEditor({
             <button
               type="button"
               onClick={() => execCmd("outdent")}
-              className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-[#3a3a3c] text-[#1d1d1f] dark:text-[#ebebf5] transition-colors cursor-pointer"
               title="Micșorează Indent"
             >
               <Outdent className="h-3.5 w-3.5" />
@@ -545,47 +545,41 @@ export default function ContractVisualEditor({
           </div>
 
           {/* Table, Separator & Dynamic Variables Dropdown */}
-          <div className="flex items-center gap-1">
-            <Button
+          <div className="flex items-center gap-1.5">
+            <button
               type="button"
-              variant="outline"
-              size="sm"
               onClick={() => handleInsertTable(3, 2)}
-              className="h-8 text-xs rounded-xl px-2.5"
+              className="apple-btn-glass inline-flex items-center h-8 text-xs px-3 font-medium text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
               title="Inserează Tabel cu linii"
             >
-              <TableIcon className="h-3.5 w-3.5 mr-1 text-slate-600" />
+              <TableIcon className="h-3.5 w-3.5 mr-1 text-[#6e6e73] dark:text-[#98989d]" />
               Tabel
-            </Button>
+            </button>
 
-            <Button
+            <button
               type="button"
-              variant="outline"
-              size="sm"
               onClick={() => execCmd("insertHorizontalRule")}
-              className="h-8 text-xs rounded-xl px-2"
+              className="apple-btn-glass inline-flex items-center justify-center h-8 w-8 text-xs text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
               title="Linie despărțitoare"
             >
               <Minus className="h-3.5 w-3.5" />
-            </Button>
+            </button>
 
-            {/* Meniu Câmpuri Dinamice (Curat, organizat, fără aglomerare) */}
+            {/* Meniu Câmpuri Dinamice */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
+                <button
                   type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-xs rounded-xl px-2.5 gap-1.5 font-medium border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50"
+                  className="apple-btn-glass inline-flex items-center h-8 text-xs px-3 gap-1.5 font-medium text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
                   title="Inserează o variabilă la poziția cursorului"
                 >
                   <Plus className="h-3.5 w-3.5 text-primary" />
-                  <span>Inserează Câmp</span>
-                  <ChevronDown className="h-3 w-3 text-slate-400" />
-                </Button>
+                  <span>Inserează câmp</span>
+                  <ChevronDown className="h-3 w-3 text-[#8e8e93]" />
+                </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" side="bottom" sideOffset={6} avoidCollisions={false} className="w-64 text-xs rounded-xl p-1.5 z-50 max-h-[380px] overflow-y-auto shadow-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                <DropdownMenuLabel className="text-[10px] uppercase font-bold text-slate-400 px-2 py-1">
+              <DropdownMenuContent align="end" side="bottom" sideOffset={6} avoidCollisions={false} className="w-64 text-xs rounded-2xl p-1.5 z-50 max-h-[380px] overflow-y-auto shadow-2xl bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.10]">
+                <DropdownMenuLabel className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d] px-2 py-1">
                   Beneficiar (Client)
                 </DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => handleInsertVariable("Client", partnerName || "[Partener]")}>
@@ -608,7 +602,7 @@ export default function ContractVisualEditor({
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-[10px] uppercase font-bold text-slate-400 px-2 py-1">
+                <DropdownMenuLabel className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d] px-2 py-1">
                   Furnizor (Prestator)
                 </DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => handleInsertVariable("Furnizor", tenantName)}>
@@ -625,8 +619,8 @@ export default function ContractVisualEditor({
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-[10px] uppercase font-bold text-slate-400 px-2 py-1">
-                  Detalii Contract
+                <DropdownMenuLabel className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d] px-2 py-1">
+                  Detalii contract
                 </DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => handleInsertVariable("Număr_Contract", docNumber)}>
                   Număr Contract ({docNumber})
@@ -644,35 +638,35 @@ export default function ContractVisualEditor({
       </div>
 
       {/* ═════════════════════════════════════════════════════════════════
-          MAIN PAPER SHEET (A4 VISUAL VIEW)
+          MAIN PAPER SHEET (A4 VISUAL VIEW ON APPLE-DOC-STAGE)
           ═════════════════════════════════════════════════════════════════ */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 p-3 sm:p-6 shadow-inner flex justify-center">
-        <div className="w-full max-w-[850px] bg-white dark:bg-slate-900 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-md p-6 sm:p-10 space-y-6">
+      <div className="apple-doc-stage rounded-2xl border border-black/[0.06] dark:border-white/[0.08] p-3 sm:p-6 flex justify-center">
+        <div className="apple-doc-paper w-full max-w-[850px] bg-white text-[#1d1d1f] p-6 sm:p-10 space-y-6">
           {/* Header foaie contract */}
-          <div className="flex flex-col sm:flex-row justify-between items-start gap-4 pb-4 border-b border-slate-200 dark:border-slate-800 text-xs">
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-4 pb-4 border-b border-black/[0.10] text-xs">
             <div>
-              <div className="font-extrabold text-slate-900 dark:text-white text-base tracking-tight uppercase">
+              <div className="font-extrabold text-[#1d1d1f] text-base tracking-tight uppercase">
                 {tenantName}
               </div>
-              <div className="text-slate-500 text-[11px] mt-0.5">
+              <div className="text-[#6e6e73] text-[11px] mt-0.5 tabular-nums">
                 CUI: {tenantCui} | IBAN: {tenantIban} | {tenantBank}
               </div>
             </div>
 
-            <div className="text-right">
+            <div className="text-right tabular-nums">
               <div className="text-xs font-bold text-primary">Nr. {docNumber}</div>
-              <div className="text-[11px] text-slate-500">Data: {docDate}</div>
+              <div className="text-[11px] text-[#6e6e73]">Data: {docDate}</div>
             </div>
           </div>
 
-          {/* Editable Canvas Div */}
+          {/* Editable Canvas Div (A4 paper always white with dark ink) */}
           <div
             ref={editorRef}
             contentEditable
             suppressContentEditableWarning
             onInput={triggerContentChange}
             onPaste={handlePaste}
-            className="min-h-[460px] focus:outline-none text-slate-800 dark:text-slate-200 leading-relaxed font-sans text-[13px] space-y-3"
+            className="min-h-[460px] focus:outline-none text-[#1d1d1f] leading-relaxed font-sans text-[13px] space-y-3"
             style={{
               fontFamily: activeFont,
               fontSize: activeFontSize,
@@ -682,28 +676,28 @@ export default function ContractVisualEditor({
           {/* ═════════════════════════════════════════════════════════════════
               SIGNATURE BOXES AT THE BOTTOM OF THE CONTRACT
               ═════════════════════════════════════════════════════════════════ */}
-          <div className="pt-8 border-t-2 border-slate-200 dark:border-slate-800 mt-8">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+          <div className="pt-8 border-t-2 border-black/[0.08] mt-8">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <span className="text-xs font-bold tracking-tight text-[#1d1d1f] flex items-center gap-1.5">
                 <FileSignature className="h-4 w-4 text-primary" />
-                Semnăturile Părților Contractante:
+                Semnăturile părților contractante:
               </span>
-              <span className="text-[11px] text-slate-400">
+              <span className="text-[11px] text-[#6e6e73]">
                 Puteți semna olografic pe ecran sau aplica un certificat digital eIDAS
               </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Box 1: FURNIZOR / PRESTATOR */}
-              <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 p-4 flex flex-col justify-between min-h-[160px]">
+              <div className="rounded-xl border border-black/[0.08] bg-[#f8f8fa] p-4 flex flex-col justify-between min-h-[160px]">
                 <div>
-                  <div className="text-xs font-bold text-slate-900 dark:text-white uppercase">
+                  <div className="text-xs font-bold text-[#1d1d1f] uppercase">
                     FURNIZOR / PRESTATOR
                   </div>
-                  <div className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                  <div className="text-[11px] font-semibold text-[#3a3a3c]">
                     {tenantName}
                   </div>
-                  <div className="text-[10px] text-slate-400">
+                  <div className="text-[10px] text-[#6e6e73]">
                     Reprezentant: {tenantRepresentative || (tenantName.toUpperCase().includes("WOOD GLASS") ? "Șaran Vitalie" : tenantName.toUpperCase().includes("TRADE INVEST") ? "Elena Cazmal" : "Reprezentant Legal")}
                   </div>
                 </div>
@@ -716,54 +710,50 @@ export default function ContractVisualEditor({
                         alt="Semnătură Furnizor"
                         className="max-h-16 max-w-[200px] object-contain mx-auto"
                       />
-                      <div className="text-[10px] text-emerald-600 font-semibold flex items-center justify-center gap-1 mt-1">
+                      <div className="text-[10px] text-emerald-700 font-semibold flex items-center justify-center gap-1 mt-1">
                         <Check className="h-3 w-3" />
                         Semnat oficial
                       </div>
                     </div>
                   ) : (
-                    <div className="text-center text-slate-400 text-xs italic">
+                    <div className="text-center text-[#8e8e93] text-xs italic">
                       [Nesemnat încă]
                     </div>
                   )}
                 </div>
 
-                <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                  <Button
+                <div className="pt-2 border-t border-black/[0.07] flex items-center justify-between">
+                  <button
                     type="button"
-                    variant="outline"
-                    size="sm"
                     onClick={() => handleOpenSignatureModal("supplier")}
-                    className="h-7 text-xs rounded-lg border-primary/30 text-primary hover:bg-primary/10"
+                    className="inline-flex items-center h-7 px-3 text-xs font-medium rounded-full border border-primary/30 text-primary bg-white hover:bg-primary/10 transition-colors cursor-pointer"
                   >
                     <FileSignature className="h-3.5 w-3.5 mr-1" />
-                    {supplierSignature ? "Re-semnează" : "Semnează Olografic / Digital"}
-                  </Button>
+                    {supplierSignature ? "Re-semnează" : "Semnează olografic / digital"}
+                  </button>
 
                   {supplierSignature && (
-                    <Button
+                    <button
                       type="button"
-                      variant="ghost"
-                      size="sm"
                       onClick={() => handleRemoveSignature("supplier")}
-                      className="h-7 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg px-2"
+                      className="h-7 text-xs text-[#ff3b30] hover:bg-[#ff3b30]/10 rounded-full px-2 cursor-pointer"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    </button>
                   )}
                 </div>
               </div>
 
               {/* Box 2: BENEFICIAR / CLIENT */}
-              <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 p-4 flex flex-col justify-between min-h-[160px]">
+              <div className="rounded-xl border border-black/[0.08] bg-[#f8f8fa] p-4 flex flex-col justify-between min-h-[160px]">
                 <div>
-                  <div className="text-xs font-bold text-slate-900 dark:text-white uppercase">
+                  <div className="text-xs font-bold text-[#1d1d1f] uppercase">
                     BENEFICIAR / CLIENT
                   </div>
-                  <div className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                  <div className="text-[11px] font-semibold text-[#3a3a3c]">
                     {partnerName || "[Selectați Partenerul din antet]"}
                   </div>
-                  <div className="text-[10px] text-slate-400">Reprezentant Legal / Împuternicit</div>
+                  <div className="text-[10px] text-[#6e6e73]">Reprezentant Legal / Împuternicit</div>
                 </div>
 
                 <div className="my-2 py-1 flex items-center justify-center min-h-[70px]">
@@ -774,40 +764,36 @@ export default function ContractVisualEditor({
                         alt="Semnătură Beneficiar"
                         className="max-h-16 max-w-[200px] object-contain mx-auto"
                       />
-                      <div className="text-[10px] text-emerald-600 font-semibold flex items-center justify-center gap-1 mt-1">
+                      <div className="text-[10px] text-emerald-700 font-semibold flex items-center justify-center gap-1 mt-1">
                         <Check className="h-3 w-3" />
                         Semnat oficial
                       </div>
                     </div>
                   ) : (
-                    <div className="text-center text-slate-400 text-xs italic">
+                    <div className="text-center text-[#8e8e93] text-xs italic">
                       [Nesemnat încă]
                     </div>
                   )}
                 </div>
 
-                <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                  <Button
+                <div className="pt-2 border-t border-black/[0.07] flex items-center justify-between">
+                  <button
                     type="button"
-                    variant="outline"
-                    size="sm"
                     onClick={() => handleOpenSignatureModal("client")}
-                    className="h-7 text-xs rounded-lg border-primary/30 text-primary hover:bg-primary/10"
+                    className="inline-flex items-center h-7 px-3 text-xs font-medium rounded-full border border-primary/30 text-primary bg-white hover:bg-primary/10 transition-colors cursor-pointer"
                   >
                     <FileSignature className="h-3.5 w-3.5 mr-1" />
-                    {clientSignature ? "Re-semnează" : "Semnează Olografic / Digital"}
-                  </Button>
+                    {clientSignature ? "Re-semnează" : "Semnează olografic / digital"}
+                  </button>
 
                   {clientSignature && (
-                    <Button
+                    <button
                       type="button"
-                      variant="ghost"
-                      size="sm"
                       onClick={() => handleRemoveSignature("client")}
-                      className="h-7 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg px-2"
+                      className="h-7 text-xs text-[#ff3b30] hover:bg-[#ff3b30]/10 rounded-full px-2 cursor-pointer"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    </button>
                   )}
                 </div>
               </div>

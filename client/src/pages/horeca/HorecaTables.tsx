@@ -37,31 +37,31 @@ import {
 const STATUS_CONFIG = {
   free: {
     label: "Liberă",
-    bg: "bg-green-500/20",
-    border: "border-green-500/50",
-    dot: "bg-green-400",
-    text: "text-green-300",
+    bg: "bg-emerald-500/12 dark:bg-emerald-500/18",
+    border: "border-emerald-500/40",
+    dot: "bg-emerald-500",
+    text: "text-emerald-700 dark:text-emerald-300",
   },
   occupied: {
     label: "Ocupată",
-    bg: "bg-red-500/20",
-    border: "border-red-500/50",
-    dot: "bg-red-400",
-    text: "text-red-300",
+    bg: "bg-[#ff3b30]/12 dark:bg-[#ff453a]/18",
+    border: "border-[#ff3b30]/40",
+    dot: "bg-[#ff3b30]",
+    text: "text-[#d70015] dark:text-[#ff6961]",
   },
   reserved: {
     label: "Rezervată",
-    bg: "bg-yellow-500/20",
-    border: "border-yellow-500/50",
-    dot: "bg-yellow-400",
-    text: "text-yellow-300",
+    bg: "bg-amber-500/12 dark:bg-amber-500/18",
+    border: "border-amber-500/40",
+    dot: "bg-amber-500",
+    text: "text-amber-700 dark:text-amber-300",
   },
   cleaning: {
     label: "Curățenie",
-    bg: "bg-blue-500/20",
-    border: "border-blue-500/50",
-    dot: "bg-blue-400",
-    text: "text-blue-300",
+    bg: "bg-[#0071e3]/12 dark:bg-[#0a84ff]/18",
+    border: "border-[#0071e3]/40",
+    dot: "bg-[#0071e3]",
+    text: "text-[#0071e3] dark:text-[#64d2ff]",
   },
 };
 
@@ -176,30 +176,32 @@ export default function HorecaTables() {
   }, [tables]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-w-full overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
-            <Grid3X3 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-              Plan Sală
-            </h1>
-            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">
-              {tables.length} mese · {totalSeats} locuri totale
-            </p>
-          </div>
+      <div className="flex items-center justify-between gap-3 flex-wrap px-0.5">
+        <div>
+          <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
+            Plan sală
+          </h1>
+          <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5 tabular-nums">
+            <strong className="text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold">
+              {tables.length}
+            </strong>{" "}
+            mese ·{" "}
+            <strong className="text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold">
+              {totalSeats}
+            </strong>{" "}
+            locuri totale
+          </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
           {locations.length > 1 && (
             <select
               value={locationId}
               onChange={e => {
                 setSelectedLocationId(Number(e.target.value));
               }}
-              className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-3 py-2 rounded-lg text-sm font-medium focus:outline-none focus:border-blue-500 shadow-sm"
+              className="apple-pill-control px-3.5 h-[34px] text-[12.5px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none cursor-pointer"
             >
               {locations.map(l => (
                 <option key={l.id} value={l.id}>
@@ -216,7 +218,7 @@ export default function HorecaTables() {
               onClick={() => setViewMode("plan")}
               className="apple-segmented-item px-3"
             >
-              <Grid3X3 className="w-4 h-4" /> Plan
+              <Grid3X3 className="w-3.5 h-3.5" /> Plan
             </button>
             <button
               type="button"
@@ -224,16 +226,17 @@ export default function HorecaTables() {
               onClick={() => setViewMode("list")}
               className="apple-segmented-item px-3"
             >
-              <List className="w-4 h-4" /> Listă
+              <List className="w-3.5 h-3.5" /> Listă
             </button>
           </div>
           {!showForm && (
             <button
+              type="button"
               onClick={() => {
                 resetForm();
                 setShowForm(true);
               }}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm"
+              className="apple-btn-prominent inline-flex items-center gap-1.5 text-white px-4 h-[34px] text-xs font-semibold cursor-pointer"
             >
               <Plus className="w-4 h-4" /> Masă nouă
             </button>
@@ -243,8 +246,8 @@ export default function HorecaTables() {
 
       {/* Form adăugare masă */}
       {showForm && (
-        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-6 shadow-sm">
-          <h2 className="text-slate-900 dark:text-white font-bold text-lg mb-4">
+        <div className="apple-surface p-5 sm:p-6">
+          <h2 className="text-[#1d1d1f] dark:text-[#f5f5f7] font-bold text-[16px] mb-4">
             {editId ? "Editează masă" : "Masă nouă"}
           </h2>
           <form
@@ -252,7 +255,7 @@ export default function HorecaTables() {
             className="grid grid-cols-1 md:grid-cols-3 gap-4"
           >
             <div>
-              <label className="block text-slate-600 dark:text-slate-400 text-sm font-semibold mb-1">
+              <label className="block text-[#6e6e73] dark:text-[#98989d] text-[12.5px] font-medium mb-1">
                 Număr masă *
               </label>
               <input
@@ -260,11 +263,11 @@ export default function HorecaTables() {
                 value={form.number}
                 onChange={e => setForm(f => ({ ...f, number: e.target.value }))}
                 placeholder="ex: 1, 2A, VIP-1, Bar-3"
-                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
+                className="apple-input w-full h-10 px-3.5 text-sm"
               />
             </div>
             <div>
-              <label className="block text-slate-600 dark:text-slate-400 text-sm font-semibold mb-1">
+              <label className="block text-[#6e6e73] dark:text-[#98989d] text-[12.5px] font-medium mb-1">
                 Capacitate (locuri)
               </label>
               <input
@@ -275,17 +278,17 @@ export default function HorecaTables() {
                 onChange={e =>
                   setForm(f => ({ ...f, capacity: Number(e.target.value) }))
                 }
-                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
+                className="apple-input w-full h-10 px-3.5 text-sm tabular-nums"
               />
             </div>
             <div>
-              <label className="block text-slate-600 dark:text-slate-400 text-sm font-semibold mb-1">
+              <label className="block text-[#6e6e73] dark:text-[#98989d] text-[12.5px] font-medium mb-1">
                 Zonă
               </label>
               <select
                 value={form.zone}
                 onChange={e => setForm(f => ({ ...f, zone: e.target.value }))}
-                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 shadow-sm"
+                className="apple-input w-full h-10 px-3.5 text-sm cursor-pointer"
               >
                 {ZONES.map(z => (
                   <option key={z} value={z}>
@@ -294,18 +297,18 @@ export default function HorecaTables() {
                 ))}
               </select>
             </div>
-            <div className="md:col-span-3 flex justify-end gap-3 mt-2">
+            <div className="md:col-span-3 flex justify-end gap-2.5 mt-1">
               <button
                 type="button"
                 onClick={resetForm}
-                className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors"
+                className="apple-btn-glass inline-flex items-center gap-1.5 text-[#1d1d1f] dark:text-[#f5f5f7] px-4 h-9 text-xs font-semibold cursor-pointer"
               >
                 <X className="w-4 h-4" /> Anulează
               </button>
               <button
                 type="submit"
                 disabled={createMut.isPending}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-5 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm"
+                className="apple-btn-prominent inline-flex items-center gap-1.5 disabled:opacity-50 text-white px-5 h-9 text-xs font-semibold cursor-pointer"
               >
                 {createMut.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -321,22 +324,22 @@ export default function HorecaTables() {
 
       {isLoading ? (
         <div className="flex justify-center py-12">
-          <Loader2 className="w-8 h-8 text-blue-600 dark:text-blue-400 animate-spin" />
+          <Loader2 className="w-7 h-7 text-primary animate-spin" />
         </div>
       ) : (
         <>
           {/* ── PLAN VIEW ──────────────────────────────────────────────────── */}
           {viewMode === "plan" && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Legendă */}
-              <div className="flex gap-4 flex-wrap bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
+              <div className="apple-surface px-4 py-2.5 flex gap-4 flex-wrap items-center">
                 {Object.entries(STATUS_CONFIG).map(([k, v]) => (
                   <div
                     key={k}
-                    className="flex items-center gap-1.5 text-sm font-medium"
+                    className="flex items-center gap-1.5 text-xs font-medium"
                   >
-                    <div className={`w-3 h-3 rounded-full ${v.dot}`} />
-                    <span className="text-slate-700 dark:text-slate-300">
+                    <div className={`w-2.5 h-2.5 rounded-full ${v.dot}`} />
+                    <span className="text-[#1d1d1f] dark:text-[#ebebf5]">
                       {v.label}
                     </span>
                   </div>
@@ -344,12 +347,12 @@ export default function HorecaTables() {
               </div>
 
               {tables.length === 0 ? (
-                <div className="text-center py-16 bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/50 rounded-xl shadow-sm border-dashed">
-                  <Grid3X3 className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
-                  <p className="text-slate-900 dark:text-white font-bold text-lg">
+                <div className="apple-surface text-center py-16 p-6">
+                  <Grid3X3 className="w-12 h-12 text-[#8e8e93] mx-auto mb-3 opacity-50" />
+                  <p className="text-[#1d1d1f] dark:text-[#f5f5f7] font-bold text-base">
                     Nicio masă configurată
                   </p>
-                  <p className="text-slate-500 text-sm mt-1">
+                  <p className="text-[#6e6e73] dark:text-[#98989d] text-xs mt-1">
                     Adaugă prima masă folosind butonul de mai sus
                   </p>
                 </div>
@@ -357,11 +360,11 @@ export default function HorecaTables() {
                 Object.entries(byZone).map(([zone, zoneTables]) => (
                   <div
                     key={zone}
-                    className="bg-slate-50/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800"
+                    className="apple-surface p-4 sm:p-5"
                   >
-                    <h3 className="text-slate-900 dark:text-white text-sm font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-slate-400" /> {zone}
-                      <span className="text-slate-500 font-medium normal-case">
+                    <h3 className="text-[#1d1d1f] dark:text-[#f5f5f7] text-[14px] font-bold mb-4 flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-[#6e6e73] dark:text-[#98989d]" /> {zone}
+                      <span className="text-[#6e6e73] dark:text-[#98989d] font-medium text-xs tabular-nums">
                         ({zoneTables.length} mese)
                       </span>
                     </h3>
@@ -374,37 +377,38 @@ export default function HorecaTables() {
                         return (
                           <div
                             key={table.id}
-                            className={`relative rounded-xl border-2 p-3 cursor-pointer transition-all hover:scale-105 bg-white dark:bg-slate-800 shadow-sm ${cfg.border}`}
+                            className={`relative rounded-2xl border p-3 cursor-pointer transition-all hover:shadow-md bg-[#f5f5f7]/60 dark:bg-[#2c2c2e] ${cfg.border} tabular-nums`}
                             title={`Masă ${table.number} · ${cfg.label} · ${table.capacity} locuri`}
                           >
                             {/* Status dot */}
                             <div
-                              className={`absolute top-2 right-2 w-2.5 h-2.5 rounded-full ${cfg.dot} shadow-sm`}
+                              className={`absolute top-2 right-2 w-2.5 h-2.5 rounded-full ${cfg.dot}`}
                             />
                             {/* Număr masă */}
-                            <p className="text-slate-900 dark:text-white font-black text-center text-xl leading-none mb-1 mt-1">
+                            <p className="text-[#1d1d1f] dark:text-[#f5f5f7] font-bold text-center text-lg leading-none mb-1 mt-1">
                               {table.number}
                             </p>
                             {/* Capacitate */}
                             <div className="flex items-center justify-center gap-1 mb-2">
-                              <Users className="w-3.5 h-3.5 text-slate-400" />
-                              <span className="text-slate-500 dark:text-slate-400 text-xs font-bold">
+                              <Users className="w-3.5 h-3.5 text-[#8e8e93]" />
+                              <span className="text-[#6e6e73] dark:text-[#98989d] text-xs font-semibold">
                                 {table.capacity}
                               </span>
                             </div>
                             {/* Status label */}
                             <p
-                              className={`text-center text-[10px] uppercase font-bold tracking-wider mt-1 rounded-md py-0.5 px-1 bg-opacity-20 ${cfg.bg} ${cfg.text}`}
+                              className={`text-center text-[10px] font-semibold mt-1 rounded-full py-0.5 px-1.5 ${cfg.bg} ${cfg.text}`}
                             >
                               {cfg.label}
                             </p>
 
                             {/* Quick actions (visible on hover) */}
-                            <div className="mt-3 flex gap-1 opacity-0 hover:opacity-100 transition-opacity absolute inset-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm items-center justify-center rounded-lg p-1">
+                            <div className="flex gap-1 opacity-0 hover:opacity-100 transition-opacity absolute inset-0 bg-white/92 dark:bg-[#1c1c1e]/92 backdrop-blur-sm items-center justify-center rounded-2xl p-1">
                               {["free", "occupied", "reserved", "cleaning"].map(
                                 s => (
                                   <button
                                     key={s}
+                                    type="button"
                                     onClick={e => {
                                       e.stopPropagation();
                                       updateStatusMut.mutate({
@@ -417,7 +421,7 @@ export default function HorecaTables() {
                                         s as keyof typeof STATUS_CONFIG
                                       ].label
                                     }
-                                    className={`w-5 h-5 rounded-full transition-all flex items-center justify-center ${STATUS_CONFIG[s as keyof typeof STATUS_CONFIG].dot} ${table.status === s ? "ring-2 ring-offset-1 ring-slate-400 dark:ring-offset-slate-800" : "opacity-50 hover:opacity-100 hover:scale-110"}`}
+                                    className={`w-5 h-5 rounded-full transition-all flex items-center justify-center cursor-pointer ${STATUS_CONFIG[s as keyof typeof STATUS_CONFIG].dot} ${table.status === s ? "ring-2 ring-offset-1 ring-black/30 dark:ring-white/40 dark:ring-offset-[#1c1c1e]" : "opacity-55 hover:opacity-100 hover:scale-110"}`}
                                   />
                                 )
                               )}
@@ -436,146 +440,140 @@ export default function HorecaTables() {
           {viewMode === "list" && (
             <>
               {/* Search bar */}
-              <div className="relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 z-10" />
-                <input
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 shadow-sm transition-colors rounded-full"
-                  style={{
-                    paddingLeft: 36,
-                    paddingRight: search ? 90 : 16,
-                    paddingTop: 10,
-                    paddingBottom: 10,
-                    fontSize: 14,
-                  }}
-                  placeholder="Caută după număr, zonă, status..."
-                  value={search}
-                  onChange={e => {
-                    setSearch(e.target.value);
-                    setPage(1);
-                  }}
-                />
-                {search && (
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 bg-blue-100 dark:bg-blue-600 text-blue-800 dark:text-white rounded-full px-2.5 py-0.5 text-xs font-bold">
-                    {filtered.length} / {tables.length}
-                  </div>
-                )}
+              <div className="apple-surface px-3 py-2.5 flex items-center justify-between gap-2 flex-wrap">
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search className="w-3.5 h-3.5 text-[#8e8e93] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    style={{
+                      paddingLeft: 34,
+                      paddingRight: search ? 84 : 16,
+                    }}
+                    className="apple-pill-control rounded-full w-full h-[34px] text-[13px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none focus:bg-white dark:focus:bg-[#2c2c2e]"
+                    placeholder="Caută după număr, zonă, status..."
+                    value={search}
+                    onChange={e => {
+                      setSearch(e.target.value);
+                      setPage(1);
+                    }}
+                  />
+                  {search && (
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 bg-black/[0.07] dark:bg-white/[0.14] text-[#1d1d1f] dark:text-white rounded-full px-2 py-0.5 text-[10.5px] font-semibold tabular-nums">
+                      {filtered.length} / {tables.length}
+                    </span>
+                  )}
+                </div>
+                <span className="text-xs text-[#6e6e73] dark:text-[#98989d] px-2 tabular-nums">
+                  Total:{" "}
+                  <strong className="text-[#1d1d1f] dark:text-[#f5f5f7]">
+                    {filtered.length}
+                  </strong>{" "}
+                  mese
+                </span>
               </div>
 
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
-                <div className="px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-                  <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">
-                    Total:{" "}
-                    <strong className="text-slate-900 dark:text-white">
-                      {filtered.length}
-                    </strong>{" "}
-                    mese
-                  </span>
-                </div>
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
-                    <tr className="text-slate-600 dark:text-slate-400 text-left">
-                      <th
-                        style={{ width: 50, textAlign: "center" }}
-                        className="px-3 py-3 font-semibold text-xs uppercase tracking-wider"
-                      >
-                        Nr.
-                      </th>
-                      <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wider">
-                        Masă
-                      </th>
-                      <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wider">
-                        Zonă
-                      </th>
-                      <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wider">
-                        Locuri
-                      </th>
-                      <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wider text-right">
-                        Acțiuni
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {paginated.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={6}
-                          className="text-center text-slate-500 py-12"
-                        >
-                          {search
-                            ? "Niciun rezultat"
-                            : "Nicio masă configurată"}
-                        </td>
+              <div className="apple-surface overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+                      <tr className="text-[#6e6e73] dark:text-[#98989d] text-left text-[12px] font-medium">
+                        <th className="w-12 text-center px-3 py-3 font-medium">
+                          Nr.
+                        </th>
+                        <th className="px-4 py-3 font-medium">
+                          Masă
+                        </th>
+                        <th className="px-4 py-3 font-medium">
+                          Zonă
+                        </th>
+                        <th className="px-4 py-3 font-medium">
+                          Locuri
+                        </th>
+                        <th className="px-4 py-3 font-medium">
+                          Status
+                        </th>
+                        <th className="px-4 py-3 font-medium text-right">
+                          Acțiuni
+                        </th>
                       </tr>
-                    ) : (
-                      paginated.map((table, idx) => {
-                        const cfg =
-                          STATUS_CONFIG[
-                            table.status as keyof typeof STATUS_CONFIG
-                          ] || STATUS_CONFIG.free;
-                        return (
-                          <tr
-                            key={table.id}
-                            className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                    </thead>
+                    <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06] tabular-nums">
+                      {paginated.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={6}
+                            className="text-center text-[#6e6e73] dark:text-[#98989d] text-[13px] py-12"
                           >
-                            <td
-                              style={{ textAlign: "center" }}
-                              className="px-3 py-3 text-slate-400 dark:text-slate-500 font-medium"
+                            {search
+                              ? "Niciun rezultat"
+                              : "Nicio masă configurată"}
+                          </td>
+                        </tr>
+                      ) : (
+                        paginated.map((table, idx) => {
+                          const cfg =
+                            STATUS_CONFIG[
+                              table.status as keyof typeof STATUS_CONFIG
+                            ] || STATUS_CONFIG.free;
+                          return (
+                            <tr
+                              key={table.id}
+                              className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors"
                             >
-                              {(safePage - 1) * rowsPerPage + idx + 1}
-                            </td>
-                            <td className="px-4 py-3 text-slate-900 dark:text-white font-bold text-base">
-                              {table.number}
-                            </td>
-                            <td className="px-4 py-3 text-slate-600 dark:text-slate-300 font-medium">
-                              {table.zone || "—"}
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300 font-medium">
-                                <Users className="w-4 h-4 text-slate-400" />{" "}
-                                {table.capacity}
-                              </div>
-                            </td>
-                            <td className="px-4 py-3">
-                              <select
-                                value={table.status || "free"}
-                                onChange={e =>
-                                  updateStatusMut.mutate({
-                                    id: table.id,
-                                    status: e.target.value as any,
-                                  })
-                                }
-                                className={`bg-white dark:bg-slate-800 border ${cfg.border} text-slate-900 dark:text-white rounded-lg px-2.5 py-1.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/50 shadow-sm`}
-                              >
-                                {Object.entries(STATUS_CONFIG).map(([k, v]) => (
-                                  <option key={k} value={k}>
-                                    {v.label}
-                                  </option>
-                                ))}
-                              </select>
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="flex justify-end">
-                                <button
-                                  onClick={() => setTableToDelete(table)}
-                                  className="p-2 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                              <td className="text-center px-3 py-3 text-[#8e8e93] text-xs font-medium">
+                                {(safePage - 1) * rowsPerPage + idx + 1}
+                              </td>
+                              <td className="px-4 py-3 text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold text-[13.5px]">
+                                {table.number}
+                              </td>
+                              <td className="px-4 py-3 text-[#6e6e73] dark:text-[#98989d] font-medium text-[13px]">
+                                {table.zone || "—"}
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-1.5 text-[#1d1d1f] dark:text-[#ebebf5] font-medium">
+                                  <Users className="w-4 h-4 text-[#8e8e93]" />{" "}
+                                  {table.capacity}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <select
+                                  value={table.status || "free"}
+                                  onChange={e =>
+                                    updateStatusMut.mutate({
+                                      id: table.id,
+                                      status: e.target.value as any,
+                                    })
+                                  }
+                                  className={`!rounded-full border ${cfg.border} ${cfg.bg} ${cfg.text} px-3 py-1 text-xs font-semibold focus:outline-none cursor-pointer`}
                                 >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
+                                  {Object.entries(STATUS_CONFIG).map(([k, v]) => (
+                                    <option key={k} value={k}>
+                                      {v.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex justify-end">
+                                  <button
+                                    type="button"
+                                    onClick={() => setTableToDelete(table)}
+                                    className="apple-btn-glass w-8 h-8 flex items-center justify-center text-[#ff3b30] dark:text-[#ff453a] hover:bg-[#ff3b30]/10 cursor-pointer"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
                 {/* Footer paginare */}
-                <div className="px-5 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/80 dark:bg-slate-900/80">
+                <div className="px-4 sm:px-5 py-3 border-t border-black/[0.05] dark:border-white/[0.07] flex items-center justify-between flex-wrap gap-2 bg-[#fafafa] dark:bg-white/[0.02] text-xs text-[#6e6e73] dark:text-[#98989d] tabular-nums">
                   <div className="flex items-center gap-4">
-                    <span className="text-slate-500 dark:text-slate-400 text-sm font-medium flex items-center gap-2">
+                    <span className="flex items-center gap-1.5">
                       Afișează
                       <select
                         value={rowsPerPage}
@@ -583,7 +581,7 @@ export default function HorecaTables() {
                           setRowsPerPage(Number(e.target.value));
                           setPage(1);
                         }}
-                        className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-blue-500"
+                        className="apple-pill-control px-2.5 h-7 text-xs text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
                       >
                         <option value={10}>10</option>
                         <option value={15}>15</option>
@@ -592,31 +590,33 @@ export default function HorecaTables() {
                         <option value={9999}>Toți</option>
                       </select>
                     </span>
-                    <span className="text-slate-500 dark:text-slate-400 text-sm font-medium hidden sm:inline-block">
+                    <span className="hidden sm:inline-block">
                       Total:{" "}
-                      <strong className="text-slate-900 dark:text-white">
+                      <strong className="text-[#1d1d1f] dark:text-[#f5f5f7]">
                         {filtered.length}
                       </strong>
                     </span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">
+                  <div className="flex items-center gap-2">
+                    <span>
                       Pagina {safePage} din {totalPages}
                     </span>
                     <div className="flex gap-1">
                       <button
+                        type="button"
                         onClick={() => setPage(p => Math.max(1, p - 1))}
                         disabled={safePage === 1}
-                        className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                        className="apple-btn-glass w-7 h-7 flex items-center justify-center text-[#1d1d1f] dark:text-[#f5f5f7] disabled:opacity-40 cursor-pointer"
                       >
                         <ChevronLeft className="w-4 h-4" />
                       </button>
                       <button
+                        type="button"
                         onClick={() =>
                           setPage(p => Math.min(totalPages, p + 1))
                         }
                         disabled={safePage === totalPages}
-                        className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                        className="apple-btn-glass w-7 h-7 flex items-center justify-center text-[#1d1d1f] dark:text-[#f5f5f7] disabled:opacity-40 cursor-pointer"
                       >
                         <ChevronRight className="w-4 h-4" />
                       </button>
@@ -633,22 +633,22 @@ export default function HorecaTables() {
         open={!!tableToDelete}
         onOpenChange={open => !open && setTableToDelete(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.10]">
           <AlertDialogHeader>
-            <AlertDialogTitle>
+            <AlertDialogTitle className="text-[#1d1d1f] dark:text-[#f5f5f7]">
               Dezactivezi masa {tableToDelete?.number}?
             </AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-[#6e6e73] dark:text-[#98989d]">
               Masa {tableToDelete?.number} ({tableToDelete?.zone || "Sală"}) va fi scoasă din planul sălii.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-full">Anulează</AlertDialogCancel>
+            <AlertDialogCancel className="apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7]">Anulează</AlertDialogCancel>
             <AlertDialogAction
               onClick={() =>
                 tableToDelete && deleteMut.mutate({ id: tableToDelete.id })
               }
-              className="rounded-full bg-red-600 hover:bg-red-700 text-white"
+              className="rounded-full bg-[#ff3b30] hover:bg-[#d70015] text-white"
             >
               Dezactivează
             </AlertDialogAction>

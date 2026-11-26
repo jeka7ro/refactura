@@ -1,9 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { Button } from "@/components/ui/button";
 import { DataTable, DataTableColumn } from "@/components/DataTable";
-import { MapPin, Edit2, Trash2, Plus, FileText, X } from "lucide-react";
+import { MapPin, Edit2, Trash2, Plus, FileText, X, CheckCircle2, Building2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -64,7 +63,7 @@ function SupplierAutocomplete({
     <div className="relative w-full" ref={wrapperRef}>
       <input
         type="text"
-        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        className="apple-input flex h-10 w-full px-3.5 py-2 text-[16px] sm:text-[13.5px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93]"
         placeholder={placeholder}
         value={search}
         onChange={(e) => {
@@ -75,14 +74,14 @@ function SupplierAutocomplete({
         onFocus={() => setOpen(true)}
       />
       {open && filtered.length > 0 && (
-        <div className="absolute z-[9999] w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md shadow-xl max-h-64 overflow-auto">
+        <div className="apple-surface absolute z-[9999] w-full mt-1.5 shadow-xl max-h-64 overflow-auto divide-y divide-black/[0.045] dark:divide-white/[0.06]">
           {suppliers.length === 0 && (
-            <div className="px-3 py-3 text-sm text-slate-400 text-center">Nu s-au gasit furnizori in arhiva</div>
+            <div className="px-3.5 py-3 text-[12.5px] text-[#8e8e93] text-center">Nu s-au găsit furnizori în arhivă</div>
           )}
           {filtered.map((s, idx) => (
             <div
               key={idx}
-              className="px-3 py-2.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer flex justify-between items-center gap-2 border-b border-slate-100 dark:border-slate-800 last:border-0"
+              className="px-3.5 py-2.5 text-[13px] hover:bg-[#f5f5f7] dark:hover:bg-white/[0.05] cursor-pointer flex justify-between items-center gap-2 transition-colors"
               onMouseDown={(e) => {
                 e.preventDefault();
                 if (conditionType === "PICKER") {
@@ -96,8 +95,8 @@ function SupplierAutocomplete({
                 setOpen(false);
               }}
             >
-              <span className="font-medium text-slate-900 dark:text-slate-100 truncate">{s.supplierName || "-"}</span>
-              <span className="text-slate-500 dark:text-slate-400 text-xs bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded shrink-0">CUI: {s.supplierCUI || "-"}</span>
+              <span className="font-medium text-[#1d1d1f] dark:text-[#f5f5f7] truncate">{s.supplierName || "-"}</span>
+              <span className="text-[#6e6e73] dark:text-[#98989d] text-[11.5px] tabular-nums bg-[#f2f2f7] dark:bg-[#2c2c2e] px-2 py-0.5 rounded-full shrink-0">CUI: {s.supplierCUI || "-"}</span>
             </div>
           ))}
         </div>
@@ -339,29 +338,40 @@ export default function CostCenters() {
   };
 
   const activeCount = costCenters.filter((c: any) => c.isActive).length;
+  const citiesCount = new Set(costCenters.map((c: any) => c.city).filter(Boolean)).size;
 
   const columns: DataTableColumn<any>[] = [
     {
       key: "name",
-      label: "NUME CENTRU",
+      label: "Nume centru",
       sortable: true,
+      render: (val: string) => (
+        <span className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">{val}</span>
+      ),
     },
     {
       key: "city",
-      label: "ORAȘ",
+      label: "Oraș",
       sortable: true,
-      render: (val: string) => val ? <span className="text-slate-700 dark:text-slate-300">{val}</span> : <span className="text-slate-400">—</span>,
+      render: (val: string) =>
+        val ? (
+          <span className="text-[#1d1d1f] dark:text-[#f5f5f7]">{val}</span>
+        ) : (
+          <span className="text-[#8e8e93]">—</span>
+        ),
     },
     {
       key: "categoryId",
-      label: "CATEGORIE",
+      label: "Categorie",
       sortable: true,
       render: (val: number) => {
         const cat = (categories as any[]).find((c) => c.id === val);
-        if (!cat) return <span className="text-slate-400 text-xs">—</span>;
+        if (!cat) return <span className="text-[#8e8e93] text-xs">—</span>;
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-white"
-            style={{ backgroundColor: cat.color || "#6366f1" }}>
+          <span
+            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11.5px] font-medium text-white"
+            style={{ backgroundColor: cat.color || "#6366f1" }}
+          >
             {cat.name}
           </span>
         );
@@ -369,47 +379,92 @@ export default function CostCenters() {
     },
     {
       key: "address",
-      label: "ADRESĂ",
+      label: "Adresă",
       sortable: true,
+      render: (val: string) =>
+        val ? (
+          <span className="text-[#6e6e73] dark:text-[#98989d]">{val}</span>
+        ) : (
+          <span className="text-[#8e8e93]">—</span>
+        ),
     },
     {
       key: "cui",
       label: "CUI",
       sortable: true,
+      render: (val: string) =>
+        val ? (
+          <span className="tabular-nums text-[#6e6e73] dark:text-[#98989d]">{val}</span>
+        ) : (
+          <span className="text-[#8e8e93]">—</span>
+        ),
     },
     {
       key: "email",
-      label: "EMAIL",
+      label: "Email",
       sortable: true,
+      render: (val: string) =>
+        val ? (
+          <span className="text-[#6e6e73] dark:text-[#98989d]">{val}</span>
+        ) : (
+          <span className="text-[#8e8e93]">—</span>
+        ),
     },
     {
       key: "phone",
-      label: "TELEFON",
+      label: "Telefon",
       sortable: true,
+      render: (val: string) =>
+        val ? (
+          <span className="tabular-nums text-[#6e6e73] dark:text-[#98989d]">{val}</span>
+        ) : (
+          <span className="text-[#8e8e93]">—</span>
+        ),
     },
   ];
 
   const ruleColumns: DataTableColumn<any>[] = [
     {
       key: "_index",
-      label: "Nr. Crt.",
+      label: "Nr. crt.",
       sortable: false,
+      render: (val: number) => <span className="tabular-nums text-[#8e8e93]">{val}</span>,
     },
     {
       key: "conditionType",
-      label: "CONDIȚII ACTIVE",
+      label: "Condiții active",
       sortable: false,
       render: (_val: any, row: any) => {
         const badges: { label: string; color: string }[] = [];
-        if (row.conditionValue?.trim())  badges.push({ label: `CUI: ${row.conditionValue}`,       color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" });
-        if (row.matchName?.trim())        badges.push({ label: `Furnizor: ${row.matchName}`,        color: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300" });
-        if (row.addressKeyword?.trim())   badges.push({ label: `Adresă: ${row.addressKeyword}`,    color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300" });
-        if (row.lineKeyword?.trim())      badges.push({ label: `Linie: ${row.lineKeyword}`,         color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300" });
-        if (badges.length === 0) return <span className="text-slate-400 text-xs italic">—</span>;
+        if (row.conditionValue?.trim())
+          badges.push({
+            label: `CUI: ${row.conditionValue}`,
+            color:
+              "bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] border border-black/[0.06] dark:border-white/[0.08]",
+          });
+        if (row.matchName?.trim())
+          badges.push({
+            label: `Furnizor: ${row.matchName}`,
+            color:
+              "bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] border border-black/[0.06] dark:border-white/[0.08]",
+          });
+        if (row.addressKeyword?.trim())
+          badges.push({
+            label: `Adresă: ${row.addressKeyword}`,
+            color: "bg-amber-500/12 text-amber-700 dark:text-amber-400 border border-amber-500/20",
+          });
+        if (row.lineKeyword?.trim())
+          badges.push({
+            label: `Linie: ${row.lineKeyword}`,
+            color: "bg-emerald-500/12 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20",
+          });
+        if (badges.length === 0) return <span className="text-[#8e8e93] text-xs">—</span>;
         return (
-          <div className="flex flex-wrap gap-1">
+          <div className="flex flex-wrap gap-1.5">
             {badges.map((b, i) => (
-              <span key={i} className={`inline-block px-2 py-0.5 rounded-lg text-xs font-medium ${b.color}`}>{b.label}</span>
+              <span key={i} className={`inline-block px-2.5 py-0.5 rounded-full text-[11.5px] font-medium tabular-nums ${b.color}`}>
+                {b.label}
+              </span>
             ))}
           </div>
         );
@@ -417,36 +472,46 @@ export default function CostCenters() {
     },
     {
       key: "costCenterId",
-      label: "DESTINAȚIE",
+      label: "Destinație",
       sortable: true,
       render: (val: any) => {
         const c = costCenters.find((x: any) => x.id === val);
-        return c ? c.name : val;
-      }
-    }
+        return <span className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">{c ? c.name : val}</span>;
+      },
+    },
   ];
 
   const rulesDataWithIndex = rules.map((r: any, idx: number) => ({ ...r, _index: idx + 1 }));
 
   return (
-    <div className="p-3 sm:p-5 max-w-full space-y-3">
+    <div className="p-3 sm:p-5 max-w-full space-y-4 overflow-x-hidden">
       <Tabs defaultValue="centers" className="w-full">
         <div className="flex items-center justify-between gap-2 flex-wrap mb-4">
-          <TabsList>
-            <TabsTrigger value="centers">Locații (Centre)</TabsTrigger>
-            <TabsTrigger value="rules">Reguli de Rutare</TabsTrigger>
+          <TabsList className="h-9 p-1 rounded-full bg-[#e9e9ee] dark:bg-[#2c2c2e] border border-black/[0.04] dark:border-white/[0.06]">
+            <TabsTrigger
+              value="centers"
+              className="rounded-full px-4 py-1 text-[12.5px] font-semibold text-[#6e6e73] dark:text-[#98989d] data-[state=active]:bg-[var(--tenant-theme-color,#007aff)] data-[state=active]:text-white data-[state=active]:shadow-xs transition-all"
+            >
+              Locații (Centre)
+            </TabsTrigger>
+            <TabsTrigger
+              value="rules"
+              className="rounded-full px-4 py-1 text-[12.5px] font-semibold text-[#6e6e73] dark:text-[#98989d] data-[state=active]:bg-[var(--tenant-theme-color,#007aff)] data-[state=active]:text-white data-[state=active]:shadow-xs transition-all"
+            >
+              Reguli de Rutare
+            </TabsTrigger>
           </TabsList>
         </div>
 
         <TabsContent value="centers" className="space-y-4 m-0">
           {/* Header */}
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div>
-              <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
+          <div className="flex items-start sm:items-center justify-between gap-3 flex-wrap">
+            <div className="min-w-0">
+              <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
                 Centre de Cost
               </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Total: <strong>{costCenters.length}</strong> centre
+              <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5 tabular-nums">
+                {costCenters.length} centre configurate · {activeCount} active
               </p>
             </div>
             <button
@@ -464,38 +529,66 @@ export default function CostCenters() {
                 });
                 setShowForm(!showForm);
               }}
-              className="flex items-center gap-1.5 px-3.5 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors shadow-sm"
+              className="apple-btn-prominent flex items-center justify-center gap-1.5 h-9 px-4 rounded-full text-white text-[12.5px] font-semibold"
             >
               <Plus className="w-3.5 h-3.5" />
               Adaugă Centru
             </button>
           </div>
 
-          {/* KPI pills */}
-          <div className="flex flex-wrap gap-1.5 tabular-nums">
-            <span className="flex items-center gap-1.5 px-3 h-7 rounded-full text-xs font-semibold border bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800">
-              <MapPin className="w-3 h-3" /> Centre{" "}
-              <strong>{costCenters.length}</strong>
-            </span>
-            <span className="flex items-center gap-1.5 px-3 h-7 rounded-full text-xs font-semibold border bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800">
-              Activ <strong>{activeCount}</strong>
-            </span>
-            <span className="flex items-center gap-1.5 px-3 h-7 rounded-full text-xs font-semibold border bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800">
-              Orașe{" "}
-              <strong>
-                {new Set(costCenters.map((c: any) => c.city).filter(Boolean)).size}
-              </strong>
-            </span>
+          {/* KPI Cards Strip */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="apple-surface outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+              <div className="flex items-center justify-between gap-2 min-w-0">
+                <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+                  Total centre de cost
+                </span>
+                <div className="w-7 h-7 rounded-[8px] bg-[#007aff]/10 dark:bg-[#0a84ff]/15 text-[#007aff] dark:text-[#0a84ff] flex items-center justify-center shrink-0">
+                  <MapPin className="w-3.5 h-3.5" />
+                </div>
+              </div>
+              <div className="text-[22px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none tabular-nums">
+                {costCenters.length}
+              </div>
+            </div>
+
+            <div className="apple-surface outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+              <div className="flex items-center justify-between gap-2 min-w-0">
+                <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+                  Centre active
+                </span>
+                <div className="w-7 h-7 rounded-[8px] bg-[#34c759]/12 dark:bg-[#30d158]/16 text-[#248a3d] dark:text-[#30d158] flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                </div>
+              </div>
+              <div className="text-[22px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none tabular-nums">
+                {activeCount}
+              </div>
+            </div>
+
+            <div className="apple-surface outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+              <div className="flex items-center justify-between gap-2 min-w-0">
+                <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+                  Orașe acoperite
+                </span>
+                <div className="w-7 h-7 rounded-[8px] bg-[#8e8e93]/12 dark:bg-white/[0.08] text-[#6e6e73] dark:text-[#98989d] flex items-center justify-center shrink-0">
+                  <Building2 className="w-3.5 h-3.5" />
+                </div>
+              </div>
+              <div className="text-[22px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none tabular-nums">
+                {citiesCount}
+              </div>
+            </div>
           </div>
 
           {/* Form */}
           {showForm && (
-            <div className="p-6 rounded-[22px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+            <div className="apple-surface p-5 sm:p-6 space-y-4">
+              <h3 className="text-[16px] font-semibold tracking-[-0.015em] text-[#1d1d1f] dark:text-[#f5f5f7]">
                 {editingId ? "Editează Centru" : "Adaugă Centru de Cost"}
               </h3>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                   <input
                     type="text"
                     placeholder="Nume Centru *"
@@ -503,7 +596,7 @@ export default function CostCenters() {
                     onChange={e =>
                       setFormData({ ...formData, name: e.target.value })
                     }
-                    className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400"
+                    className="apple-input w-full h-10 px-3.5 text-[16px] sm:text-[13.5px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93]"
                     autoComplete="organization"
                     required
                   />
@@ -514,7 +607,7 @@ export default function CostCenters() {
                     onChange={e =>
                       setFormData({ ...formData, city: e.target.value })
                     }
-                    className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400"
+                    className="apple-input w-full h-10 px-3.5 text-[16px] sm:text-[13.5px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93]"
                     autoComplete="address-level2"
                   />
                   <input
@@ -524,7 +617,7 @@ export default function CostCenters() {
                     onChange={e =>
                       setFormData({ ...formData, address: e.target.value })
                     }
-                    className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400"
+                    className="apple-input w-full h-10 px-3.5 text-[16px] sm:text-[13.5px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93]"
                     autoComplete="street-address"
                   />
                   <input
@@ -534,7 +627,7 @@ export default function CostCenters() {
                     onChange={e =>
                       setFormData({ ...formData, cui: e.target.value })
                     }
-                    className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400"
+                    className="apple-input w-full h-10 px-3.5 text-[16px] sm:text-[13.5px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] tabular-nums"
                     autoComplete="off"
                   />
                   <input
@@ -544,7 +637,7 @@ export default function CostCenters() {
                     onChange={e =>
                       setFormData({ ...formData, email: e.target.value })
                     }
-                    className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400"
+                    className="apple-input w-full h-10 px-3.5 text-[16px] sm:text-[13.5px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93]"
                     autoComplete="email"
                   />
                   <input
@@ -554,17 +647,17 @@ export default function CostCenters() {
                     onChange={e =>
                       setFormData({ ...formData, phone: e.target.value })
                     }
-                    className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400"
+                    className="apple-input w-full h-10 px-3.5 text-[16px] sm:text-[13.5px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] tabular-nums"
                     autoComplete="tel"
                   />
                   {/* ── Categorie ─────────────────────────────── */}
-                  <div className="space-y-2">
-                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Categorie</label>
-                    <div className="flex gap-2">
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Categorie</label>
+                    <div className="flex flex-wrap sm:flex-nowrap gap-2">
                       <select
                         value={formData.categoryId ?? ""}
                         onChange={e => setFormData({ ...formData, categoryId: e.target.value ? Number(e.target.value) : null })}
-                        className="flex-1 px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="apple-input flex-1 min-w-0 h-10 px-3.5 text-[16px] sm:text-[13.5px] text-[#1d1d1f] dark:text-[#f5f5f7]"
                       >
                         <option value="">— Fără categorie —</option>
                         {(categories as any[]).map((cat: any) => (
@@ -574,7 +667,7 @@ export default function CostCenters() {
                       <button
                         type="button"
                         onClick={() => setShowCatPanel(p => !p)}
-                        className={`px-3 py-2 rounded-lg border text-xs font-medium transition-colors ${showCatPanel ? "border-indigo-300 bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300" : "border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"}`}
+                        className="apple-btn-glass flex items-center justify-center h-10 px-3.5 rounded-full text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] shrink-0"
                       >
                         {showCatPanel ? "Închide" : "+ Gestionează"}
                       </button>
@@ -582,24 +675,24 @@ export default function CostCenters() {
 
                     {/* Categoria management — apare sub dropdown */}
                     {showCatPanel && (
-                      <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 overflow-hidden">
-                        <div className="px-3 py-2 border-b border-slate-200 dark:border-slate-700 flex items-center gap-2">
-                          <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Nomenclator categorii</span>
+                      <div className="rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] overflow-hidden">
+                        <div className="px-3.5 py-2.5 border-b border-black/[0.06] dark:border-white/[0.08] flex items-center gap-2">
+                          <span className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Nomenclator categorii</span>
                         </div>
                         {/* Existing categories */}
                         {(categories as any[]).length > 0 && (
-                          <div className="px-3 py-2 flex flex-wrap gap-1.5 border-b border-slate-200 dark:border-slate-700">
+                          <div className="px-3.5 py-2.5 flex flex-wrap gap-1.5 border-b border-black/[0.06] dark:border-white/[0.08]">
                             {(categories as any[]).map((cat: any) => (
                               <span
                                 key={cat.id}
-                                className="inline-flex items-center gap-1.5 pl-2 pr-1 py-0.5 rounded-lg text-xs font-medium text-white"
+                                className="inline-flex items-center gap-1.5 pl-2.5 pr-1 py-0.5 rounded-full text-[11.5px] font-medium text-white"
                                 style={{ backgroundColor: cat.color || "#6366f1" }}
                               >
                                 {cat.name}
                                 <button
                                   type="button"
                                   onClick={() => deleteCategoryMut.mutate({ id: cat.id })}
-                                  className="w-4 h-4 rounded flex items-center justify-center bg-black/20 hover:bg-black/40 transition-colors leading-none text-xs"
+                                  className="w-4 h-4 rounded-full flex items-center justify-center bg-black/20 hover:bg-black/40 transition-colors leading-none text-xs"
                                   title="Șterge"
                                 >×</button>
                               </span>
@@ -607,7 +700,7 @@ export default function CostCenters() {
                           </div>
                         )}
                         {/* Add new category */}
-                        <div className="px-3 py-2.5 space-y-2">
+                        <div className="px-3.5 py-3 space-y-2.5">
                           <input
                             type="text"
                             placeholder="Denumire nouă (ex: Bar, Bucătărie, Curățenie)"
@@ -620,18 +713,18 @@ export default function CostCenters() {
                                 setNewCatName("");
                               }
                             }}
-                            className="w-full px-3 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="apple-input w-full h-9 px-3 text-[16px] sm:text-[13px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93]"
                           />
                           {/* Color swatches */}
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-slate-400 shrink-0">Culoare:</span>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[12px] text-[#6e6e73] dark:text-[#98989d] shrink-0">Culoare:</span>
                             <div className="flex gap-1.5 flex-wrap">
                               {["#6366f1","#0ea5e9","#10b981","#f59e0b","#ef4444","#ec4899","#8b5cf6","#06b6d4","#84cc16","#f97316"].map(color => (
                                 <button
                                   key={color}
                                   type="button"
                                   onClick={() => setNewCatColor(color)}
-                                  className="w-5 h-5 rounded-lg transition-transform hover:scale-110 focus:outline-none"
+                                  className="w-5 h-5 rounded-full transition-transform hover:scale-110 focus:outline-none"
                                   style={{
                                     backgroundColor: color,
                                     boxShadow: newCatColor === color ? `0 0 0 2px white, 0 0 0 3.5px ${color}` : "none",
@@ -650,7 +743,7 @@ export default function CostCenters() {
                                   setNewCatName("");
                                 }
                               }}
-                              className="ml-auto px-3 py-1 text-xs font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40 transition-colors"
+                              className="apple-btn-prominent ml-auto h-8 px-3.5 text-[12px] font-semibold rounded-full text-white disabled:opacity-40"
                             >
                               {createCategoryMut.isPending ? "..." : "+ Adaugă"}
                             </button>
@@ -660,25 +753,24 @@ export default function CostCenters() {
                     )}
                   </div>
                 </div>
-                <div className="flex gap-2 justify-end">
-                  <Button
+                <div className="flex gap-2 justify-end pt-1">
+                  <button
                     type="button"
-                    variant="outline"
-                    className="rounded-full"
+                    className="apple-btn-glass h-9 px-4 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-semibold"
                     onClick={() => {
                       setShowForm(false);
                       setEditingId(null);
                     }}
                   >
                     Anulează
-                  </Button>
-                  <Button
+                  </button>
+                  <button
                     type="submit"
-                    className="rounded-full"
+                    className="apple-btn-prominent h-9 px-4 rounded-full text-white text-[12.5px] font-semibold disabled:opacity-50"
                     disabled={createMutation.isPending || updateMutation.isPending}
                   >
                     {editingId ? "Actualizează" : "Adaugă"}
-                  </Button>
+                  </button>
                 </div>
               </form>
             </div>
@@ -695,7 +787,7 @@ export default function CostCenters() {
               <div className="flex gap-1.5 justify-end">
                 <button
                   onClick={() => setInvoicesModal({ open: true, center: row })}
-                  className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors"
+                  className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white transition-colors"
                   title="Vezi Facturi"
                   aria-label="Vezi Facturi"
                 >
@@ -703,7 +795,7 @@ export default function CostCenters() {
                 </button>
                 <button
                   onClick={() => handleEdit(row)}
-                  className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                  className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white transition-colors"
                   title="Editează"
                   aria-label="Editează"
                 >
@@ -711,7 +803,7 @@ export default function CostCenters() {
                 </button>
                 <button
                   onClick={() => handleDelete(row.id)}
-                  className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+                  className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-[#6e6e73] dark:text-[#98989d] hover:text-[#ff3b30] dark:hover:text-[#ff453a] transition-colors"
                   title="Șterge"
                   aria-label="Șterge"
                 >
@@ -723,30 +815,31 @@ export default function CostCenters() {
         </TabsContent>
 
         <TabsContent value="rules" className="space-y-4 m-0">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div>
-              <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
+          <div className="flex items-start sm:items-center justify-between gap-3 flex-wrap">
+            <div className="min-w-0">
+              <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
                 Reguli de Rutare SPV
               </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
-                Total: <strong>{rules.length}</strong> reguli (Afișează "Nr. Crt.", date și per pagină)
+              <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5 tabular-nums">
+                Total: {rules.length} reguli active de alocare automată
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={() => {
                   setConfirmDialog({
                     isOpen: true,
                     title: "Recalculare Facturi",
-                    description: "Ești sigur că vrei să reculezi facturile vechi pe baza regulilor actuale?",
+                    description: "Ești sigur că vrei să recalculezi facturile vechi pe baza regulilor actuale?",
                     onConfirm: () => {
                       recalculateMutation.mutate();
                     },
                   });
                 }}
                 disabled={recalculateMutation.isPending}
-                className="flex items-center gap-1.5 px-3.5 h-8 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-sm disabled:opacity-50"
+                className="apple-btn-glass flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-semibold disabled:opacity-50"
               >
+                <RefreshCw className={`w-3.5 h-3.5 ${recalculateMutation.isPending ? "animate-spin" : ""}`} />
                 Recalculează Facturile Vechi
               </button>
               <button
@@ -755,7 +848,7 @@ export default function CostCenters() {
                   setEditingRuleId(null);
                   setShowRuleForm(!showRuleForm);
                 }}
-                className="flex items-center gap-1.5 px-3.5 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors shadow-sm"
+                className="apple-btn-prominent flex items-center justify-center gap-1.5 h-9 px-4 rounded-full text-white text-[12.5px] font-semibold"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Adaugă Regulă
@@ -764,14 +857,14 @@ export default function CostCenters() {
           </div>
 
           {showRuleForm && (
-            <div className="p-6 rounded-[22px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
-              <h3 className="text-base font-semibold text-slate-900 dark:text-white">
+            <div className="apple-surface p-5 sm:p-6 space-y-4">
+              <h3 className="text-[16px] font-semibold tracking-[-0.015em] text-[#1d1d1f] dark:text-[#f5f5f7]">
                 {editingRuleId ? "Editează Regulă" : "Adaugă Regulă Nouă"}
               </h3>
-              <form onSubmit={handleRuleSubmit} className="space-y-3">
+              <form onSubmit={handleRuleSubmit} className="space-y-3.5">
                 <div>
-                  <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                    Caută Furnizor din Arhivă — selectează și se completează automat câmpurile de jos
+                  <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1.5">
+                    Caută furnizor din arhivă — selectează și se completează automat câmpurile de jos
                   </label>
                   <SupplierAutocomplete
                     value=""
@@ -784,46 +877,87 @@ export default function CostCenters() {
                     conditionType="PICKER"
                   />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5">
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">CUI Furnizor (opțional)</label>
-                    <input type="text" placeholder="ex: RO12345678" value={ruleFormData.conditionValue}
+                    <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1.5">CUI furnizor (opțional)</label>
+                    <input
+                      type="text"
+                      placeholder="ex: RO12345678"
+                      value={ruleFormData.conditionValue}
                       onChange={(e) => setRuleFormData({ ...ruleFormData, conditionValue: e.target.value })}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+                      className="apple-input flex h-10 w-full px-3.5 py-2 text-[16px] sm:text-[13.5px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] tabular-nums"
+                    />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Denumire Furnizor (opțional)</label>
-                    <input type="text" placeholder="ex: Orange, Metro" value={ruleFormData.matchName}
+                    <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1.5">Denumire furnizor (opțional)</label>
+                    <input
+                      type="text"
+                      placeholder="ex: Orange, Metro"
+                      value={ruleFormData.matchName}
                       onChange={(e) => setRuleFormData({ ...ruleFormData, matchName: e.target.value })}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+                      className="apple-input flex h-10 w-full px-3.5 py-2 text-[16px] sm:text-[13.5px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93]"
+                    />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Punct de Lucru / Localitate (opțional)</label>
-                    <input type="text" placeholder="ex: Constanta, Militari" value={ruleFormData.addressKeyword}
+                    <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1.5">Punct de lucru / Localitate (opțional)</label>
+                    <input
+                      type="text"
+                      placeholder="ex: Constanța, Militari"
+                      value={ruleFormData.addressKeyword}
                       onChange={(e) => setRuleFormData({ ...ruleFormData, addressKeyword: e.target.value })}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+                      className="apple-input flex h-10 w-full px-3.5 py-2 text-[16px] sm:text-[13.5px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93]"
+                    />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Cuvânt în liniile facturii (opțional)</label>
-                    <input type="text" placeholder="ex: orez, sos, bere, curatenie" value={(ruleFormData as any).lineKeyword || ""}
+                    <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1.5">Cuvânt în liniile facturii (opțional)</label>
+                    <input
+                      type="text"
+                      placeholder="ex: orez, sos, bere, curățenie"
+                      value={(ruleFormData as any).lineKeyword || ""}
                       onChange={(e) => setRuleFormData({ ...ruleFormData, lineKeyword: e.target.value } as any)}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
-                    <p className="text-xs text-slate-400 mt-0.5">Se potrivește dacă cel puțin o linie din factură conține acest cuvânt.</p>
+                      className="apple-input flex h-10 w-full px-3.5 py-2 text-[16px] sm:text-[13.5px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93]"
+                    />
+                    <p className="text-[11px] text-[#8e8e93] mt-1">Se potrivește dacă cel puțin o linie din factură conține acest cuvânt.</p>
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Centru de Cost Destinație *</label>
-                    <select value={ruleFormData.costCenterId || ""} onChange={(e) => setRuleFormData({ ...ruleFormData, costCenterId: Number(e.target.value) })}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" required>
+                  <div className="md:col-span-2">
+                    <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1.5">Centru de cost destinație *</label>
+                    <select
+                      value={ruleFormData.costCenterId || ""}
+                      onChange={(e) => setRuleFormData({ ...ruleFormData, costCenterId: Number(e.target.value) })}
+                      className="apple-input flex h-10 w-full px-3.5 py-2 text-[16px] sm:text-[13.5px] text-[#1d1d1f] dark:text-[#f5f5f7]"
+                      required
+                    >
                       <option value="" disabled>Selectează...</option>
-                      {costCenters.map((c: any) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+                      {costCenters.map((c: any) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
                 <div className="flex gap-2 justify-end pt-2">
-                  <Button type="button" variant="outline" className="rounded-full" onClick={() => { setShowRuleForm(false); setEditingRuleId(null); setRuleFormData({ ...EMPTY_RULE }); }}>Anulează</Button>
-                  <Button type="submit" className="rounded-full" disabled={createRuleMutation.isPending || updateRuleMutation.isPending || !ruleFormData.costCenterId || (!ruleFormData.conditionValue.trim() && !ruleFormData.matchName.trim() && !(ruleFormData as any).lineKeyword?.trim())}>
+                  <button
+                    type="button"
+                    className="apple-btn-glass h-9 px-4 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-semibold"
+                    onClick={() => {
+                      setShowRuleForm(false);
+                      setEditingRuleId(null);
+                      setRuleFormData({ ...EMPTY_RULE });
+                    }}
+                  >
+                    Anulează
+                  </button>
+                  <button
+                    type="submit"
+                    className="apple-btn-prominent h-9 px-4 rounded-full text-white text-[12.5px] font-semibold disabled:opacity-50"
+                    disabled={
+                      createRuleMutation.isPending ||
+                      updateRuleMutation.isPending ||
+                      !ruleFormData.costCenterId ||
+                      (!ruleFormData.conditionValue.trim() && !ruleFormData.matchName.trim() && !(ruleFormData as any).lineKeyword?.trim())
+                    }
+                  >
                     {editingRuleId ? "Actualizează" : "Adaugă Regulă"}
-                  </Button>
+                  </button>
                 </div>
               </form>
             </div>
@@ -840,7 +974,7 @@ export default function CostCenters() {
                   onClick={() => handleRuleEdit(row)}
                   title="Editează regulă"
                   aria-label="Editează regulă"
-                  className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                  className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white transition-colors"
                 >
                   <Edit2 className="w-3.5 h-3.5" />
                 </button>
@@ -857,7 +991,7 @@ export default function CostCenters() {
                   }}
                   title="Șterge regulă"
                   aria-label="Șterge regulă"
-                  className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+                  className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-[#6e6e73] dark:text-[#98989d] hover:text-[#ff3b30] dark:hover:text-[#ff453a] transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -868,84 +1002,93 @@ export default function CostCenters() {
       </Tabs>
 
       <AlertDialog open={confirmDialog.isOpen} onOpenChange={(open) => !open && setConfirmDialog({ ...confirmDialog, isOpen: false })}>
-        <AlertDialogContent className="rounded-[22px]">
+        <AlertDialogContent className="apple-surface rounded-[22px] border border-black/[0.08] dark:border-white/[0.1]">
           <AlertDialogHeader>
-            <AlertDialogTitle>{confirmDialog.title}</AlertDialogTitle>
-            <AlertDialogDescription>{confirmDialog.description}</AlertDialogDescription>
+            <AlertDialogTitle className="text-[#1d1d1f] dark:text-[#f5f5f7]">{confirmDialog.title}</AlertDialogTitle>
+            <AlertDialogDescription className="text-[#6e6e73] dark:text-[#98989d]">{confirmDialog.description}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="rounded-full">Anulează</AlertDialogCancel>
-            <AlertDialogAction className="rounded-full" onClick={confirmDialog.onConfirm}>Confirmă</AlertDialogAction>
+            <AlertDialogAction className="apple-btn-prominent rounded-full text-white border-0" onClick={confirmDialog.onConfirm}>Confirmă</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* Invoices Modal for Cost Center */}
       {invoicesModal.open && invoicesModal.center && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setInvoicesModal({ open: false, center: null })}>
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm overscroll-contain p-0 sm:p-4"
+          onClick={() => setInvoicesModal({ open: false, center: null })}
+        >
           <div
-            className="apple-glass bg-white/95 dark:bg-slate-900/95 w-full max-w-4xl max-h-[85vh] rounded-t-[22px] sm:rounded-[22px] shadow-2xl flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800"
+            className="apple-surface w-full max-w-4xl max-h-[85vh] rounded-t-[22px] sm:rounded-[22px] shadow-2xl flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/80">
-              <div>
-                <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-purple-600" />
+            <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-black/[0.05] dark:border-white/[0.07] bg-[#fafafa] dark:bg-white/[0.025]">
+              <div className="min-w-0">
+                <h2 className="text-[16px] font-semibold tracking-[-0.015em] text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-2 truncate">
+                  <FileText className="w-4 h-4 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
                   Facturi — {invoicesModal.center.name}
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums">
+                <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d] mt-0.5 tabular-nums">
                   {isLoadingCenterInvoices ? "Se încarcă..." : `${centerInvoices.length} facturi alocate acestui centru`}
                 </p>
               </div>
-              <button onClick={() => setInvoicesModal({ open: false, center: null })} aria-label="Închide" className="w-8 h-8 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center text-slate-500 transition-colors">
+              <button
+                onClick={() => setInvoicesModal({ open: false, center: null })}
+                aria-label="Închide"
+                className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white transition-colors shrink-0"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Table */}
-            <div className="overflow-auto flex-1">
+            <div className="overflow-auto flex-1 overscroll-contain">
               {isLoadingCenterInvoices ? (
-                <div className="flex items-center justify-center py-16 text-slate-400">Se încarcă facturile...</div>
+                <div className="flex items-center justify-center py-16 text-[#8e8e93] text-[13px]">Se încarcă facturile...</div>
               ) : centerInvoices.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 gap-2 text-slate-400">
+                <div className="flex flex-col items-center justify-center py-16 gap-2 text-[#8e8e93]">
                   <FileText className="w-10 h-10 opacity-30" />
-                  <p className="text-sm">Nicio factură alocată acestui centru de cost.</p>
-                  <p className="text-xs">Adaugă reguli de rutare și apasă „Recalculează Facturile Vechi".</p>
+                  <p className="text-[13.5px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">Nicio factură alocată acestui centru de cost.</p>
+                  <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d]">Adaugă reguli de rutare și apasă „Recalculează Facturile Vechi".</p>
                 </div>
               ) : (
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50 dark:bg-slate-800 sticky top-0">
+                <table className="w-full text-[13px]">
+                  <thead className="bg-[#fafafa] dark:bg-[#1c1c1e] sticky top-0 border-b border-black/[0.05] dark:border-white/[0.07]">
                     <tr>
-                      <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Nr.</th>
-                      <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Furnizor</th>
-                      <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">CUI</th>
-                      <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Nr. Factură</th>
-                      <th className="px-4 py-2.5 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Sumă</th>
-                      <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Dată</th>
+                      <th className="px-4 py-3 text-left text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Nr.</th>
+                      <th className="px-4 py-3 text-left text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Furnizor</th>
+                      <th className="px-4 py-3 text-left text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">CUI</th>
+                      <th className="px-4 py-3 text-left text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Nr. factură</th>
+                      <th className="px-4 py-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Sumă</th>
+                      <th className="px-4 py-3 text-left text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Dată</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
                     {centerInvoices.map((inv: any, idx: number) => (
-                      <tr key={inv.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                        <td className="px-4 py-2.5 tabular-nums text-slate-500 text-xs">{idx + 1}</td>
-                        <td className="px-4 py-2.5 font-medium text-slate-900 dark:text-white max-w-[200px] truncate">{inv.supplierName || "-"}</td>
-                        <td className="px-4 py-2.5 tabular-nums text-slate-500 text-xs">{inv.supplierCUI || "-"}</td>
-                        <td className="px-4 py-2.5 tabular-nums text-slate-700 dark:text-slate-300">{inv.invoiceNumber}</td>
-                        <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-slate-900 dark:text-white">
+                      <tr key={inv.id} className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors">
+                        <td className="px-4 py-3 tabular-nums text-[#8e8e93] text-[12.5px]">{idx + 1}</td>
+                        <td className="px-4 py-3 font-medium text-[#1d1d1f] dark:text-[#f5f5f7] max-w-[200px] truncate">{inv.supplierName || "-"}</td>
+                        <td className="px-4 py-3 tabular-nums text-[#6e6e73] dark:text-[#98989d] text-[12.5px]">{inv.supplierCUI || "-"}</td>
+                        <td className="px-4 py-3 tabular-nums font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">{inv.invoiceNumber}</td>
+                        <td className="px-4 py-3 text-right tabular-nums font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                           {inv.total != null ? Number(inv.total).toLocaleString("ro-RO", { minimumFractionDigits: 2 }) : "-"}
-                          <span className="text-xs text-slate-400 ml-1">{inv.currency || "RON"}</span>
+                          <span className="text-[11.5px] text-[#8e8e93] ml-1">{inv.currency || "RON"}</span>
                         </td>
-                        <td className="px-4 py-2.5 tabular-nums text-slate-500 text-xs">{inv.issueDate ? String(inv.issueDate).slice(0, 10) : "-"}</td>
+                        <td className="px-4 py-3 tabular-nums text-[#6e6e73] dark:text-[#98989d] text-[12.5px]">{inv.issueDate ? String(inv.issueDate).slice(0, 10) : "-"}</td>
                       </tr>
                     ))}
                   </tbody>
-                  <tfoot className="bg-slate-50 dark:bg-slate-800 sticky bottom-0 border-t border-slate-200 dark:border-slate-700">
+                  <tfoot className="bg-[#fafafa] dark:bg-[#1c1c1e] sticky bottom-0 border-t border-black/[0.06] dark:border-white/[0.08]">
                     <tr>
-                      <td colSpan={4} className="px-4 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-300 tabular-nums">TOTAL ({centerInvoices.length} facturi)</td>
-                      <td className="px-4 py-2.5 text-right tabular-nums font-bold text-slate-900 dark:text-white">
+                      <td colSpan={4} className="px-4 py-3 text-[12.5px] font-semibold text-[#6e6e73] dark:text-[#98989d] tabular-nums">
+                        Total ({centerInvoices.length} facturi)
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums font-bold text-[#1d1d1f] dark:text-[#f5f5f7]">
                         {centerInvoices.reduce((sum: number, inv: any) => sum + (Number(inv.total) || 0), 0).toLocaleString("ro-RO", { minimumFractionDigits: 2 })}
-                        <span className="text-xs text-slate-400 ml-1">RON</span>
+                        <span className="text-[11.5px] text-[#8e8e93] ml-1">RON</span>
                       </td>
                       <td />
                     </tr>

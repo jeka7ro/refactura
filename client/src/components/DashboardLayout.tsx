@@ -161,7 +161,7 @@ const navItems: NavItem[] = [
       { href: "/inventory", label: "Inventar (Stoc)", icon: Package },
       { href: "/nir", label: "NIR", icon: ClipboardCheck },
       { href: "/bonuri-consum", label: "Bonuri Consum", icon: PackageOpen },
-      { href: "/devize", label: "Devize", icon: FileText },
+      { href: "/devize?sec=gestiune", label: "Devize", icon: FileText },
       {
         href: "/devize/catalog",
         label: "Catalog Nomenclator",
@@ -629,10 +629,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     if (subHref === "/bonuri-consum") {
       return location === "/bonuri-consum" || location.startsWith("/bonuri-consum/");
     }
+    if (subHref === "/devize?sec=gestiune") {
+      return (
+        (location === "/devize" ||
+          (location.startsWith("/devize/") && location !== "/devize/catalog")) &&
+        new URLSearchParams(cleanSearch).get("sec") === "gestiune"
+      );
+    }
     if (subHref === "/devize") {
       return (
-        location === "/devize" ||
-        (location.startsWith("/devize/") && location !== "/devize/catalog")
+        (location === "/devize" ||
+          (location.startsWith("/devize/") && location !== "/devize/catalog")) &&
+        new URLSearchParams(cleanSearch).get("sec") !== "gestiune"
       );
     }
     if (subHref === "/devize/catalog") {

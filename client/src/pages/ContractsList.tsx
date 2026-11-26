@@ -256,63 +256,48 @@ export default function ContractsList() {
     });
   };
 
-  const getTypeBadge = (type: string) => {
-    switch (type) {
-      case "act_aditional":
-        return (
-          <Badge variant="outline" className="border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 font-semibold px-2.5 py-0.5 rounded-full text-xs">
-            Act Adițional
-          </Badge>
-        );
-      case "pv_receptie":
-        return (
-          <Badge variant="outline" className="border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 font-semibold px-2.5 py-0.5 rounded-full text-xs">
-            Proces Verbal
-          </Badge>
-        );
-      case "anexa":
-        return (
-          <Badge variant="outline" className="border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 font-semibold px-2.5 py-0.5 rounded-full text-xs">
-            Anexă Tehnică
-          </Badge>
-        );
-      default:
-        return (
-          <Badge variant="outline" className="border-blue-300 dark:border-blue-800 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 font-semibold px-2.5 py-0.5 rounded-full text-xs">
-            Contract Cadru
-          </Badge>
-        );
-    }
+  const hasActiveFilters =
+    search.trim() !== "" ||
+    filterType !== "toate" ||
+    filterPartnerType !== "toate" ||
+    filterStatus !== "toate";
+
+  const resetFilters = () => {
+    setSearch("");
+    setFilterType("toate");
+    setFilterPartnerType("toate");
+    setFilterStatus("toate");
+    setPage(1);
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "activ":
         return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-            Activ
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 dark:bg-emerald-500/18 px-2.5 py-0.5 rounded-full leading-none">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <span>Activ</span>
           </span>
         );
       case "draft":
         return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
-            Draft
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-amber-700 dark:text-amber-300 bg-amber-500/12 dark:bg-amber-500/18 px-2.5 py-0.5 rounded-full leading-none">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+            <span>Draft</span>
           </span>
         );
       case "expirat":
         return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full">
-            <span className="h-1.5 w-1.5 rounded-full bg-rose-500"></span>
-            Expirat
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#ff3b30] dark:text-[#ff6961] bg-[#ff3b30]/12 dark:bg-[#ff453a]/18 px-2.5 py-0.5 rounded-full leading-none">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#ff3b30] dark:bg-[#ff453a]" />
+            <span>Expirat</span>
           </span>
         );
       case "reziliat":
         return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-500/10 px-2 py-0.5 rounded-full">
-            <span className="h-1.5 w-1.5 rounded-full bg-slate-500"></span>
-            Reziliat
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d] bg-[#f2f2f7] dark:bg-[#2c2c2e] px-2.5 py-0.5 rounded-full leading-none">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#8e8e93]" />
+            <span>Reziliat</span>
           </span>
         );
       default:
@@ -321,32 +306,40 @@ export default function ContractsList() {
   };
 
   return (
-    <div className="p-3 sm:p-5 w-full min-w-0 max-w-full space-y-6 overflow-x-hidden">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 min-w-0">
+    <div className="p-3 sm:p-5 w-full min-w-0 max-w-full space-y-4 overflow-x-hidden">
+      {/* Header — Apple macOS Window Title & Actions */}
+      <div className="flex items-center justify-between gap-3 flex-wrap px-0.5 min-w-0">
         <div className="min-w-0">
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
-            <FileSignature className="h-6 w-6 sm:h-7 sm:w-7 text-primary shrink-0" />
-            <span className="truncate">Bibliotecă Documente & Contracte</span>
+          <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight truncate">
+            Bibliotecă Documente & Contracte
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Gestiune digitală contracte cadru, acte adiționale și procese verbale cu istoric timestampat și export PDF direct.
+          <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5 tabular-nums">
+            Contracte cadru, acte adiționale și procese verbale ·{" "}
+            <strong className="text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold">
+              {rawContracts.length}
+            </strong>{" "}
+            documente
+            {totalCount !== rawContracts.length && (
+              <span className="ml-1.5 text-[#1d1d1f] dark:text-white font-medium">
+                ({totalCount} afișate)
+              </span>
+            )}
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
             onClick={() => setShowImportModal(true)}
-            className="h-9 sm:h-10 px-3.5 sm:px-5 inline-flex items-center justify-center gap-2 rounded-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs sm:text-sm font-semibold shadow-xs transition-colors box-border shrink-0"
+            className="apple-btn-glass flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-semibold transition-all cursor-pointer shrink-0"
           >
-            <Upload className="h-4 w-4 text-primary shrink-0" />
+            <Upload className="h-3.5 w-3.5 text-[#0071e3] dark:text-[#0a84ff] shrink-0" />
             <span>Importă Arhivă / Folder</span>
           </button>
 
           <Link
             href="/contracte/new"
-            className="h-9 sm:h-10 px-3.5 sm:px-5 inline-flex items-center justify-center gap-2 rounded-full border border-transparent bg-primary hover:bg-primary/90 text-white text-xs sm:text-sm font-semibold shadow-sm transition-colors box-border shrink-0"
+            className="apple-btn-prominent flex items-center justify-center gap-1.5 h-9 px-4 rounded-full text-white text-[12.5px] font-semibold transition-all shrink-0"
           >
             <Plus className="h-4 w-4 shrink-0" />
             <span>Contract Nou</span>
@@ -354,407 +347,434 @@ export default function ContractsList() {
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 items-stretch">
-        <div className="h-full flex items-center justify-between rounded-2xl border border-black/[0.06] dark:border-white/[0.09] bg-card px-3.5 py-2.5 shadow-2xs transition-all hover:border-primary/30">
-          <div className="min-w-0">
-            <span className="block text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] truncate">
-              Contracte Active
+      {/* KPI Cards — Clean Rectangular 16px Apple Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => {
+            setFilterStatus(filterStatus === "activ" ? "toate" : "activ");
+            setPage(1);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setFilterStatus(filterStatus === "activ" ? "toate" : "activ");
+              setPage(1);
+            }
+          }}
+          className="apple-surface outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 transition-all hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none"
+        >
+          <div className="flex items-center justify-between gap-2 w-full">
+            <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+              Contracte active
             </span>
-            <div className="mt-0.5 text-lg sm:text-[20px] font-bold tabular-nums text-[#1d1d1f] dark:text-white leading-tight">
-              {loadingStats ? "..." : stats?.totalActive || 0}
-            </div>
-            <div className="text-[10.5px] text-[#636366] dark:text-[#98989d] truncate">
-              Valabile și în derulare
-            </div>
+            <span className="w-7 h-7 rounded-[8px] bg-[#f2f4f7] dark:bg-[#2c2c2e] flex items-center justify-center shrink-0">
+              <FileCheck className="h-3.5 w-3.5 text-[#0071e3] dark:text-[#0a84ff]" />
+            </span>
           </div>
-          <div className="h-8 w-8 rounded-xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 ml-2">
-            <FileCheck className="h-4 w-4" />
+          <div className="flex items-baseline gap-2 tabular-nums">
+            <span className="text-[22px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none tabular-nums">
+              {loadingStats ? "…" : stats?.totalActive || 0}
+            </span>
+            <span className="text-[11px] text-[#6e6e73] dark:text-[#98989d] truncate">
+              În derulare
+            </span>
           </div>
         </div>
 
-        <div className="h-full flex items-center justify-between rounded-2xl border border-black/[0.06] dark:border-white/[0.09] bg-card px-3.5 py-2.5 shadow-2xs transition-all hover:border-primary/30">
-          <div className="min-w-0">
-            <span className="block text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] truncate">
-              Acte Adiționale
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => {
+            setFilterType(filterType === "act_aditional" ? "toate" : "act_aditional");
+            setPage(1);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setFilterType(filterType === "act_aditional" ? "toate" : "act_aditional");
+              setPage(1);
+            }
+          }}
+          className="apple-surface outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 transition-all hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none"
+        >
+          <div className="flex items-center justify-between gap-2 w-full">
+            <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+              Acte adiționale
             </span>
-            <div className="mt-0.5 text-lg sm:text-[20px] font-bold tabular-nums text-[#1d1d1f] dark:text-white leading-tight">
-              {loadingStats ? "..." : stats?.totalAddendums || 0}
-            </div>
-            <div className="text-[10.5px] text-[#636366] dark:text-[#98989d] truncate">
-              Modificări de termene & prețuri
-            </div>
+            <span className="w-7 h-7 rounded-[8px] bg-[#f2f4f7] dark:bg-[#2c2c2e] flex items-center justify-center shrink-0">
+              <RefreshCw className="h-3.5 w-3.5 text-[#6e6e73] dark:text-[#98989d]" />
+            </span>
           </div>
-          <div className="h-8 w-8 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-700 dark:text-slate-300 shrink-0 ml-2">
-            <RefreshCw className="h-4 w-4" />
+          <div className="flex items-baseline gap-2 tabular-nums">
+            <span className="text-[22px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none tabular-nums">
+              {loadingStats ? "…" : stats?.totalAddendums || 0}
+            </span>
+            <span className="text-[11px] text-[#6e6e73] dark:text-[#98989d] truncate">
+              Termene & prețuri
+            </span>
           </div>
         </div>
 
-        <div className="h-full flex items-center justify-between rounded-2xl border border-black/[0.06] dark:border-white/[0.09] bg-card px-3.5 py-2.5 shadow-2xs transition-all hover:border-primary/30">
-          <div className="min-w-0">
-            <span className="block text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] truncate">
-              Expiră în 30 Zile
+        <div className="apple-surface outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+          <div className="flex items-center justify-between gap-2 w-full">
+            <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+              Expiră în 30 zile
             </span>
-            <div className="mt-0.5 text-lg sm:text-[20px] font-bold tabular-nums text-[#1d1d1f] dark:text-white leading-tight">
-              {loadingStats ? "..." : stats?.expiringSoon || 0}
-            </div>
-            <div className="text-[10.5px] text-[#636366] dark:text-[#98989d] truncate">
-              Necesită reînnoire sau act adițional
-            </div>
+            <span className="w-7 h-7 rounded-[8px] bg-[#fff6eb] dark:bg-amber-500/18 flex items-center justify-center shrink-0">
+              <Clock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+            </span>
           </div>
-          <div className="h-8 w-8 rounded-xl bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0 ml-2">
-            <Clock className="h-4 w-4" />
+          <div className="flex items-baseline gap-2 tabular-nums">
+            <span
+              className={`text-[22px] sm:text-[24px] font-bold tracking-[-0.026em] leading-none tabular-nums ${
+                (stats?.expiringSoon || 0) > 0
+                  ? "text-[#ff3b30] dark:text-[#ff453a]"
+                  : "text-[#1d1d1f] dark:text-[#f5f5f7]"
+              }`}
+            >
+              {loadingStats ? "…" : stats?.expiringSoon || 0}
+            </span>
+            <span className="text-[11px] text-[#6e6e73] dark:text-[#98989d] truncate">
+              {(stats?.expiringSoon || 0) > 0 ? "Necesită atenție" : "La zi"}
+            </span>
           </div>
         </div>
 
-        <div className="h-full flex items-center justify-between rounded-2xl border border-black/[0.06] dark:border-white/[0.09] bg-card px-3.5 py-2.5 shadow-2xs transition-all hover:border-primary/30">
-          <div className="min-w-0">
-            <span className="block text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] truncate">
-              Fișiere Arhivate
+        <div className="apple-surface outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+          <div className="flex items-center justify-between gap-2 w-full">
+            <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+              Fișiere arhivate
             </span>
-            <div className="mt-0.5 text-lg sm:text-[20px] font-bold tabular-nums text-[#1d1d1f] dark:text-white leading-tight">
-              {loadingStats ? "..." : stats?.totalFiles || 0}
-            </div>
-            <div className="text-[10.5px] text-[#636366] dark:text-[#98989d] truncate">
-              PDF-uri stocate și indexate
-            </div>
+            <span className="w-7 h-7 rounded-[8px] bg-[#eefbf3] dark:bg-emerald-500/18 flex items-center justify-center shrink-0">
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+            </span>
           </div>
-          <div className="h-8 w-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 ml-2">
-            <ShieldCheck className="h-4 w-4" />
+          <div className="flex items-baseline gap-2 tabular-nums">
+            <span className="text-[22px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none tabular-nums">
+              {loadingStats ? "…" : stats?.totalFiles || 0}
+            </span>
+            <span className="text-[11px] text-[#6e6e73] dark:text-[#98989d] truncate">
+              PDF-uri indexate
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="rounded-[22px] border border-slate-200 dark:border-slate-800 bg-card p-4 shadow-sm space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Căutare - SmartDevize Rule 1 */}
-          <div className="relative">
-            <Search
-              className="w-4 h-4 text-slate-400 pointer-events-none"
-              style={{
-                position: "absolute",
-                left: 12,
-                top: "50%",
-                transform: "translateY(-50%)",
-                zIndex: 1,
-              }}
-            />
-            <input
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
+      {/* Unified Filter & Search Toolbar */}
+      <div className="apple-surface px-3 py-2.5">
+        <div className="flex flex-wrap xl:flex-nowrap items-center gap-1.5 2xl:gap-2 w-full min-w-0">
+          {/* Status Segmented Track */}
+          <div className="apple-segmented flex-wrap sm:flex-nowrap !rounded-2xl sm:!rounded-full max-w-full shrink-0">
+            {[
+              { id: "toate", label: "Toate" },
+              { id: "activ", label: "Active" },
+              { id: "draft", label: "Draft" },
+              { id: "expirat", label: "Expirate" },
+              { id: "reziliat", label: "Reziliate" },
+            ].map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                data-active={filterStatus === item.id}
+                onClick={() => {
+                  setFilterStatus(item.id);
+                  setPage(1);
+                }}
+                className="apple-segmented-item px-2 2xl:px-2.5 shrink-0"
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Right Side Controls: Type Select + Partner Type Select + Search + Reset */}
+          <div className="xl:ml-auto flex flex-wrap sm:flex-nowrap items-center gap-1.5 2xl:gap-2 w-full xl:w-auto xl:flex-1 justify-end min-w-0">
+            <Select
+              value={filterType}
+              onValueChange={(val) => {
+                setFilterType(val);
                 setPage(1);
               }}
-              placeholder="Caută după număr, partener, CUI..."
-              style={{
-                paddingLeft: 36,
-                paddingRight: search ? 80 : 16,
-                borderRadius: 9999,
-              }}
-              className="w-full h-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm rounded-full text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary transition-all shadow-sm"
-            />
-            {search && (
-              <div
-                style={{
-                  position: "absolute",
-                  right: 10,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  background: "var(--accent, #2563eb)",
-                  color: "white",
-                  borderRadius: 9999,
-                  padding: "2px 10px",
-                  fontSize: 11,
-                  fontWeight: 600,
-                  whiteSpace: "nowrap",
-                }}
+            >
+              <SelectTrigger
+                data-filtered={filterType !== "toate"}
+                className="apple-pill-control h-[34px] w-auto shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 2xl:px-3"
               >
-                {filteredContracts.length} / {rawContracts.length}
-              </div>
+                <FileText className="h-3.5 w-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
+                <SelectValue placeholder="Tip document" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="toate">Tip: Toate</SelectItem>
+                <SelectItem value="contract">Contract Cadru</SelectItem>
+                <SelectItem value="act_aditional">Act Adițional</SelectItem>
+                <SelectItem value="pv_receptie">Proces Verbal Recepție</SelectItem>
+                <SelectItem value="anexa">Anexă Tehnică</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={filterPartnerType}
+              onValueChange={(val) => {
+                setFilterPartnerType(val);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger
+                data-filtered={filterPartnerType !== "toate"}
+                className="apple-pill-control h-[34px] w-auto shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 2xl:px-3"
+              >
+                <Tag className="h-3.5 w-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
+                <SelectValue placeholder="Parteneri" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="toate">Parteneri: Toți</SelectItem>
+                <SelectItem value="client">Clienți (Beneficiari)</SelectItem>
+                <SelectItem value="supplier">Furnizori (Prestatori)</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <div className="relative flex-1 min-w-[140px] max-w-full sm:max-w-[260px]">
+              <Search className="w-3.5 h-3.5 text-[#8e8e93] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="Caută număr, partener, CUI..."
+                style={{ paddingLeft: 34, paddingRight: search ? 72 : 14 }}
+                className="apple-pill-control rounded-full w-full h-[34px] outline-none text-[13px] text-[#1d1d1f] dark:text-white placeholder:text-[#8e8e93] focus:bg-white dark:focus:bg-[#2c2c2e] focus:border-black/15 dark:focus:border-white/20"
+              />
+              {search && (
+                <>
+                  <span className="absolute right-7 top-1/2 -translate-y-1/2 bg-black/[0.07] dark:bg-white/[0.14] text-[#1d1d1f] dark:text-white rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums">
+                    {filteredContracts.length}/{rawContracts.length}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearch("");
+                      setPage(1);
+                    }}
+                    aria-label="Șterge căutarea"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center hover:bg-black/[0.07] dark:hover:bg-white/[0.12] cursor-pointer"
+                  >
+                    <X className="w-3 h-3 text-[#6e6e73] dark:text-[#98989d]" />
+                  </button>
+                </>
+              )}
+            </div>
+
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={resetFilters}
+                title="Elimină toate filtrele"
+                aria-label="Elimină toate filtrele"
+                className="apple-pill-control w-[34px] h-[34px] shrink-0 flex items-center justify-center text-[#6e6e73] hover:text-[#1d1d1f] dark:text-[#98989d] dark:hover:text-white cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
             )}
           </div>
-
-          {/* Filtru Tip Document */}
-          <Select
-            value={filterType}
-            onValueChange={(val) => {
-              setFilterType(val);
-              setPage(1);
-            }}
-          >
-            <SelectTrigger
-              data-filtered={filterType !== "toate"}
-              className="apple-pill-control rounded-full text-sm h-10"
-            >
-              <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 truncate">
-                <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span className="truncate">
-                  {filterType === "toate" && "Tip Document: Toate"}
-                  {filterType === "contract" && "Doar Contracte Cadru"}
-                  {filterType === "act_aditional" && "Doar Acte Adiționale"}
-                  {filterType === "pv_receptie" && "Doar Procese Verbale"}
-                  {filterType === "anexa" && "Doar Anexe Tehnice"}
-                </span>
-              </div>
-            </SelectTrigger>
-            <SelectContent className="rounded-lg">
-              <SelectItem value="toate">Toate Tipurile</SelectItem>
-              <SelectItem value="contract">Contract Cadru</SelectItem>
-              <SelectItem value="act_aditional">Act Adițional</SelectItem>
-              <SelectItem value="pv_receptie">Proces Verbal Recepție</SelectItem>
-              <SelectItem value="anexa">Anexă Tehnică</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Filtru Partener */}
-          <Select
-            value={filterPartnerType}
-            onValueChange={(val) => {
-              setFilterPartnerType(val);
-              setPage(1);
-            }}
-          >
-            <SelectTrigger
-              data-filtered={filterPartnerType !== "toate"}
-              className="apple-pill-control rounded-full text-sm h-10"
-            >
-              <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 truncate">
-                <Tag className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span className="truncate">
-                  {filterPartnerType === "toate" && "Parteneri: Toți"}
-                  {filterPartnerType === "client" && "Doar Clienți"}
-                  {filterPartnerType === "supplier" && "Doar Furnizori"}
-                </span>
-              </div>
-            </SelectTrigger>
-            <SelectContent className="rounded-lg">
-              <SelectItem value="toate">Toți Partenerii</SelectItem>
-              <SelectItem value="client">Clienți (Beneficiari)</SelectItem>
-              <SelectItem value="supplier">Furnizori (Prestatori)</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Filtru Status */}
-          <Select
-            value={filterStatus}
-            onValueChange={(val) => {
-              setFilterStatus(val);
-              setPage(1);
-            }}
-          >
-            <SelectTrigger
-              data-filtered={filterStatus !== "toate"}
-              className="apple-pill-control rounded-full text-sm h-10"
-            >
-              <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 truncate">
-                <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span className="truncate">
-                  {filterStatus === "toate" && "Status: Toate"}
-                  {filterStatus === "activ" && "Doar Active"}
-                  {filterStatus === "draft" && "Doar În Redactare"}
-                  {filterStatus === "expirat" && "Doar Expirate"}
-                  {filterStatus === "reziliat" && "Doar Reziliate"}
-                </span>
-              </div>
-            </SelectTrigger>
-            <SelectContent className="rounded-lg">
-              <SelectItem value="toate">Toate Statusurile</SelectItem>
-              <SelectItem value="activ">Active</SelectItem>
-              <SelectItem value="draft">În Redactare (Draft)</SelectItem>
-              <SelectItem value="expirat">Expirate</SelectItem>
-              <SelectItem value="reziliat">Reziliate</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
       </div>
 
-      {/* Main Table */}
-      <div className="rounded-[22px] border border-slate-200 dark:border-slate-800 bg-card overflow-hidden shadow-sm">
-        {/* Table Header with Total Count */}
-        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 flex items-center justify-between">
-          <div className="text-xs text-slate-600 dark:text-slate-400 tabular-nums">
-            Total: <strong className="text-slate-900 dark:text-white font-bold">{totalCount}</strong>{" "}
-            {totalCount === 1 ? "înregistrare" : "înregistrări"}
-            {search.trim() && (
-              <span className="text-slate-500 ml-1">
-                (filtrat din {rawContracts.length} contracte)
-              </span>
-            )}
-          </div>
-        </div>
-
+      {/* Main Table Surface */}
+      <div className="apple-surface overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-semibold text-xs uppercase tracking-wider">
+            <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
               <tr>
-                <th className="py-2 px-2 text-center w-[44px]">
+                <th className="py-3 px-3 text-center w-12 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
                   Nr.
                 </th>
-                <th className="py-2 px-3">Document / Număr</th>
-                <th className="py-2 px-3">Partener Contractual</th>
-                <th className="py-2 px-3">Perioadă</th>
-                <th className="py-2 px-3 text-right">Valoare</th>
-                <th className="py-2 px-3 text-center">Status</th>
-                <th className="py-2 px-3 text-right">Acțiuni</th>
+                <th className="py-3 px-4 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                  Document & Număr
+                </th>
+                <th className="py-3 px-4 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                  Partener contractual
+                </th>
+                <th className="py-3 px-4 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                  Perioadă
+                </th>
+                <th className="py-3 px-4 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                  Valoare
+                </th>
+                <th className="py-3 px-4 text-center text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                  Status
+                </th>
+                <th className="py-3 px-4 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                  Acțiuni
+                </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
               {loadingList ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-500">
-                    <Loader2 className="h-5 w-5 animate-spin mx-auto text-primary mb-2" />
-                    Se încarcă biblioteca de documente...
+                  <td colSpan={7} className="py-14 text-center">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto text-[#6e6e73]" />
                   </td>
                 </tr>
               ) : paginatedContracts.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-500">
-                    <FileText className="h-8 w-8 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
-                    Nu a fost găsit niciun document conform filtrelor selectate.
+                  <td
+                    colSpan={7}
+                    className="py-12 text-center text-[13px] text-[#6e6e73] dark:text-[#98989d]"
+                  >
+                    <div className="flex flex-col items-center gap-2.5">
+                      <span>Nu a fost găsit niciun document conform filtrelor selectate.</span>
+                      {hasActiveFilters && (
+                        <button
+                          type="button"
+                          onClick={resetFilters}
+                          className="apple-btn-glass px-4 h-8 text-[12px] font-semibold text-[#1d1d1f] dark:text-white cursor-pointer"
+                        >
+                          Resetează filtrele
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ) : (
                 paginatedContracts.map((c: any, index: number) => (
                   <tr
                     key={c.id}
-                    className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors"
+                    className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors"
                   >
-                    <td className="py-2 px-2 text-center tabular-nums text-xs font-medium text-slate-500 dark:text-slate-400">
+                    <td className="py-3 px-3 text-center tabular-nums text-[12px] font-medium text-[#8e8e93]">
                       {(safePage - 1) * (rowsPerPage === 9999 ? 1 : rowsPerPage) + index + 1}
                     </td>
 
                     {/* Document / Numar & Data */}
-                    <td className="py-2 px-3">
+                    <td className="py-3 px-4">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <Link
                           href={`/contracte/${c.id}`}
-                          className="font-bold text-slate-900 dark:text-white hover:text-primary transition-colors text-xs"
+                          className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] hover:underline tabular-nums"
                         >
                           {c.number}
                         </Link>
                         {c.type === "act_aditional" && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200 dark:border-amber-800 leading-tight">
+                          <span className="text-[10.5px] font-medium px-2 py-0.5 rounded-full bg-amber-500/12 text-amber-700 dark:bg-amber-500/18 dark:text-amber-300 leading-none">
                             Act Adițional
                           </span>
                         )}
                         {c.type === "pv_receptie" && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 leading-tight">
+                          <span className="text-[10.5px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300 leading-none">
                             PV
                           </span>
                         )}
                         {c.childCount > 0 && (
-                          <span className="text-[10px] font-medium tabular-nums text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-full">
+                          <span className="text-[10.5px] font-medium tabular-nums text-[#3a3a3c] dark:text-[#ebebf5] bg-[#f2f2f7] dark:bg-[#2c2c2e] px-2 py-0.5 rounded-full leading-none">
                             +{c.childCount} acte
                           </span>
                         )}
                         {c.language === "en" ? (
-                          <span className="text-[10px] font-bold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 px-1.5 py-0.5 rounded-full uppercase">
+                          <span className="text-[10px] font-semibold text-[#3a3a3c] dark:text-[#ebebf5] bg-[#f2f2f7] dark:bg-[#2c2c2e] px-2 py-0.5 rounded-full leading-none">
                             EN
                           </span>
                         ) : c.language === "ro_en" ? (
-                          <span className="text-[10px] font-bold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800 px-1.5 py-0.5 rounded-full uppercase">
+                          <span className="text-[10px] font-semibold text-[#3a3a3c] dark:text-[#ebebf5] bg-[#f2f2f7] dark:bg-[#2c2c2e] px-2 py-0.5 rounded-full leading-none">
                             RO-EN
                           </span>
                         ) : null}
                       </div>
-                      <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5 tabular-nums">
+                      <div className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] flex items-center gap-1.5 mt-0.5 tabular-nums">
                         <span>{c.date}</span>
                         {c.title && (
-                          <span className="text-slate-400 truncate max-w-[200px]" title={c.title}>
-                            • {c.title}
+                          <span className="text-[#8e8e93] truncate max-w-[220px]" title={c.title}>
+                            · {c.title}
                           </span>
                         )}
                       </div>
                     </td>
 
                     {/* Partener */}
-                    <td className="py-2 px-3">
+                    <td className="py-3 px-4">
                       <Link
                         href={`/contracte/${c.id}`}
-                        className="font-semibold text-slate-900 dark:text-slate-100 hover:text-primary transition-colors cursor-pointer text-xs block truncate max-w-[240px]"
+                        className="text-[13.5px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] hover:underline cursor-pointer block truncate max-w-[240px]"
                         title={c.partnerName || "Nespecificat"}
                       >
                         {c.partnerName || "Nespecificat"}
                       </Link>
-                      <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5 tabular-nums">
-                        {c.partnerCui && <span>CUI: {c.partnerCui}</span>}
+                      <div className="flex items-center gap-1.5 text-[11.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5 tabular-nums flex-wrap">
+                        {c.partnerCui && <span>CUI {c.partnerCui}</span>}
                         {c.partnerSagaCode && (
-                          <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 rounded-full text-slate-600 dark:text-slate-300 tabular-nums">
-                            SAGA: {c.partnerSagaCode}
+                          <span className="text-[10.5px] bg-[#f2f2f7] dark:bg-[#2c2c2e] px-2 py-0.5 rounded-full text-[#3a3a3c] dark:text-[#ebebf5] tabular-nums leading-none">
+                            SAGA {c.partnerSagaCode}
                           </span>
                         )}
                         {c.partnerIsSupplier !== undefined && (
-                          <span className="text-[10px] uppercase px-1.5 py-0.5 rounded-full font-semibold bg-slate-100 dark:bg-slate-800 text-slate-500">
-                            {c.partnerIsSupplier === 1 ? "FURNIZOR" : "CLIENT"}
+                          <span className="text-[10.5px] px-2 py-0.5 rounded-full font-medium bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#6e6e73] dark:text-[#98989d] leading-none">
+                            {c.partnerIsSupplier === 1 ? "Furnizor" : "Client"}
                           </span>
                         )}
                       </div>
                     </td>
 
                     {/* Perioada */}
-                    <td className="py-2 px-3 whitespace-nowrap text-xs tabular-nums text-slate-600 dark:text-slate-300">
-                      <div>{c.validFrom || c.date}</div>
-                      <div className="text-[11px] text-slate-400">
+                    <td className="py-3 px-4 whitespace-nowrap tabular-nums">
+                      <div className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#ebebf5]">
+                        {c.validFrom || c.date}
+                      </div>
+                      <div className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d]">
                         {c.validUntil ? `până la ${c.validUntil}` : "nedeterminat"}
                       </div>
                     </td>
 
                     {/* Valoare */}
-                    <td className="py-2 px-3 text-right whitespace-nowrap">
-                      <div className="font-bold text-xs tabular-nums text-slate-900 dark:text-white">
-                        {Number(c.value || 0) > 0 ? (
-                          `${Number(c.value).toLocaleString("ro-RO", { minimumFractionDigits: 2 })} ${c.currency || "RON"}`
-                        ) : (
-                          <span className="text-slate-400 font-normal text-xs">Conform comenzi</span>
-                        )}
-                      </div>
+                    <td className="py-3 px-4 text-right whitespace-nowrap tabular-nums">
+                      {Number(c.value || 0) > 0 ? (
+                        <span className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                          {Number(c.value).toLocaleString("ro-RO", { minimumFractionDigits: 2 })}{" "}
+                          {c.currency || "RON"}
+                        </span>
+                      ) : (
+                        <span className="text-[12px] text-[#8e8e93]">Conform comenzi</span>
+                      )}
                     </td>
 
                     {/* Status */}
-                    <td className="py-2 px-3 text-center whitespace-nowrap">
+                    <td className="py-3 px-4 text-center whitespace-nowrap">
                       {getStatusBadge(c.status)}
                     </td>
 
                     {/* Actiuni */}
-                    <td className="py-2 px-3 text-right whitespace-nowrap">
+                    <td className="py-3 px-4 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1.5">
-                        {/* Buton Jurnal Istoric & Explicatii */}
-                        <Button
-                          variant="ghost"
-                          size="icon"
+                        <button
+                          type="button"
                           onClick={() => setActiveLogContractId(c.id)}
-                          className="h-8 w-8 rounded-full apple-btn-glass text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
+                          aria-label="Jurnal modificări și explicații"
+                          className="h-8 w-8 rounded-full apple-btn-glass flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white transition-all cursor-pointer"
                           title="Jurnal modificări și explicații"
                         >
                           <History className="h-3.5 w-3.5" />
-                        </Button>
+                        </button>
 
-                        {/* Buton Download PDF */}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          asChild
-                          className="h-8 w-8 rounded-full apple-btn-glass text-slate-600 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400"
+                        <a
+                          href={`/api/pdf/contract/${c.id}?download=1`}
+                          download
+                          aria-label="Descarcă PDF"
                           title="Descarcă PDF"
+                          className="h-8 w-8 rounded-full apple-btn-glass flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white transition-all"
                         >
-                          <a href={`/api/pdf/contract/${c.id}?download=1`} download>
-                            <Download className="h-3.5 w-3.5" />
-                          </a>
-                        </Button>
+                          <Download className="h-3.5 w-3.5" />
+                        </a>
 
-                        {/* Buton Download Word (.docx) */}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          asChild
-                          className="h-8 w-8 rounded-full apple-btn-glass text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400"
+                        <a
+                          href={`/api/pdf/contract/${c.id}?download=1&format=word`}
+                          download
+                          aria-label="Descarcă Word (.docx)"
                           title="Descarcă Word (.docx)"
+                          className="h-8 w-8 rounded-full apple-btn-glass flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white transition-all"
                         >
-                          <a href={`/api/pdf/contract/${c.id}?download=1&format=word`} download>
-                            <FileText className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                          </a>
-                        </Button>
+                          <FileText className="h-3.5 w-3.5" />
+                        </a>
                       </div>
                     </td>
                   </tr>
@@ -764,51 +784,67 @@ export default function ContractsList() {
           </table>
         </div>
 
-        {/* Footer Paginare */}
-        <div className="px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">
-              Afișează&nbsp;
-              <select
-                value={rowsPerPage}
-                onChange={(e) => {
-                  setRowsPerPage(Number(e.target.value));
+        {/* Footer Paginare — Apple HIG Capsule Controls */}
+        <div className="px-4 py-3 border-t border-black/[0.05] dark:border-white/[0.07] bg-[#fafafa]/85 dark:bg-white/[0.02] flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2 text-[12px] text-[#6e6e73] dark:text-[#98989d] tabular-nums">
+            <span className="flex items-center whitespace-nowrap">
+              Afișează
+              <Select
+                value={rowsPerPage.toString()}
+                onValueChange={(val) => {
+                  setRowsPerPage(Number(val));
                   setPage(1);
                 }}
-                className="rounded-full px-2.5 py-0.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs focus:outline-none"
               >
-                <option value={10}>10</option>
-                <option value={15}>15</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-                <option value={9999}>Toți</option>
-              </select>
-              &nbsp;rânduri
+                <SelectTrigger className="apple-pill-control h-7 px-2.5 text-[12px] w-[66px] mx-1.5 bg-white dark:bg-[#2c2c2e]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="15">15</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                  <SelectItem value="9999">Toți</SelectItem>
+                </SelectContent>
+              </Select>
             </span>
-            <span className="text-xs text-slate-500 whitespace-nowrap tabular-nums">
-              Total înregistrări: <strong>{totalCount}</strong>
+            <span className="whitespace-nowrap ml-1">
+              din{" "}
+              <strong className="text-[#1d1d1f] dark:text-white font-semibold">
+                {totalCount}
+              </strong>{" "}
+              documente
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500 whitespace-nowrap tabular-nums">
-              Pagina {safePage} din {totalPages}
+          <div className="flex items-center gap-1.5 text-[12px] text-[#6e6e73] dark:text-[#98989d] tabular-nums">
+            <span className="whitespace-nowrap mr-1.5">
+              Pagina{" "}
+              <strong className="text-[#1d1d1f] dark:text-white font-semibold">
+                {safePage}
+              </strong>{" "}
+              din{" "}
+              <strong className="text-[#1d1d1f] dark:text-white font-semibold">
+                {totalPages}
+              </strong>
             </span>
             <button
+              type="button"
               aria-label="Pagina anterioară"
-              className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:pointer-events-none hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              className="apple-btn-glass w-8 h-8 rounded-full flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] disabled:opacity-35 transition-all cursor-pointer"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={safePage <= 1}
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-3.5 h-3.5" />
             </button>
             <button
+              type="button"
               aria-label="Pagina următoare"
-              className="w-8 h-8 flex items-center justify-center rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:pointer-events-none hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              className="apple-btn-glass w-8 h-8 rounded-full flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] disabled:opacity-35 transition-all cursor-pointer"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={safePage >= totalPages}
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -821,23 +857,23 @@ export default function ContractsList() {
       >
         <DialogContent className="max-w-2xl rounded-[22px] p-6 max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold flex items-center gap-2">
-              <History className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+            <DialogTitle className="text-[18px] font-bold flex items-center gap-2 text-[#1d1d1f] dark:text-[#f5f5f7]">
+              <History className="h-4 w-4 text-[#6e6e73] dark:text-[#98989d]" />
               Jurnal Modificări & Explicații — {activeContractData?.number}
             </DialogTitle>
-            <DialogDescription className="text-sm text-slate-500">
+            <DialogDescription className="text-[13px] text-[#6e6e73] dark:text-[#98989d]">
               Istoric complet al deciziilor, schimbărilor de clauze, prețuri și solicitări de la partener, salvate cu dată și oră exactă.
             </DialogDescription>
           </DialogHeader>
 
           {/* Formular adaugare nota / explicatie noua */}
-          <div className="bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3 mt-2">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              Înregistrează o Notă / Modificare Nouă
+          <div className="bg-[#f2f2f7] dark:bg-[#2c2c2e] p-4 rounded-2xl space-y-3 mt-2">
+            <h4 className="text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+              Înregistrează o notă sau modificare nouă
             </h4>
 
             {logError && (
-              <div className="text-xs text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 p-2.5 rounded-lg border border-rose-200">
+              <div className="text-xs text-[#ff3b30] dark:text-[#ff6961] bg-[#ff3b30]/10 p-2.5 rounded-xl">
                 {logError}
               </div>
             )}
@@ -845,10 +881,10 @@ export default function ContractsList() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               <div className="sm:col-span-1">
                 <Select value={newLogActionType} onValueChange={setNewLogActionType}>
-                  <SelectTrigger className="rounded-lg text-xs h-9">
+                  <SelectTrigger className="apple-input h-9 text-xs bg-white dark:bg-[#1c1c1e]">
                     <SelectValue placeholder="Tip Acțiune" />
                   </SelectTrigger>
-                  <SelectContent className="rounded-lg text-xs">
+                  <SelectContent className="rounded-xl text-xs">
                     <SelectItem value="modificare_termeni">Modificare Termeni</SelectItem>
                     <SelectItem value="modificare_pret">Schimbare Preț / Valoare</SelectItem>
                     <SelectItem value="prelungire">Prelungire Valabilitate</SelectItem>
@@ -859,18 +895,18 @@ export default function ContractsList() {
               </div>
 
               <div className="sm:col-span-2">
-                <Input
+                <input
                   value={newLogExplanation}
                   onChange={(e) => setNewLogExplanation(e.target.value)}
                   placeholder="Ex: Clientul a solicitat prelungirea scadenței la 30 zile..."
-                  className="rounded-lg text-xs h-9"
+                  className="apple-input w-full h-9 px-3 text-xs bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
                 />
               </div>
             </div>
 
             <div className="flex justify-end">
-              <Button
-                size="sm"
+              <button
+                type="button"
                 disabled={!newLogExplanation.trim() || addLogMutation.isPending}
                 onClick={() => {
                   if (!activeLogContractId) return;
@@ -880,36 +916,35 @@ export default function ContractsList() {
                     explanation: newLogExplanation,
                   });
                 }}
-                className="rounded-full bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white dark:text-slate-900 text-white text-xs h-8 px-4"
+                className="apple-btn-prominent rounded-full text-white text-[12px] font-semibold h-8 px-4 disabled:opacity-50 cursor-pointer"
               >
                 {addLogMutation.isPending ? "Se salvează..." : "Salvează în Jurnal"}
-              </Button>
+              </button>
             </div>
           </div>
 
           {/* Timeline-ul evenimentelor */}
-          <div className="space-y-4 mt-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Cronologie Evenimente
+          <div className="space-y-3 mt-4">
+            <h4 className="text-[12.5px] font-semibold text-[#6e6e73] dark:text-[#98989d]">
+              Cronologie evenimente
             </h4>
 
             {(!activeContractData?.logs || activeContractData.logs.length === 0) ? (
-              <div className="text-center py-6 text-sm text-slate-400">
+              <div className="text-center py-6 text-[13px] text-[#6e6e73] dark:text-[#98989d]">
                 Nu există note înregistrate pentru acest contract.
               </div>
             ) : (
-              <div className="relative pl-6 space-y-4 border-l-2 border-slate-200 dark:border-slate-800">
+              <div className="relative pl-6 space-y-3.5 border-l border-black/[0.08] dark:border-white/[0.1]">
                 {activeContractData.logs.map((l: any) => (
                   <div key={l.id} className="relative group">
-                    {/* Punct pe linie */}
-                    <div className="absolute -left-[31px] top-1 h-3.5 w-3.5 rounded-full bg-slate-500 border-2 border-white dark:border-slate-900"></div>
+                    <div className="absolute -left-[29px] top-1.5 h-3 w-3 rounded-full bg-[#8e8e93] border-2 border-white dark:border-[#1c1c1e]" />
 
-                    <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-card p-3.5 shadow-sm space-y-1.5">
+                    <div className="apple-surface p-3.5 space-y-1.5">
                       <div className="flex items-center justify-between gap-2">
-                        <Badge variant="outline" className="text-[11px] font-semibold py-0.5 px-2 rounded-full border-slate-300 text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800">
-                          {l.actionType.replace("_", " ").toUpperCase()}
-                        </Badge>
-                        <span className="text-xs text-slate-400 flex items-center gap-1 tabular-nums">
+                        <span className="text-[11px] font-medium py-0.5 px-2.5 rounded-full text-[#3a3a3c] dark:text-[#ebebf5] bg-[#f2f2f7] dark:bg-[#2c2c2e]">
+                          {l.actionType.replace("_", " ")}
+                        </span>
+                        <span className="text-[11.5px] text-[#8e8e93] flex items-center gap-1 tabular-nums">
                           <Clock className="h-3 w-3" />
                           {new Date(l.createdAt).toLocaleString("ro-RO", {
                             day: "2-digit",
@@ -921,12 +956,17 @@ export default function ContractsList() {
                         </span>
                       </div>
 
-                      <p className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                      <p className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">
                         {l.explanation}
                       </p>
 
-                      <div className="text-xs text-slate-500 flex items-center justify-between pt-1">
-                        <span>Înregistrat de: <strong className="font-semibold text-slate-700 dark:text-slate-300">{l.userName || "Utilizator"}</strong></span>
+                      <div className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] flex items-center justify-between pt-0.5">
+                        <span>
+                          Înregistrat de:{" "}
+                          <strong className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                            {l.userName || "Utilizator"}
+                          </strong>
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -941,17 +981,17 @@ export default function ContractsList() {
       <Dialog open={showImportModal} onOpenChange={setShowImportModal}>
         <DialogContent className="max-w-3xl rounded-[22px] p-6 max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold flex items-center gap-2">
-              <Upload className="h-5 w-5 text-primary" />
+            <DialogTitle className="text-[18px] font-bold flex items-center gap-2 text-[#1d1d1f] dark:text-[#f5f5f7]">
+              <Upload className="h-4 w-4 text-[#0071e3] dark:text-[#0a84ff]" />
               Import în Masă din Folderul Existent de Contracte
             </DialogTitle>
-            <DialogDescription className="text-sm text-slate-500">
+            <DialogDescription className="text-[13px] text-[#6e6e73] dark:text-[#98989d]">
               Selectează sau trage fișierele PDF din folderul tău de contracte. Sistemul va detecta automat partenerii existenți din baza de date și va genera evidența fără introducere manuală.
             </DialogDescription>
           </DialogHeader>
 
           {importError && (
-            <div className="text-sm text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 p-3 rounded-lg border border-rose-200">
+            <div className="text-xs text-[#ff3b30] dark:text-[#ff6961] bg-[#ff3b30]/10 p-3 rounded-xl">
               {importError}
             </div>
           )}
@@ -974,7 +1014,7 @@ export default function ContractsList() {
             className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-colors ${
               isDraggingImport
                 ? "border-primary bg-primary/5"
-                : "border-slate-300 dark:border-slate-700 hover:border-primary bg-slate-50/50 dark:bg-slate-900/30"
+                : "border-black/[0.12] dark:border-white/[0.14] hover:border-primary bg-[#f2f2f7]/60 dark:bg-[#2c2c2e]/60"
             }`}
           >
             <input
@@ -987,20 +1027,20 @@ export default function ContractsList() {
             />
             {importingFiles ? (
               <div className="flex flex-col items-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                <Loader2 className="h-8 w-8 animate-spin text-[#6e6e73] mb-2" />
+                <span className="text-sm font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                   Se încarcă și se analizează fișierele...
                 </span>
               </div>
             ) : (
               <div className="flex flex-col items-center">
-                <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary mb-3">
-                  <Upload className="h-6 w-6" />
+                <div className="h-12 w-12 rounded-2xl bg-[#f2f2f7] dark:bg-[#2c2c2e] flex items-center justify-center text-[#0071e3] dark:text-[#0a84ff] mb-3">
+                  <Upload className="h-5 w-5" />
                 </div>
-                <span className="text-base font-bold text-slate-900 dark:text-white">
+                <span className="text-[14.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                   Apasă pentru a alege fișiere sau trage fișierele PDF / Word aici
                 </span>
-                <span className="text-xs text-slate-500 mt-1">
+                <span className="text-xs text-[#6e6e73] dark:text-[#98989d] mt-1">
                   Format acceptat: PDF sau Word (până la 100 fișiere dintr-o dată)
                 </span>
               </div>
@@ -1011,73 +1051,73 @@ export default function ContractsList() {
           {uploadedQueue.length > 0 && (
             <div className="space-y-3 mt-4">
               <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  Fișiere Pregătite pentru Import ({uploadedQueue.length})
+                <h4 className="text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                  Fișiere pregătite pentru import ({uploadedQueue.length})
                 </h4>
-                <Button
-                  variant="ghost"
-                  size="sm"
+                <button
+                  type="button"
                   onClick={() => setUploadedQueue([])}
-                  className="h-7 text-xs text-rose-600 hover:text-rose-700"
+                  className="text-xs font-semibold text-[#ff3b30] dark:text-[#ff453a] hover:underline cursor-pointer"
                 >
                   Golește lista
-                </Button>
+                </button>
               </div>
 
-              <div className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden max-h-56 overflow-y-auto">
+              <div className="apple-surface overflow-hidden max-h-56 overflow-y-auto">
                 <table className="w-full text-xs text-left">
-                  <thead className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold sticky top-0">
+                  <thead className="bg-[#fafafa] dark:bg-[#2c2c2e] text-[#6e6e73] dark:text-[#98989d] font-medium sticky top-0 border-b border-black/[0.05] dark:border-white/[0.07]">
                     <tr>
                       <th className="p-2.5">Fișier</th>
                       <th className="p-2.5">Nr. / Dată</th>
-                      <th className="p-2.5">Valoare Extrasă</th>
-                      <th className="p-2.5">Partener Extras / Asociat</th>
+                      <th className="p-2.5">Valoare extrasă</th>
+                      <th className="p-2.5">Partener extras / asociat</th>
                       <th className="p-2.5 text-right">Șterge</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
                     {uploadedQueue.map((item, idx) => {
                       const partner = partners.find((p: any) => p.id === item.partnerId);
                       return (
-                        <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-900/40">
-                          <td className="p-2.5 font-medium truncate max-w-[180px]" title={item.fileName}>
+                        <tr key={idx} className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035]">
+                          <td className="p-2.5 font-medium text-[#1d1d1f] dark:text-[#f5f5f7] truncate max-w-[180px]" title={item.fileName}>
                             {item.fileName}
                           </td>
                           <td className="p-2.5 tabular-nums">
-                            <div className="font-bold text-slate-900 dark:text-white">{item.number}</div>
-                            <div className="text-[10px] text-slate-500">{item.date}</div>
+                            <div className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">{item.number}</div>
+                            <div className="text-[10.5px] text-[#6e6e73] dark:text-[#98989d]">{item.date}</div>
                           </td>
-                          <td className="p-2.5 tabular-nums font-semibold text-slate-800 dark:text-slate-200">
+                          <td className="p-2.5 tabular-nums font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                             {Number(item.value || 0) > 0
                               ? `${Number(item.value).toLocaleString("ro-RO", { minimumFractionDigits: 2 })} ${item.currency}`
-                              : "-"}
+                              : "—"}
                           </td>
                           <td className="p-2.5">
                             {partner ? (
-                              <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                              <span className="text-emerald-700 dark:text-emerald-300 font-medium flex items-center gap-1">
                                 <CheckCircle2 className="h-3 w-3 shrink-0" />
                                 <span className="truncate max-w-[180px]">{partner.name}</span>
                               </span>
                             ) : item.partnerName ? (
-                              <span className="text-blue-600 dark:text-blue-400 font-semibold flex items-center gap-1">
-                                <CheckCircle2 className="h-3 w-3 shrink-0" />
+                              <span className="text-[#1d1d1f] dark:text-[#f5f5f7] font-medium flex items-center gap-1">
+                                <CheckCircle2 className="h-3 w-3 shrink-0 text-[#0071e3] dark:text-[#0a84ff]" />
                                 <span className="truncate max-w-[180px]">
                                   {item.partnerName} (se creează automat)
                                 </span>
                               </span>
                             ) : (
-                              <span className="text-amber-600 dark:text-amber-400">
+                              <span className="text-amber-700 dark:text-amber-300">
                                 Partener general (se poate edita ulterior)
                               </span>
                             )}
                           </td>
                           <td className="p-2.5 text-right">
                             <button
+                              type="button"
                               onClick={() =>
                                 setUploadedQueue((prev) => prev.filter((_, i) => i !== idx))
                               }
                               aria-label="Elimină fișier"
-                              className="w-7 h-7 rounded-full inline-flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                              className="apple-btn-destructive-soft w-7 h-7 rounded-full inline-flex items-center justify-center cursor-pointer"
                             >
                               <X className="h-3.5 w-3.5" />
                             </button>
@@ -1091,35 +1131,36 @@ export default function ContractsList() {
 
               {/* Explicatie colectiva */}
               <div className="pt-2">
-                <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">
                   Explicație / Justificare comună pentru Jurnalul de Audit:
                 </label>
-                <Input
+                <input
                   value={globalExplanation}
                   onChange={(e) => setGlobalExplanation(e.target.value)}
-                  className="rounded-lg text-xs mt-1"
+                  className="apple-input w-full h-9 px-3 text-xs text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
                 />
               </div>
             </div>
           )}
 
           <DialogFooter className="mt-4 gap-2">
-            <Button
-              variant="outline"
+            <button
+              type="button"
               onClick={() => setShowImportModal(false)}
-              className="rounded-full px-5"
+              className="apple-btn-glass rounded-full px-5 h-9 text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
             >
               Anulează
-            </Button>
-            <Button
+            </button>
+            <button
+              type="button"
               disabled={uploadedQueue.length === 0 || importingFiles || bulkImportMutation.isPending}
               onClick={handleFinishBulkImport}
-              className="rounded-full bg-primary text-white px-5"
+              className="apple-btn-prominent rounded-full text-white px-5 h-9 text-[12.5px] font-semibold disabled:opacity-50 cursor-pointer"
             >
               {bulkImportMutation.isPending
                 ? "Se importă..."
                 : `Finalizează Importul (${uploadedQueue.length} documente)`}
-            </Button>
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

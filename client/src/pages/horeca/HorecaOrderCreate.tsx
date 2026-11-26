@@ -228,25 +228,29 @@ export default function HorecaOrderCreate() {
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
 
   return (
-    <div className="flex flex-col h-full max-w-full overflow-x-hidden">
+    <div className="flex flex-col h-full max-w-full overflow-x-hidden space-y-4">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-0.5">
+        <div className="flex items-center gap-2.5 min-w-0">
           <button
+            type="button"
             onClick={() => setLocation("/horeca/comenzi")}
-            className="p-2 text-slate-500 hover:text-slate-900 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 shadow-sm rounded-lg transition-colors shrink-0"
+            className="apple-btn-glass w-9 h-9 flex items-center justify-center text-[#1d1d1f] dark:text-[#f5f5f7] shrink-0 cursor-pointer"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className="w-4.5 h-4.5" />
           </button>
-          <div className="p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg shrink-0">
-            <ShoppingBag className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-          </div>
           <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white truncate">
-              Comandă Nouă
+            <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight truncate">
+              Comandă nouă
             </h1>
-            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium tabular-nums">
-              {cartCount} produse · {formatCurrency(total, "RON")}
+            <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5 tabular-nums">
+              <strong className="text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold">
+                {cartCount}
+              </strong>{" "}
+              produse ·{" "}
+              <strong className="text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold">
+                {formatCurrency(total, "RON")}
+              </strong>
             </p>
           </div>
         </div>
@@ -255,7 +259,7 @@ export default function HorecaOrderCreate() {
             <select
               value={locationId}
               onChange={e => setSelectedLocationId(Number(e.target.value))}
-              className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-3 py-2 rounded-lg text-sm font-medium focus:outline-none focus:border-blue-500 shadow-sm max-w-full"
+              className="apple-pill-control px-3.5 h-[34px] text-[12.5px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none max-w-full cursor-pointer"
             >
               {locations.map(l => (
                 <option key={l.id} value={l.id}>
@@ -267,40 +271,54 @@ export default function HorecaOrderCreate() {
         </div>
       </div>
 
-      {/* Tip comandă */}
-      <div className="flex flex-wrap sm:flex-nowrap gap-1.5 sm:gap-2 mb-4 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50 p-1.5 rounded-xl w-fit max-w-full">
-        {TYPE_OPTS.map(opt => (
-          <button
-            key={opt.value}
-            onClick={() => {
-              setOrderType(opt.value as OrderType);
-              setSelectedTableNumber("");
-            }}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all shadow-sm ${orderType === opt.value ? `${opt.color} text-white` : "bg-transparent text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white"}`}
-          >
-            <opt.icon className="w-4 h-4" />
-            {opt.label}
-          </button>
-        ))}
+      {/* Tip comandă inside apple-surface */}
+      <div className="apple-surface px-3 py-2.5">
+        <div className="apple-segmented flex-wrap sm:flex-nowrap !rounded-2xl sm:!rounded-full max-w-full">
+          {TYPE_OPTS.map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              data-active={orderType === opt.value}
+              onClick={() => {
+                setOrderType(opt.value as OrderType);
+                setSelectedTableNumber("");
+              }}
+              className="apple-segmented-item px-4 h-8 text-xs"
+            >
+              <opt.icon className="w-3.5 h-3.5" />
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Layout principal: Meniu stânga, Coș dreapta */}
-      <div className="flex flex-col lg:flex-row gap-5 flex-1 overflow-y-auto lg:overflow-hidden">
+      <div className="flex flex-col lg:flex-row gap-4 flex-1 overflow-y-auto lg:overflow-hidden">
         {/* ── MENIU PANEL (stânga) ─────────────────────────────────── */}
-        <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm p-4">
-          {/* Categorii */}
-          <div className="flex gap-2 overflow-x-auto pb-3 mb-2 scrollbar-none">
+        <div className="flex-1 flex flex-col min-w-0 apple-surface p-4">
+          {/* Categorii + Search */}
+          <div className="flex gap-1.5 overflow-x-auto pb-3 mb-2 no-scrollbar">
             <button
+              type="button"
               onClick={() => setSelectedCategoryId(null)}
-              className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-colors shadow-sm border ${!selectedCategoryId ? "bg-blue-600 text-white border-blue-600" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"}`}
+              className={`flex-shrink-0 px-3.5 h-8 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
+                !selectedCategoryId
+                  ? "apple-btn-prominent text-white"
+                  : "apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7]"
+              }`}
             >
               Toate
             </button>
             {categories.map(c => (
               <button
                 key={c.id}
+                type="button"
                 onClick={() => setSelectedCategoryId(c.id)}
-                className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-colors shadow-sm border ${selectedCategoryId === c.id ? "bg-blue-600 text-white border-blue-600" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"}`}
+                className={`flex-shrink-0 px-3.5 h-8 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
+                  selectedCategoryId === c.id
+                    ? "apple-btn-prominent text-white"
+                    : "apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7]"
+                }`}
               >
                 {c.icon} {c.name}
               </button>
@@ -309,16 +327,13 @@ export default function HorecaOrderCreate() {
 
           {/* Search meniu */}
           <div className="relative mb-4">
-            <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 z-10" />
+            <Search className="w-3.5 h-3.5 text-[#8e8e93] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
-              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 rounded-lg shadow-sm transition-colors"
               style={{
-                paddingLeft: 36,
+                paddingLeft: 34,
                 paddingRight: 16,
-                paddingTop: 10,
-                paddingBottom: 10,
-                fontSize: 14,
               }}
+              className="apple-pill-control rounded-full w-full h-9 text-[13px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none focus:bg-white dark:focus:bg-[#2c2c2e]"
               placeholder="Caută produs..."
               value={menuSearch}
               onChange={e => setMenuSearch(e.target.value)}
@@ -326,11 +341,11 @@ export default function HorecaOrderCreate() {
           </div>
 
           {/* Grilă produse */}
-          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto pr-1">
             {filteredItems.length === 0 ? (
-              <div className="text-center py-16 text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800 border-dashed">
-                <Search className="w-8 h-8 mx-auto mb-3 text-slate-400 dark:text-slate-500 opacity-50" />
-                <p className="font-medium">
+              <div className="text-center py-16 text-[#6e6e73] dark:text-[#98989d] bg-[#f5f5f7]/60 dark:bg-white/[0.02] rounded-2xl border border-black/[0.06] dark:border-white/[0.08] border-dashed">
+                <Search className="w-8 h-8 mx-auto mb-3 text-[#8e8e93] opacity-50" />
+                <p className="text-[13px] font-medium">
                   {menuSearch
                     ? "Niciun produs găsit"
                     : "Niciun produs disponibil pentru acest canal"}
@@ -343,21 +358,26 @@ export default function HorecaOrderCreate() {
                   return (
                     <button
                       key={item.id}
+                      type="button"
                       onClick={() => addToCart(item)}
-                      className={`relative p-4 rounded-xl border-2 text-left transition-all hover:scale-[1.02] active:scale-[0.98] shadow-sm ${inCart ? "bg-blue-50 dark:bg-blue-500/10 border-blue-500 dark:border-blue-500/60" : "bg-white dark:bg-slate-800/60 border-slate-100 dark:border-slate-700/50 hover:border-blue-400 dark:hover:border-blue-500/40"}`}
+                      className={`apple-card-btn relative p-3.5 rounded-2xl border text-left transition-all cursor-pointer tabular-nums ${
+                        inCart
+                          ? "bg-primary/[0.08] dark:bg-primary/[0.16] border-primary"
+                          : "bg-[#f2f2f7]/60 dark:bg-[#2c2c2e] border-black/[0.06] dark:border-white/[0.08] hover:border-black/[0.15] dark:hover:border-white/[0.18]"
+                      }`}
                     >
                       {inCart && (
-                        <div className="absolute top-2 right-2 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-md">
+                        <div className="absolute top-2 right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center text-white text-xs font-bold shadow-xs">
                           {inCart.quantity}
                         </div>
                       )}
-                      <p className="text-slate-900 dark:text-white font-bold text-sm leading-snug mb-2 pr-6">
+                      <p className="text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold text-[13.5px] leading-snug mb-2 pr-6">
                         {item.name}
                       </p>
-                      <p className="text-blue-600 dark:text-blue-400 font-black text-lg mb-1">
+                      <p className="text-[#1d1d1f] dark:text-[#f5f5f7] font-bold text-base mb-0.5">
                         {formatCurrency(Number(item.price), "RON")}
                       </p>
-                      <p className="text-slate-500 dark:text-slate-500 text-xs font-medium">
+                      <p className="text-[#6e6e73] dark:text-[#98989d] text-[11px] font-medium">
                         {item.unit || "portie"} · TVA {item.vatRate}%
                       </p>
                     </button>
@@ -369,23 +389,23 @@ export default function HorecaOrderCreate() {
         </div>
 
         {/* ── COȘ PANEL (dreapta) ──────────────────────────────────── */}
-        <div className="w-full lg:w-96 flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm flex-shrink-0">
+        <div className="w-full lg:w-96 flex flex-col apple-surface overflow-hidden flex-shrink-0">
           {/* Info comandă */}
-          <div className="p-4 border-b border-slate-100 dark:border-slate-800 space-y-3 bg-slate-50/50 dark:bg-slate-800/50">
-            <h3 className="text-slate-900 dark:text-white font-bold text-sm uppercase tracking-wider">
+          <div className="p-4 border-b border-black/[0.05] dark:border-white/[0.07] space-y-3 bg-[#fafafa] dark:bg-white/[0.02]">
+            <h3 className="text-[#1d1d1f] dark:text-[#f5f5f7] font-bold text-[14px]">
               Detalii comandă
             </h3>
 
             {/* Masă / Ospătar */}
             {orderType === "dine_in" && (
               <div>
-                <label className="block text-slate-600 dark:text-slate-400 text-xs font-semibold mb-1">
+                <label className="block text-[#6e6e73] dark:text-[#98989d] text-[12px] font-medium mb-1">
                   Masă *
                 </label>
                 <select
                   value={selectedTableNumber}
                   onChange={e => setSelectedTableNumber(e.target.value)}
-                  className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-2.5 py-2 text-sm font-medium focus:outline-none focus:border-blue-500 shadow-sm"
+                  className="apple-input w-full h-9 px-3 text-sm cursor-pointer"
                 >
                   <option value="">— Selectează masa —</option>
                   {tables
@@ -401,24 +421,24 @@ export default function HorecaOrderCreate() {
             )}
 
             <div>
-              <label className="block text-slate-600 dark:text-slate-400 text-xs font-semibold mb-1">
+              <label className="block text-[#6e6e73] dark:text-[#98989d] text-[12px] font-medium mb-1">
                 Ospătar
               </label>
               <input
                 value={staffName}
                 onChange={e => setStaffName(e.target.value)}
                 placeholder="Numele ospătarului"
-                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-2.5 py-2 text-sm font-medium focus:outline-none focus:border-blue-500 shadow-sm"
+                className="apple-input w-full h-9 px-3 text-sm"
               />
             </div>
           </div>
 
           {/* Produse în coș */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
             {cart.length === 0 ? (
-              <div className="text-center py-16 text-slate-500 dark:text-slate-400 text-sm font-medium flex flex-col items-center">
-                <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-full mb-3">
-                  <ShoppingBag className="w-8 h-8 text-slate-400 dark:text-slate-500" />
+              <div className="text-center py-14 text-[#6e6e73] dark:text-[#98989d] text-[13px] font-medium flex flex-col items-center">
+                <div className="p-4 bg-[#f2f2f7] dark:bg-[#2c2c2e] rounded-full mb-3">
+                  <ShoppingBag className="w-7 h-7 text-[#8e8e93]" />
                 </div>
                 Niciun produs adăugat
               </div>
@@ -426,39 +446,42 @@ export default function HorecaOrderCreate() {
               cart.map(item => (
                 <div
                   key={item.menuItemId}
-                  className="bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700/50 rounded-xl p-3 shadow-sm transition-colors hover:border-slate-200 dark:hover:border-slate-600"
+                  className="bg-[#f2f2f7]/70 dark:bg-[#2c2c2e] border border-black/[0.05] dark:border-white/[0.07] rounded-xl p-3 tabular-nums"
                 >
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <p className="text-slate-900 dark:text-white text-sm font-bold leading-snug flex-1">
+                    <p className="text-[#1d1d1f] dark:text-[#f5f5f7] text-[13.5px] font-semibold leading-snug flex-1">
                       {item.name}
                     </p>
                     <button
+                      type="button"
                       onClick={() => removeFromCart(item.menuItemId)}
-                      className="text-slate-400 hover:text-red-600 dark:hover:text-red-400 p-1 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-md transition-colors flex-shrink-0"
+                      className="text-[#8e8e93] hover:text-[#ff3b30] dark:hover:text-[#ff453a] p-1 hover:bg-[#ff3b30]/10 rounded-full transition-colors flex-shrink-0 cursor-pointer"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                   <div className="flex items-center justify-between">
                     {/* Qty controls */}
-                    <div className="flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-0.5 shadow-sm">
+                    <div className="flex items-center gap-1 bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.10] rounded-full p-0.5">
                       <button
+                        type="button"
                         onClick={() => updateQty(item.menuItemId, -1)}
-                        className="w-7 h-7 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors"
+                        className="w-6 h-6 flex items-center justify-center text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white rounded-full transition-colors cursor-pointer"
                       >
-                        <Minus className="w-3.5 h-3.5" />
+                        <Minus className="w-3 h-3" />
                       </button>
-                      <span className="text-slate-900 dark:text-white text-sm font-black w-6 text-center">
+                      <span className="text-[#1d1d1f] dark:text-[#f5f5f7] text-xs font-bold w-6 text-center">
                         {item.quantity}
                       </span>
                       <button
+                        type="button"
                         onClick={() => updateQty(item.menuItemId, 1)}
-                        className="w-7 h-7 flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors"
+                        className="w-6 h-6 flex items-center justify-center text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white rounded-full transition-colors cursor-pointer"
                       >
-                        <Plus className="w-3.5 h-3.5" />
+                        <Plus className="w-3 h-3" />
                       </button>
                     </div>
-                    <span className="text-blue-600 dark:text-blue-400 text-sm font-black">
+                    <span className="text-[#1d1d1f] dark:text-[#f5f5f7] text-[13.5px] font-bold">
                       {formatCurrency(item.price * item.quantity, "RON")}
                     </span>
                   </div>
@@ -469,7 +492,7 @@ export default function HorecaOrderCreate() {
                       updateItemNote(item.menuItemId, e.target.value)
                     }
                     placeholder="Notă bucătărie (ex: fără ceapă)..."
-                    className="mt-3 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-md px-2.5 py-1.5 text-xs font-medium focus:outline-none focus:border-blue-500 placeholder-slate-400 dark:placeholder-slate-500 shadow-sm"
+                    className="mt-2.5 w-full bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.08] text-[#1d1d1f] dark:text-[#f5f5f7] rounded-lg px-2.5 py-1.5 text-xs placeholder:text-[#8e8e93] focus:outline-none"
                   />
                 </div>
               ))
@@ -478,37 +501,37 @@ export default function HorecaOrderCreate() {
 
           {/* Total + notă globală */}
           {cart.length > 0 && (
-            <div className="border-t border-slate-100 dark:border-slate-800 p-4 space-y-4 bg-slate-50/50 dark:bg-slate-900/50">
+            <div className="border-t border-black/[0.05] dark:border-white/[0.07] p-4 space-y-3.5 bg-[#fafafa] dark:bg-white/[0.02] tabular-nums">
               {/* Notă comandă */}
               <div>
-                <label className="block text-slate-600 dark:text-slate-400 text-xs font-semibold mb-1 flex items-center gap-1.5">
+                <label className="block text-[#6e6e73] dark:text-[#98989d] text-[12px] font-medium mb-1 flex items-center gap-1.5">
                   <StickyNote className="w-3.5 h-3.5" /> Notă generală
                 </label>
                 <input
                   value={orderNotes}
                   onChange={e => setOrderNotes(e.target.value)}
                   placeholder="Observații pentru bucătărie..."
-                  className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-blue-500 shadow-sm"
+                  className="apple-input w-full h-9 px-3 text-xs"
                 />
               </div>
 
               {/* Totale */}
-              <div className="space-y-1.5 text-sm p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
-                <div className="flex justify-between text-slate-600 dark:text-slate-400 font-medium">
+              <div className="space-y-1.5 text-[13px] p-3 bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.08] rounded-xl">
+                <div className="flex justify-between text-[#6e6e73] dark:text-[#98989d]">
                   <span>Subtotal ({cartCount} produse)</span>
-                  <span className="text-slate-900 dark:text-slate-300">
+                  <span className="text-[#1d1d1f] dark:text-[#ebebf5] font-medium">
                     {formatCurrency(subtotal, "RON")}
                   </span>
                 </div>
-                <div className="flex justify-between text-slate-600 dark:text-slate-400 font-medium pb-2">
+                <div className="flex justify-between text-[#6e6e73] dark:text-[#98989d] pb-2">
                   <span>TVA estimat</span>
-                  <span className="text-slate-900 dark:text-slate-300">
+                  <span className="text-[#1d1d1f] dark:text-[#ebebf5] font-medium">
                     {formatCurrency(vat, "RON")}
                   </span>
                 </div>
-                <div className="flex justify-between text-slate-900 dark:text-white font-black text-xl border-t border-slate-100 dark:border-slate-800 pt-3 mt-1">
-                  <span>TOTAL</span>
-                  <span className="text-blue-600 dark:text-blue-400">
+                <div className="flex justify-between text-[#1d1d1f] dark:text-[#f5f5f7] font-bold text-lg border-t border-black/[0.05] dark:border-white/[0.07] pt-2.5">
+                  <span>Total</span>
+                  <span>
                     {formatCurrency(total, "RON")}
                   </span>
                 </div>
@@ -516,8 +539,8 @@ export default function HorecaOrderCreate() {
 
               {/* Plată dacă e selectat */}
               {showPayment && (
-                <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                  <label className="block text-slate-900 dark:text-white text-xs font-bold uppercase tracking-wider mb-2">
+                <div className="bg-white dark:bg-[#1c1c1e] p-3 rounded-xl border border-black/[0.06] dark:border-white/[0.08]">
+                  <label className="block text-[#6e6e73] dark:text-[#98989d] text-[12px] font-medium mb-2">
                     Metodă de plată
                   </label>
                   <div className="grid grid-cols-2 gap-2">
@@ -529,8 +552,13 @@ export default function HorecaOrderCreate() {
                     ].map(opt => (
                       <button
                         key={opt.v}
+                        type="button"
                         onClick={() => setPaymentMethod(opt.v as any)}
-                        className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-xs font-bold transition-all shadow-sm border ${paymentMethod === opt.v ? "bg-emerald-600 border-emerald-600 text-white" : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600"}`}
+                        className={`flex items-center justify-center gap-1.5 px-2 h-8 text-xs font-semibold transition-all cursor-pointer ${
+                          paymentMethod === opt.v
+                            ? "apple-btn-prominent text-white"
+                            : "apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7]"
+                        }`}
                       >
                         <opt.icon className="w-3.5 h-3.5" /> {opt.l}
                       </button>
@@ -540,40 +568,44 @@ export default function HorecaOrderCreate() {
               )}
 
               {/* Acțiuni */}
-              <div className="flex flex-col gap-2.5">
+              <div className="flex flex-col gap-2">
                 <button
+                  type="button"
                   onClick={() => handleSubmit(true)}
                   disabled={submitting}
-                  className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-3 rounded-xl font-bold text-base transition-colors shadow-sm"
+                  className="apple-btn-prominent w-full flex items-center justify-center gap-2 disabled:opacity-50 text-white h-10 font-semibold text-sm cursor-pointer"
                 >
                   {submitting ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
-                    <Send className="w-5 h-5" />
+                    <Send className="w-4 h-4" />
                   )}
                   Trimite la bucătărie
                 </button>
-                <div className="flex gap-2.5">
+                <div className="flex gap-2">
                   <button
+                    type="button"
                     onClick={() => setShowPayment(s => !s)}
-                    className="flex-1 flex items-center justify-center gap-1.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm"
+                    className="apple-btn-glass flex-1 flex items-center justify-center gap-1.5 text-[#1d1d1f] dark:text-[#f5f5f7] h-9 text-xs font-semibold cursor-pointer"
                   >
-                    <DollarSign className="w-4 h-4" />{" "}
+                    <DollarSign className="w-3.5 h-3.5" />{" "}
                     {showPayment ? "Anulează plată" : "Plătește acum"}
                   </button>
                   {showPayment && (
                     <button
+                      type="button"
                       onClick={() => handleSubmit(false)}
                       disabled={submitting}
-                      className="flex-1 flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm"
+                      className="apple-btn-prominent flex-1 flex items-center justify-center gap-1.5 disabled:opacity-50 text-white h-9 text-xs font-semibold cursor-pointer"
                     >
-                      <Check className="w-4 h-4" /> Confirmă
+                      <Check className="w-3.5 h-3.5" /> Confirmă
                     </button>
                   )}
                 </div>
                 <button
+                  type="button"
                   onClick={() => setCart([])}
-                  className="w-full flex items-center justify-center gap-1.5 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white py-2 rounded-lg text-xs font-bold transition-colors mt-1"
+                  className="w-full flex items-center justify-center gap-1.5 hover:bg-black/[0.04] dark:hover:bg-white/[0.05] text-[#6e6e73] hover:text-[#ff3b30] dark:text-[#98989d] dark:hover:text-[#ff453a] h-8 rounded-full text-xs font-medium transition-colors cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" /> Golește coșul
                 </button>

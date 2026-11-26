@@ -1079,30 +1079,19 @@ export default function SpvHub() {
 
   return (
     <>
-      <div className="p-4 sm:p-6 max-w-full space-y-4">
-        {/* Nivelul 1 — Antet pe un singur rând cu butoanele + status token sub titlu */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="h-9 px-2.5 rounded-xl bg-white border border-slate-200/90 dark:border-slate-700 shadow-2xs flex items-center justify-center shrink-0">
-              <img
-                src="https://static.anaf.ro/static/10/Anaf/primapagina/anaf_ro.png"
-                onError={(e) => {
-                  e.currentTarget.onerror = null;
-                  e.currentTarget.src = "/anaf-logo.png";
-                }}
-                alt="ANAF"
-                className="h-5.5 w-auto object-contain select-none"
-              />
-            </div>
-            <div className="flex flex-col gap-0.5 min-w-0">
-              <h1 className="text-[15px] sm:text-base font-bold tracking-tight leading-tight text-slate-900 dark:text-white truncate">
-                Mesaje &amp; Documente SPV ANAF
-              </h1>
+      <div className="p-3 sm:p-5 max-w-full space-y-4 overflow-x-hidden">
+        {/* Nivelul 1 — Window Header */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight truncate">
+              Mesaje &amp; Documente SPV ANAF
+            </h1>
+            <div className="mt-1 flex items-center gap-2 flex-wrap">
               {spvIntegration?.apiKey ? (
-                <span className="w-fit inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10.5px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800 whitespace-nowrap">
+                <span className="w-fit inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11.5px] font-medium bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300 whitespace-nowrap tabular-nums">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                   <span>
-                    Conectat
+                    Conectat ANAF SPV
                     {daysUntilExpiration != null
                       ? ` · Token ${daysUntilExpiration} zile`
                       : ""}
@@ -1110,7 +1099,7 @@ export default function SpvHub() {
                 </span>
               ) : (
                 <Link href="/integrari" className="w-fit">
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10.5px] font-medium bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800 whitespace-nowrap cursor-pointer transition-colors">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11.5px] font-medium bg-amber-500/12 text-amber-800 hover:bg-amber-500/20 dark:bg-amber-500/18 dark:text-amber-300 whitespace-nowrap cursor-pointer transition-colors">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                     <span>OAuth neconectat</span>
                   </span>
@@ -1119,7 +1108,7 @@ export default function SpvHub() {
             </div>
           </div>
 
-          {/* Bară de acțiuni cu etichete scurte pe același rând cu titlul */}
+          {/* Bară de acțiuni */}
           <div className="flex items-center gap-1.5 flex-wrap">
             <LiveAutoSyncControl
               onRefresh={handleSyncAll}
@@ -1131,7 +1120,7 @@ export default function SpvHub() {
               type="button"
               onClick={() => testSpvMutation.mutate()}
               disabled={testSpvMutation.isPending}
-              className="apple-btn-glass h-8 rounded-full text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-all px-3 text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer disabled:opacity-60"
+              className="apple-btn-glass h-8 rounded-full text-[12px] font-medium whitespace-nowrap inline-flex items-center gap-1.5 transition-all px-3 text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer disabled:opacity-60"
               title="Testează conexiunea cu serverul ANAF și verifică token-ul"
             >
               {testSpvMutation.isPending ? (
@@ -1141,7 +1130,7 @@ export default function SpvHub() {
                 </>
               ) : (
                 <>
-                  <Wifi className="w-3.5 h-3.5 text-emerald-600" />
+                  <Wifi className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                   <span>Test</span>
                 </>
               )}
@@ -1152,10 +1141,10 @@ export default function SpvHub() {
                 href={oauthInfo.url}
                 target="_blank"
                 rel="noreferrer"
-                className="apple-btn-glass h-8 rounded-full text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-all px-3 text-[#1d1d1f] dark:text-[#f5f5f7]"
+                className="apple-btn-glass h-8 rounded-full text-[12px] font-medium whitespace-nowrap inline-flex items-center gap-1.5 transition-all px-3 text-[#1d1d1f] dark:text-[#f5f5f7]"
                 title="Reautorizare certificat cu token OAuth ANAF"
               >
-                <KeyRound className="w-3.5 h-3.5 text-[#636366] dark:text-[#98989d]" />
+                <KeyRound className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d]" />
                 <span>Reautorizare</span>
               </a>
             )}
@@ -1164,11 +1153,11 @@ export default function SpvHub() {
               type="button"
               onClick={handleUsbSpvSync}
               disabled={isUsbSyncing}
-              className={`h-8 rounded-full text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-all px-3 cursor-pointer disabled:opacity-60 ${
+              className={`h-8 rounded-full text-[12px] font-medium whitespace-nowrap inline-flex items-center gap-1.5 transition-all px-3 cursor-pointer disabled:opacity-60 ${
                 connectorReady
-                  ? "bg-emerald-500/12 hover:bg-emerald-500/18 text-emerald-800 border border-emerald-500/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] dark:shadow-none dark:bg-emerald-500/18 dark:hover:bg-emerald-500/25 dark:text-emerald-300 dark:border-emerald-500/30"
+                  ? "bg-emerald-500/12 hover:bg-emerald-500/18 text-emerald-800 border border-emerald-500/25 dark:bg-emerald-500/18 dark:hover:bg-emerald-500/25 dark:text-emerald-300 dark:border-emerald-500/30"
                   : "apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7]"
-                }`}
+              }`}
               title={
                 connectorReady
                   ? "Descarcă direct din SPV ANAF documentele originale PDF/ZIP folosind stick-ul USB"
@@ -1184,7 +1173,7 @@ export default function SpvHub() {
                 <>
                   <ShieldCheck
                     className={`w-3.5 h-3.5 ${
-                      connectorReady ? "text-emerald-600" : "text-[#636366] dark:text-[#98989d]"
+                      connectorReady ? "text-emerald-600 dark:text-emerald-400" : "text-[#6e6e73] dark:text-[#98989d]"
                     }`}
                   />
                   <span>Stick USB</span>
@@ -1195,7 +1184,7 @@ export default function SpvHub() {
             <button
               type="button"
               onClick={() => setIsUploadOpen(true)}
-              className="apple-btn-glass h-8 rounded-full text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-all px-3 text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
+              className="apple-btn-glass h-8 rounded-full text-[12px] font-medium whitespace-nowrap inline-flex items-center gap-1.5 transition-all px-3 text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
               title="Încarcă o recipisă sau notificare PDF/ZIP originală descărcată din SPV"
             >
               <Upload className="w-3.5 h-3.5" />
@@ -1206,12 +1195,12 @@ export default function SpvHub() {
               type="button"
               onClick={handleSyncAll}
               disabled={isSyncBusy}
-              className="apple-btn-prominent h-8 rounded-full text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-all px-3.5 disabled:opacity-60 text-white cursor-pointer"
+              className="apple-btn-prominent h-8 rounded-full text-[12.5px] font-semibold whitespace-nowrap inline-flex items-center gap-1.5 transition-all px-3.5 disabled:opacity-60 text-white cursor-pointer"
               title="Interoghează ANAF și actualizează lista mesajelor"
             >
               {isSyncingAll ||
-                syncMessagesMutation.isPending ||
-                syncInvoicesMutation.isPending ? (
+              syncMessagesMutation.isPending ||
+              syncInvoicesMutation.isPending ? (
                 <>
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                   <span>Sync...</span>
@@ -1226,50 +1215,53 @@ export default function SpvHub() {
           </div>
         </div>
 
-        {/* Diagnostic Conexiune SPV (doar când utilizatorul testează explicit) */}
+        {/* Diagnostic Conexiune SPV */}
         {testResult && (
           <div
-            className={`px-4 py-3 rounded-[22px] border transition-all ${testResult.connected
-              ? "bg-emerald-50/90 border-emerald-200 text-emerald-950 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-100"
-              : "bg-red-50/90 border-red-200 text-red-950 dark:bg-red-950/40 dark:border-red-800 dark:text-red-100"
-              }`}
+            className={`apple-surface px-4 py-3 transition-all ${
+              testResult.connected
+                ? "border-emerald-500/30"
+                : "border-rose-500/30"
+            }`}
           >
             <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5 text-xs flex-wrap">
+              <div className="flex items-center gap-2.5 text-[12.5px] flex-wrap text-[#1d1d1f] dark:text-[#f5f5f7]">
                 {testResult.connected ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 ) : (
-                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                  <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
                 )}
-                <span className="font-bold">
+                <span className="font-semibold">
                   {testResult.connected
-                    ? "Conexiune SPV ANAF Activă"
-                    : "Conexiune Eșuată"}
+                    ? "Conexiune SPV ANAF activă"
+                    : "Conexiune eșuată"}
                 </span>
                 {testResult.latencyMs != null && (
-                  <span className="px-2 py-0.5 rounded-full font-semibold bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 tabular-nums">
+                  <span className="px-2.5 py-0.5 rounded-full text-[11.5px] font-medium bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums">
                     Latență: {testResult.latencyMs} ms
                   </span>
                 )}
                 {testResult.cui && (
-                  <span className="px-2 py-0.5 rounded-full font-semibold bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 tabular-nums">
+                  <span className="px-2.5 py-0.5 rounded-full text-[11.5px] font-medium bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums">
                     CUI: {testResult.cui}
                   </span>
                 )}
                 {(testResult.daysRemaining ?? testResult.tokenDaysRemaining) !=
                   null && (
-                    <span className="px-2 py-0.5 rounded-full font-semibold bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 tabular-nums">
-                      Token:{" "}
-                      {testResult.daysRemaining ?? testResult.tokenDaysRemaining}{" "}
-                      zile
-                    </span>
-                  )}
-                <span className="opacity-90">{testResult.message}</span>
+                  <span className="px-2.5 py-0.5 rounded-full text-[11.5px] font-medium bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums">
+                    Token:{" "}
+                    {testResult.daysRemaining ?? testResult.tokenDaysRemaining}{" "}
+                    zile
+                  </span>
+                )}
+                <span className="text-[#6e6e73] dark:text-[#98989d]">
+                  {testResult.message}
+                </span>
               </div>
               <button
                 type="button"
                 onClick={() => setTestResult(null)}
-                className="w-7 h-7 rounded-full inline-flex items-center justify-center hover:opacity-100 opacity-60 cursor-pointer"
+                className="w-7 h-7 rounded-full inline-flex items-center justify-center text-[#6e6e73] hover:text-[#1d1d1f] dark:text-[#98989d] dark:hover:text-[#f5f5f7] cursor-pointer"
                 title="Închide panoul de diagnostic"
               >
                 <X className="w-4 h-4" />
@@ -1278,9 +1270,9 @@ export default function SpvHub() {
           </div>
         )}
 
-        {/* Nivelul 2 — Bandă KPI Orizontală Compactă */}
+        {/* Nivelul 2 — KPI Cards */}
         {activeHubTab === "declaratii" ? (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <button
               type="button"
               onClick={() => {
@@ -1289,19 +1281,19 @@ export default function SpvHub() {
                 setFilterTipDoc("-TOATE-");
                 setPage(1);
               }}
-              className="rounded-2xl bg-white/95 dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] hover:border-slate-300 dark:hover:border-slate-700 px-3.5 py-2.5 flex items-center gap-3 shadow-2xs text-left transition-all cursor-pointer outline-none"
+              className="apple-surface apple-card-btn outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 text-left transition-all hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none"
             >
-              <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0">
-                <Inbox className="w-4 h-4" />
+              <div className="flex items-center justify-between gap-2 w-full">
+                <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+                  Toate documentele
+                </span>
+                <span className="w-7 h-7 rounded-[8px] bg-[#f2f4f7] dark:bg-[#2c2c2e] flex items-center justify-center shrink-0">
+                  <Inbox className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#0a84ff]" />
+                </span>
               </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">
-                  Toate Documentele
-                </p>
-                <p className="text-lg font-bold tabular-nums text-slate-900 dark:text-white leading-tight">
-                  {portalStats.total}
-                </p>
-              </div>
+              <span className="text-[24px] sm:text-[26px] font-bold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.028em] leading-none">
+                {portalStats.total}
+              </span>
             </button>
 
             <button
@@ -1311,29 +1303,26 @@ export default function SpvHub() {
                 setPortalFilter("all");
                 setPage(1);
               }}
-              className={`rounded-2xl bg-white/95 dark:bg-[#1c1c1e] border px-3.5 py-2.5 flex items-center gap-3 shadow-2xs text-left transition-all cursor-pointer ${readFilter === "unread"
-                ? "border-red-500 ring-1 ring-red-500/20 bg-red-50/30 dark:bg-red-950/20"
-                : "border-black/[0.06] dark:border-white/[0.09] hover:border-red-200 dark:hover:border-red-900/60"
-                }`}
+              className="apple-surface apple-card-btn outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 text-left transition-all hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none"
             >
-              <div className="w-8 h-8 rounded-xl bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0 relative">
-                <AlertCircle className="w-4 h-4" />
-                {portalStats.unread > 0 && (
-                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse absolute top-1 right-1" />
-                )}
+              <div className="flex items-center justify-between gap-2 w-full">
+                <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+                  Mesaje noi (necitite)
+                </span>
+                <span className="w-7 h-7 rounded-[8px] bg-rose-500/10 dark:bg-rose-500/18 flex items-center justify-center shrink-0 relative">
+                  <AlertCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                </span>
               </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-medium text-red-600 dark:text-red-400 truncate">
-                  Mesaje Noi (Necitite)
-                </p>
-                <p
-                  className={`text-lg font-bold tabular-nums leading-tight ${portalStats.unread > 0
-                    ? "text-red-600 dark:text-red-400"
-                    : "text-slate-900 dark:text-white"
-                    }`}
-                >
+              <div className="flex items-baseline gap-2 tabular-nums">
+                <span className="text-[24px] sm:text-[26px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.028em] leading-none">
                   {portalStats.unread}
-                </p>
+                </span>
+                {portalStats.unread > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-rose-500/10 text-rose-700 dark:bg-rose-500/18 dark:text-rose-300">
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                    necitite
+                  </span>
+                )}
               </div>
             </button>
 
@@ -1344,22 +1333,19 @@ export default function SpvHub() {
                 setReadFilter("all");
                 setPage(1);
               }}
-              className={`rounded-2xl bg-white/95 dark:bg-[#1c1c1e] border px-3.5 py-2.5 flex items-center gap-3 shadow-2xs text-left transition-all cursor-pointer ${portalFilter === "declaratie"
-                ? "border-blue-500 ring-1 ring-blue-500/20"
-                : "border-black/[0.06] dark:border-white/[0.09] hover:border-slate-300 dark:hover:border-slate-700"
-                }`}
+              className="apple-surface apple-card-btn outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 text-left transition-all hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none"
             >
-              <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-                <FileCheck className="w-4 h-4" />
+              <div className="flex items-center justify-between gap-2 w-full">
+                <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+                  Recipise declarații
+                </span>
+                <span className="w-7 h-7 rounded-[8px] bg-[#eefbf3] dark:bg-emerald-500/18 flex items-center justify-center shrink-0">
+                  <FileCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                </span>
               </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">
-                  Recipise Declarații
-                </p>
-                <p className="text-lg font-bold tabular-nums text-blue-700 dark:text-blue-300 leading-tight">
-                  {portalStats.recipise}
-                </p>
-              </div>
+              <span className="text-[24px] sm:text-[26px] font-bold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.028em] leading-none">
+                {portalStats.recipise}
+              </span>
             </button>
 
             <button
@@ -1369,122 +1355,109 @@ export default function SpvHub() {
                 setReadFilter("all");
                 setPage(1);
               }}
-              className={`rounded-2xl bg-white/95 dark:bg-[#1c1c1e] border px-3.5 py-2.5 flex items-center gap-3 shadow-2xs text-left transition-all cursor-pointer ${portalFilter === "cert_sol"
-                ? "border-indigo-500 ring-1 ring-indigo-500/20"
-                : "border-black/[0.06] dark:border-white/[0.09] hover:border-slate-300 dark:hover:border-slate-700"
-                }`}
+              className="apple-surface apple-card-btn outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 text-left transition-all hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none"
             >
-              <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-                <ShieldCheck className="w-4 h-4" />
+              <div className="flex items-center justify-between gap-2 w-full">
+                <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+                  Decizii, certificate &amp; solicitări
+                </span>
+                <span className="w-7 h-7 rounded-[8px] bg-[#fff6eb] dark:bg-amber-500/18 flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                </span>
               </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">
-                  Decizii, Certificate &amp; Solicitări
-                </p>
-                <p className="text-lg font-bold tabular-nums text-indigo-700 dark:text-indigo-300 leading-tight">
-                  {portalStats.certificate +
-                    portalStats.solicitari +
-                    portalStats.decizii}
-                </p>
-              </div>
+              <span className="text-[24px] sm:text-[26px] font-bold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.028em] leading-none">
+                {portalStats.certificate +
+                  portalStats.solicitari +
+                  portalStats.decizii}
+              </span>
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <button
               type="button"
               onClick={() => setMessageFilter("all")}
-              className="rounded-2xl bg-white/95 dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] hover:border-slate-300 dark:hover:border-slate-700 px-3.5 py-2.5 flex items-center gap-3 shadow-2xs text-left transition-all cursor-pointer outline-none"
+              className="apple-surface apple-card-btn outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 text-left transition-all hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none"
             >
-              <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0">
-                <Inbox className="w-4 h-4" />
+              <div className="flex items-center justify-between gap-2 w-full">
+                <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+                  Toate mesajele
+                </span>
+                <span className="w-7 h-7 rounded-[8px] bg-[#f2f4f7] dark:bg-[#2c2c2e] flex items-center justify-center shrink-0">
+                  <Inbox className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#0a84ff]" />
+                </span>
               </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">
-                  Toate Mesajele
-                </p>
-                <p className="text-lg font-bold tabular-nums text-slate-900 dark:text-white leading-tight">
-                  {msgStats.total}
-                </p>
-              </div>
+              <span className="text-[24px] sm:text-[26px] font-bold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.028em] leading-none">
+                {msgStats.total}
+              </span>
             </button>
 
             <button
               type="button"
               onClick={() => setMessageFilter("primita")}
-              className={`rounded-2xl bg-white/95 dark:bg-[#1c1c1e] border px-3.5 py-2.5 flex items-center gap-3 shadow-2xs text-left transition-all cursor-pointer ${messageFilter === "primita"
-                ? "border-indigo-500 ring-1 ring-indigo-500/20"
-                : "border-black/[0.06] dark:border-white/[0.09] hover:border-slate-300 dark:hover:border-slate-700"
-                }`}
+              className="apple-surface apple-card-btn outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 text-left transition-all hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none"
             >
-              <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-                <ArrowDownLeft className="w-4 h-4" />
+              <div className="flex items-center justify-between gap-2 w-full">
+                <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+                  Facturi primite
+                </span>
+                <span className="w-7 h-7 rounded-[8px] bg-[#fff6eb] dark:bg-amber-500/18 flex items-center justify-center shrink-0">
+                  <ArrowDownLeft className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                </span>
               </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">
-                  Facturi Primite
-                </p>
-                <p className="text-lg font-bold tabular-nums text-indigo-700 dark:text-indigo-300 leading-tight">
-                  {msgStats.primite}
-                </p>
-              </div>
+              <span className="text-[24px] sm:text-[26px] font-bold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.028em] leading-none">
+                {msgStats.primite}
+              </span>
             </button>
 
             <button
               type="button"
               onClick={() => setMessageFilter("trimisa")}
-              className={`rounded-2xl bg-white/95 dark:bg-[#1c1c1e] border px-3.5 py-2.5 flex items-center gap-3 shadow-2xs text-left transition-all cursor-pointer ${messageFilter === "trimisa"
-                ? "border-blue-500 ring-1 ring-blue-500/20"
-                : "border-black/[0.06] dark:border-white/[0.09] hover:border-slate-300 dark:hover:border-slate-700"
-                }`}
+              className="apple-surface apple-card-btn outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 text-left transition-all hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none"
             >
-              <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-                <ArrowUpRight className="w-4 h-4" />
+              <div className="flex items-center justify-between gap-2 w-full">
+                <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+                  Facturi trimise
+                </span>
+                <span className="w-7 h-7 rounded-[8px] bg-[#eefbf3] dark:bg-emerald-500/18 flex items-center justify-center shrink-0">
+                  <ArrowUpRight className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                </span>
               </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">
-                  Facturi Trimise
-                </p>
-                <p className="text-lg font-bold tabular-nums text-blue-700 dark:text-blue-300 leading-tight">
-                  {msgStats.trimise}
-                </p>
-              </div>
+              <span className="text-[24px] sm:text-[26px] font-bold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.028em] leading-none">
+                {msgStats.trimise}
+              </span>
             </button>
 
             <button
               type="button"
               onClick={() => setMessageFilter("eroare")}
-              className={`rounded-2xl bg-white/95 dark:bg-[#1c1c1e] border px-3.5 py-2.5 flex items-center gap-3 shadow-2xs text-left transition-all cursor-pointer ${messageFilter === "eroare"
-                ? "border-red-500 ring-1 ring-red-500/20"
-                : "border-black/[0.06] dark:border-white/[0.09] hover:border-slate-300 dark:hover:border-slate-700"
-                }`}
+              className="apple-surface apple-card-btn outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 text-left transition-all hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none"
             >
-              <div className="w-8 h-8 rounded-xl bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0">
-                <AlertCircle className="w-4 h-4" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">
+              <div className="flex items-center justify-between gap-2 w-full">
+                <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
                   Erori ANAF
-                </p>
-                <p className="text-lg font-bold tabular-nums text-red-600 dark:text-red-400 leading-tight">
-                  {msgStats.erori}
-                </p>
+                </span>
+                <span className="w-7 h-7 rounded-[8px] bg-rose-500/10 dark:bg-rose-500/18 flex items-center justify-center shrink-0">
+                  <AlertCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                </span>
               </div>
+              <span className="text-[24px] sm:text-[26px] font-bold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.028em] leading-none">
+                {msgStats.erori}
+              </span>
             </button>
           </div>
         )}
 
-        {/* Nivelul 3 — Panou Principal Unificat (Tabs + Filtre + Tabel) */}
-        <div className="rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] bg-white/95 dark:bg-[#1c1c1e] shadow-2xs overflow-hidden">
-          {/* Bara superioară integrată — strict pe un singur rând, stil Apple */}
-          <div className="px-3.5 py-2.5 border-b border-black/[0.06] dark:border-white/[0.08] bg-[#f5f5f7]/75 dark:bg-[#1c1c1e]/85 backdrop-blur-md flex items-center justify-between gap-2 overflow-x-auto no-scrollbar">
+        {/* Nivelul 3 — Toolbar Unificat */}
+        <div className="apple-surface px-3 py-2.5">
+          <div className="flex flex-wrap xl:flex-nowrap items-center justify-between gap-2 w-full min-w-0">
             {/* Stânga: Selector segmentat taburi */}
-            <div className="apple-segmented shrink-0">
+            <div className="apple-segmented max-w-full overflow-x-auto no-scrollbar shrink-0">
               <button
                 type="button"
                 data-active={activeHubTab === "declaratii"}
                 onClick={() => setActiveHubTab("declaratii")}
-                className="apple-segmented-item px-3"
+                className="apple-segmented-item px-3 shrink-0"
               >
                 <FileCheck className="w-3.5 h-3.5 shrink-0" />
                 <span>Mesaje &amp; Recipise SPV</span>
@@ -1503,7 +1476,7 @@ export default function SpvHub() {
                 type="button"
                 data-active={activeHubTab === "efactura"}
                 onClick={() => setActiveHubTab("efactura")}
-                className="apple-segmented-item px-3"
+                className="apple-segmented-item px-3 shrink-0"
               >
                 <Inbox className="w-3.5 h-3.5 shrink-0" />
                 <span>Mesaje e-Factura</span>
@@ -1519,11 +1492,11 @@ export default function SpvHub() {
               </button>
             </div>
 
-            {/* Dreapta: Căutare + Filtre + Bulk PDF + Butoane Icon-Only pe același rând */}
+            {/* Dreapta: Căutare + Filtre + Bulk PDF + Butoane Icon-Only */}
             {activeHubTab === "declaratii" ? (
-              <div className="flex items-center gap-1.5 shrink-0 flex-nowrap">
-                <div className="relative w-44 xl:w-56 shrink-0">
-                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#86868b] pointer-events-none" />
+              <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap min-w-0">
+                <div className="apple-pill-control relative flex items-center w-48 xl:w-56 px-3 min-w-0">
+                  <Search className="w-3.5 h-3.5 text-[#8e8e93] shrink-0 mr-2 pointer-events-none" />
                   <input
                     type="text"
                     value={portalSearchQuery}
@@ -1532,7 +1505,7 @@ export default function SpvHub() {
                       setPage(1);
                     }}
                     placeholder="Caută în toate coloanele..."
-                    className="w-full h-8 !pl-8 !pr-7 !py-1 text-xs rounded-full border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#86868b] focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 outline-none transition-all"
+                    className="flex-1 min-w-0 bg-transparent text-[12.5px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none"
                   />
                   {portalSearchQuery && (
                     <button
@@ -1542,9 +1515,9 @@ export default function SpvHub() {
                         setPage(1);
                       }}
                       aria-label="Șterge căutarea"
-                      className="w-4 h-4 rounded-full bg-black/[0.1] dark:bg-white/[0.16] hover:bg-black/[0.18] text-[#6e6e73] dark:text-[#ebebf5] inline-flex items-center justify-center absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer"
+                      className="text-[#8e8e93] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7] ml-1 cursor-pointer"
                     >
-                      <X className="w-2.5 h-2.5" />
+                      <X className="w-3 h-3" />
                     </button>
                   )}
                 </div>
@@ -1572,10 +1545,9 @@ export default function SpvHub() {
                     className="apple-segmented-item px-2.5 tabular-nums"
                   >
                     <span
-                      className={`w-1.5 h-1.5 rounded-full ${readFilter === "unread"
-                        ? "bg-white"
-                        : "bg-blue-600"
-                        }`}
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        readFilter === "unread" ? "bg-white" : "bg-[#0071e3]"
+                      }`}
                     />
                     <span>Noi ({portalStats.unread})</span>
                   </button>
@@ -1592,7 +1564,7 @@ export default function SpvHub() {
                   </button>
                 </div>
 
-                {/* Bulk Download PDF (selectate sau toate filtrate — rămâne vizibil, nu dispare la filtrare) */}
+                {/* Bulk Download PDF */}
                 {(portalDocs?.length || 0) > 0 && (
                   <button
                     type="button"
@@ -1601,10 +1573,11 @@ export default function SpvHub() {
                       isBulkDownloading ||
                       (selectedPortalIds.length === 0 && filteredPortalIds.length === 0)
                     }
-                    className={`rounded-full h-8 px-3 text-[11.5px] font-semibold inline-flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 disabled:opacity-40 disabled:cursor-not-allowed ${selectedPortalIds.length > 0
-                      ? "bg-blue-600 hover:bg-blue-700 text-white shadow-2xs"
-                      : "bg-white dark:bg-[#2c2c2e] border border-black/[0.08] dark:border-white/[0.12] hover:border-blue-500 text-[#1d1d1f] dark:text-[#f5f5f7]"
-                      }`}
+                    className={`rounded-full h-8 px-3 text-[12px] font-semibold inline-flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 disabled:opacity-40 disabled:cursor-not-allowed ${
+                      selectedPortalIds.length > 0
+                        ? "apple-btn-prominent"
+                        : "apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7]"
+                    }`}
                     title={
                       selectedPortalIds.length > 0
                         ? `Descarcă cele ${selectedPortalIds.length} documente PDF selectate`
@@ -1614,9 +1587,7 @@ export default function SpvHub() {
                     {isBulkDownloading ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
                     ) : (
-                      <Download
-                        className={`w-3.5 h-3.5 shrink-0 ${selectedPortalIds.length > 0 ? "text-white" : "text-blue-600"}`}
-                      />
+                      <Download className="w-3.5 h-3.5 shrink-0" />
                     )}
                     <span className="tabular-nums">
                       PDF ({selectedPortalIds.length > 0 ? selectedPortalIds.length : filteredPortalIds.length})
@@ -1624,7 +1595,7 @@ export default function SpvHub() {
                   </button>
                 )}
 
-                {/* Marchează toate ca citite — DOAR ICONIȚĂ */}
+                {/* Marchează toate ca citite */}
                 {portalStats.unread > 0 && (
                   <button
                     type="button"
@@ -1632,45 +1603,46 @@ export default function SpvHub() {
                     disabled={markAllReadMutation.isPending}
                     aria-label="Marchează toate mesajele ca citite"
                     title="Marchează toate mesajele ca citite"
-                    className="w-8 h-8 rounded-full bg-white dark:bg-[#2c2c2e] border border-black/[0.08] dark:border-white/[0.12] hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:border-emerald-300 text-emerald-600 dark:text-emerald-400 inline-flex items-center justify-center transition-all cursor-pointer shrink-0 disabled:opacity-50"
+                    className="apple-btn-glass w-8 h-8 text-emerald-600 dark:text-emerald-400 inline-flex items-center justify-center cursor-pointer shrink-0 disabled:opacity-50"
                   >
                     <CheckCheck className="w-4 h-4" />
                   </button>
                 )}
 
-                {/* Elimină filtre — DOAR ICONIȚĂ */}
+                {/* Elimină filtre */}
                 <button
                   type="button"
                   onClick={resetFilters}
                   aria-label="Elimină filtrele"
                   title="Elimină filtrele"
-                  className={`w-8 h-8 rounded-full border inline-flex items-center justify-center transition-all cursor-pointer shrink-0 ${hasActivePortalFilters
-                    ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 shadow-2xs"
-                    : "bg-white dark:bg-[#2c2c2e] border-black/[0.08] dark:border-white/[0.12] hover:bg-black/[0.04] dark:hover:bg-white/[0.08] text-[#6e6e73] dark:text-[#98989d]"
-                    }`}
+                  className={`w-8 h-8 rounded-full inline-flex items-center justify-center transition-all cursor-pointer shrink-0 ${
+                    hasActivePortalFilters
+                      ? "apple-btn-prominent"
+                      : "apple-btn-glass text-[#6e6e73] dark:text-[#98989d]"
+                  }`}
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 shrink-0 flex-nowrap">
-                <div className="relative w-44 xl:w-56 shrink-0">
-                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#86868b] pointer-events-none" />
+              <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap min-w-0">
+                <div className="apple-pill-control relative flex items-center w-48 xl:w-56 px-3 min-w-0">
+                  <Search className="w-3.5 h-3.5 text-[#8e8e93] shrink-0 mr-2 pointer-events-none" />
                   <input
                     type="text"
                     value={searchMessageQuery}
                     onChange={(e) => setSearchMessageQuery(e.target.value)}
                     placeholder="Caută factură, partener, CUI..."
-                    className="w-full h-8 !pl-8 !pr-7 !py-1 text-xs rounded-full border border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#86868b] focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 outline-none transition-all"
+                    className="flex-1 min-w-0 bg-transparent text-[12.5px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none"
                   />
                   {searchMessageQuery && (
                     <button
                       type="button"
                       onClick={() => setSearchMessageQuery("")}
                       aria-label="Șterge căutarea"
-                      className="w-4 h-4 rounded-full bg-black/[0.1] dark:bg-white/[0.16] hover:bg-black/[0.18] text-[#6e6e73] dark:text-[#ebebf5] inline-flex items-center justify-center absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer"
+                      className="text-[#8e8e93] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7] ml-1 cursor-pointer"
                     >
-                      <X className="w-2.5 h-2.5" />
+                      <X className="w-3 h-3" />
                     </button>
                   )}
                 </div>
@@ -1702,13 +1674,9 @@ export default function SpvHub() {
                   </button>
                   <button
                     type="button"
+                    data-active={messageFilter === "eroare"}
                     onClick={() => setMessageFilter("eroare")}
-                    className={`rounded-full px-2.5 h-7 text-[12px] font-semibold transition-all cursor-pointer whitespace-nowrap inline-flex items-center ${messageFilter === "eroare"
-                      ? "bg-[#ff3b30] text-white shadow-2xs"
-                      : msgStats.erori > 0
-                        ? "text-[#ff3b30] hover:bg-red-50 dark:hover:bg-red-950/40"
-                        : "text-[#636366] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
-                      }`}
+                    className="apple-segmented-item px-2.5 tabular-nums"
                   >
                     Erori ({msgStats.erori})
                   </button>
@@ -1719,10 +1687,11 @@ export default function SpvHub() {
                     type="button"
                     onClick={handleDownloadEfacturaSelection}
                     disabled={isBulkDownloading}
-                    className={`rounded-full h-8 px-3 text-[11.5px] font-semibold inline-flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 disabled:opacity-60 ${selectedEfacturaIds.length > 0
-                      ? "bg-blue-600 hover:bg-blue-700 text-white shadow-2xs"
-                      : "bg-white dark:bg-[#2c2c2e] border border-black/[0.08] dark:border-white/[0.12] hover:border-blue-500 text-[#1d1d1f] dark:text-[#f5f5f7]"
-                      }`}
+                    className={`rounded-full h-8 px-3 text-[12px] font-semibold inline-flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap shrink-0 disabled:opacity-60 ${
+                      selectedEfacturaIds.length > 0
+                        ? "apple-btn-prominent"
+                        : "apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7]"
+                    }`}
                     title={
                       selectedEfacturaIds.length > 0
                         ? `Descarcă cele ${selectedEfacturaIds.length} facturi PDF selectate`
@@ -1732,9 +1701,7 @@ export default function SpvHub() {
                     {isBulkDownloading ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
                     ) : (
-                      <Download
-                        className={`w-3.5 h-3.5 shrink-0 ${selectedEfacturaIds.length > 0 ? "text-white" : "text-blue-600"}`}
-                      />
+                      <Download className="w-3.5 h-3.5 shrink-0" />
                     )}
                     <span className="tabular-nums">
                       PDF ({selectedEfacturaIds.length > 0 ? selectedEfacturaIds.length : downloadableEfacturaIds.length})
@@ -1751,7 +1718,7 @@ export default function SpvHub() {
                     }}
                     aria-label="Elimină filtrele"
                     title="Elimină filtrele"
-                    className="w-8 h-8 rounded-full bg-blue-600 text-white border border-blue-600 hover:bg-blue-700 inline-flex items-center justify-center transition-all cursor-pointer shrink-0 shadow-2xs"
+                    className="apple-btn-prominent w-8 h-8 inline-flex items-center justify-center cursor-pointer shrink-0"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                   </button>
@@ -1759,8 +1726,10 @@ export default function SpvHub() {
               </div>
             )}
           </div>
+        </div>
 
-          {/* Conținut Tab 1: Tabelul Oficial ANAF SPV */}
+        {/* Nivelul 4 — Table Surface */}
+        <div className="apple-surface overflow-hidden">
           {activeHubTab === "declaratii" ? (
             <>
               {isLoadingPortalDocs ? (
@@ -1770,19 +1739,18 @@ export default function SpvHub() {
                   <Skeleton className="h-9 w-full" />
                 </div>
               ) : (portalDocs?.length || 0) === 0 ? (
-                <div className="p-14 text-center text-slate-500">
-                  <FileCheck className="w-10 h-10 mx-auto text-slate-300 mb-2" />
-                  <p className="font-semibold text-sm">
+                <div className="p-14 text-center text-[#6e6e73] dark:text-[#98989d]">
+                  <FileCheck className="w-10 h-10 mx-auto opacity-30 mb-2" />
+                  <p className="font-semibold text-[13.5px]">
                     Nu există documente în arhiva SPV.
                   </p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse text-xs">
-                    {/* Antet Tabel Apple macOS Frosted Glass — rămâne montat permanent în timpul filtrării */}
-                    <thead>
-                      <tr className="bg-[#f5f5f7]/90 dark:bg-[#2c2c2e]/75 text-[#6e6e73] dark:text-[#98989d] text-[11px] font-semibold tracking-[-0.01em] select-none border-b border-black/[0.06] dark:border-white/[0.08]">
-                        <th className="py-2.5 pl-3.5 pr-1.5 w-9 text-center">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+                      <tr className="text-[#6e6e73] dark:text-[#98989d] text-[12px] font-medium select-none border-b border-black/[0.05] dark:border-white/[0.07]">
+                        <th className="py-3 pl-4 pr-1.5 w-9 text-center font-medium">
                           <input
                             ref={masterPortalCheckboxRef}
                             type="checkbox"
@@ -1794,30 +1762,30 @@ export default function SpvHub() {
                             className="w-4 h-4 rounded-[5px] accent-[#0071e3] cursor-pointer align-middle disabled:opacity-30"
                           />
                         </th>
-                        <th className="py-2.5 px-3 w-28 whitespace-nowrap">
+                        <th className="py-3 px-3 w-28 whitespace-nowrap font-medium">
                           {oauthInfo?.entityType === "pf" ? "CNP / CIF" : "CIF"}
                         </th>
-                        <th className="py-2.5 px-3 w-44 whitespace-nowrap">
-                          Tip Document
+                        <th className="py-3 px-3 w-44 whitespace-nowrap font-medium">
+                          Tip document
                         </th>
-                        <th className="py-2.5 px-3 w-32 whitespace-nowrap">
-                          Id Solicitare
+                        <th className="py-3 px-3 w-32 whitespace-nowrap font-medium">
+                          Id solicitare
                         </th>
-                        <th className="py-2.5 px-3 w-36 whitespace-nowrap">
-                          Data Afișare
+                        <th className="py-3 px-3 w-36 whitespace-nowrap font-medium">
+                          Data afișare
                         </th>
-                        <th className="py-2.5 px-3 w-32 text-center whitespace-nowrap">
+                        <th className="py-3 px-3 w-32 text-center whitespace-nowrap font-medium">
                           Document
                         </th>
-                        <th className="py-2.5 px-3">Detalii</th>
-                        <th className="py-2.5 px-3 w-40 whitespace-nowrap">
-                          Data Arhivare SPV
+                        <th className="py-3 px-3 font-medium">Detalii</th>
+                        <th className="py-3 px-3 w-40 whitespace-nowrap font-medium">
+                          Data arhivare SPV
                         </th>
                       </tr>
 
                       {/* Rândul de Filtrare Apple Capsule */}
-                      <tr className="bg-[#fafafa]/85 dark:bg-[#1c1c1e]/85 border-b border-black/[0.06] dark:border-white/[0.08]">
-                        <th className="py-1.5 pl-3.5 pr-1.5 text-center">
+                      <tr className="bg-[#fafafa]/60 dark:bg-white/[0.015] border-b border-black/[0.05] dark:border-white/[0.07]">
+                        <th className="py-1.5 pl-4 pr-1.5 text-center">
                           {selectedPortalIds.length > 0 && (
                             <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#0071e3] text-white text-[10px] font-bold tabular-nums">
                               {selectedPortalIds.length}
@@ -1837,7 +1805,7 @@ export default function SpvHub() {
                                 ? "CNP / CIF..."
                                 : "CIF..."
                             }
-                            className="w-full !px-2.5 !py-0 h-7 text-[11px] tabular-nums rounded-full bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#86868b] border border-black/[0.08] dark:border-white/[0.1] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/15 outline-none font-normal transition-all"
+                            className="w-full !px-2.5 !py-0 h-7 text-[11.5px] tabular-nums rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] border border-black/[0.06] dark:border-white/[0.08] outline-none font-normal transition-all"
                           />
                         </th>
                         <th className="p-1.5">
@@ -1847,7 +1815,7 @@ export default function SpvHub() {
                               setFilterTipDoc(e.target.value);
                               setPage(1);
                             }}
-                            className="w-full !px-2.5 !py-0 h-7 text-[11px] rounded-full bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] border border-black/[0.08] dark:border-white/[0.1] focus:border-[#0071e3] outline-none font-normal transition-all cursor-pointer"
+                            className="w-full !px-2.5 !py-0 h-7 text-[11.5px] rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] border border-black/[0.06] dark:border-white/[0.08] outline-none font-normal transition-all cursor-pointer"
                           >
                             <option value="-TOATE-">Toate tipurile</option>
                             <option value="RECIPISA">RECIPISA</option>
@@ -1872,7 +1840,7 @@ export default function SpvHub() {
                               setPage(1);
                             }}
                             placeholder="ID..."
-                            className="w-full !px-2.5 !py-0 h-7 text-[11px] tabular-nums rounded-full bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#86868b] border border-black/[0.08] dark:border-white/[0.1] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/15 outline-none font-normal transition-all"
+                            className="w-full !px-2.5 !py-0 h-7 text-[11.5px] tabular-nums rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] border border-black/[0.06] dark:border-white/[0.08] outline-none font-normal transition-all"
                           />
                         </th>
                         <th className="p-1.5">
@@ -1884,11 +1852,11 @@ export default function SpvHub() {
                               setPage(1);
                             }}
                             placeholder="Dată..."
-                            className="w-full !px-2.5 !py-0 h-7 text-[11px] tabular-nums rounded-full bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#86868b] border border-black/[0.08] dark:border-white/[0.1] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/15 outline-none font-normal transition-all"
+                            className="w-full !px-2.5 !py-0 h-7 text-[11.5px] tabular-nums rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] border border-black/[0.06] dark:border-white/[0.08] outline-none font-normal transition-all"
                           />
                         </th>
                         <th className="p-1.5 text-center">
-                          <span className="text-[10.5px] text-[#86868b] font-medium">
+                          <span className="text-[11px] text-[#8e8e93] font-medium">
                             PDF
                           </span>
                         </th>
@@ -1901,7 +1869,7 @@ export default function SpvHub() {
                               setPage(1);
                             }}
                             placeholder="D101, D394, Vector..."
-                            className="w-full !px-2.5 !py-0 h-7 text-[11px] rounded-full bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#86868b] border border-black/[0.08] dark:border-white/[0.1] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/15 outline-none font-normal transition-all"
+                            className="w-full !px-2.5 !py-0 h-7 text-[11.5px] rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] border border-black/[0.06] dark:border-white/[0.08] outline-none font-normal transition-all"
                           />
                         </th>
                         <th className="p-1.5">
@@ -1913,27 +1881,26 @@ export default function SpvHub() {
                               setPage(1);
                             }}
                             placeholder="Arhivare..."
-                            className="w-full !px-2.5 !py-0 h-7 text-[11px] tabular-nums rounded-full bg-white dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#86868b] border border-black/[0.08] dark:border-white/[0.1] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/15 outline-none font-normal transition-all"
+                            className="w-full !px-2.5 !py-0 h-7 text-[11.5px] tabular-nums rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] border border-black/[0.06] dark:border-white/[0.08] outline-none font-normal transition-all"
                           />
                         </th>
                       </tr>
                     </thead>
 
-                    {/* Corp Tabel — Apple Mail / Finder Style */}
-                    <tbody className="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
+                    <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06] text-[13px]">
                       {paginatedPortalDocs.length === 0 ? (
                         <tr>
                           <td
                             colSpan={8}
                             className="py-12 px-4 text-center text-[#6e6e73] dark:text-[#98989d]"
                           >
-                            <p className="font-semibold text-xs text-[#1d1d1f] dark:text-[#f5f5f7]">
+                            <p className="font-medium text-[13px] text-[#1d1d1f] dark:text-[#f5f5f7]">
                               Niciun document nu corespunde căutării sau filtrelor active.
                             </p>
                             <button
                               type="button"
                               onClick={resetFilters}
-                              className="mt-2.5 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-semibold cursor-pointer shadow-2xs transition-all"
+                              className="apple-btn-glass mt-2.5 inline-flex items-center gap-1.5 px-4 h-8 text-[#1d1d1f] dark:text-[#f5f5f7] text-xs font-semibold cursor-pointer"
                             >
                               <RotateCcw className="w-3.5 h-3.5" />
                               <span>Resetează filtrele</span>
@@ -1941,144 +1908,140 @@ export default function SpvHub() {
                           </td>
                         </tr>
                       ) : (
-                        paginatedPortalDocs.map((doc: any, idx: number) => {
-                        const docNumId = Number(doc.id);
-                        const isUnread = !doc.isRead;
-                        const isSelected = selectedPortalSet.has(docNumId);
-                        const primaryTextCls = isUnread
-                          ? "text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold"
-                          : "text-[#3a3a3c] dark:text-[#d1d1d6] font-normal";
+                        paginatedPortalDocs.map((doc: any) => {
+                          const docNumId = Number(doc.id);
+                          const isUnread = !doc.isRead;
+                          const isSelected = selectedPortalSet.has(docNumId);
+                          const primaryTextCls = isUnread
+                            ? "text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold"
+                            : "text-[#3a3a3c] dark:text-[#d1d1d6] font-normal";
 
-                        return (
-                          <tr
-                            key={doc.id}
-                            onClick={() => openDocument(doc)}
-                            className={`cursor-pointer transition-colors ${isSelected
-                              ? "bg-[#0071e3]/[0.08] dark:bg-[#0a84ff]/[0.16] hover:bg-[#0071e3]/[0.12]"
-                              : isUnread
-                                ? "bg-[#0071e3]/[0.025] dark:bg-[#0a84ff]/[0.05] hover:bg-black/[0.03] dark:hover:bg-white/[0.05]"
-                                : idx % 2 === 1
-                                  ? "bg-black/[0.012] dark:bg-white/[0.015] hover:bg-black/[0.03] dark:hover:bg-white/[0.05]"
-                                  : "bg-white dark:bg-[#1c1c1e] hover:bg-black/[0.03] dark:hover:bg-white/[0.05]"
+                          return (
+                            <tr
+                              key={doc.id}
+                              onClick={() => openDocument(doc)}
+                              className={`cursor-pointer transition-colors hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] ${
+                                isSelected
+                                  ? "bg-[#0071e3]/[0.05] dark:bg-[#0a84ff]/[0.12]"
+                                  : isUnread
+                                    ? "bg-[#0071e3]/[0.025] dark:bg-[#0a84ff]/[0.06]"
+                                    : ""
                               }`}
-                          >
-                            {/* Checkbox Selecție */}
-                            <td
-                              className="py-2.5 pl-3.5 pr-1.5 text-center"
-                              onClick={(e) => e.stopPropagation()}
                             >
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={() => togglePortalRow(docNumId)}
-                                aria-label={`Selectează documentul ${doc.tip}`}
-                                className="w-4 h-4 rounded-[5px] accent-[#0071e3] cursor-pointer align-middle"
-                              />
-                            </td>
-
-                            {/* CIF + Apple Mail Unread Dot */}
-                            <td
-                              className={`py-2.5 px-3 tabular-nums whitespace-nowrap ${primaryTextCls}`}
-                            >
-                              <div className="inline-flex items-center gap-2">
-                                <span
-                                  className={`w-2 h-2 rounded-full shrink-0 ${isUnread ? "bg-[#0071e3]" : "bg-transparent"}`}
+                              <td
+                                className="py-3 pl-4 pr-1.5 text-center"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => togglePortalRow(docNumId)}
+                                  aria-label={`Selectează documentul ${doc.tip}`}
+                                  className="w-4 h-4 rounded-[5px] accent-[#0071e3] cursor-pointer align-middle"
                                 />
-                                <span>{doc.cif}</span>
-                              </div>
-                            </td>
+                              </td>
 
-                            {/* Tip Document */}
-                            <td className="py-2.5 px-3 whitespace-nowrap">
-                              <div className="flex items-center gap-1.5">
-                                <span
-                                  className={`uppercase tracking-tight text-[11.5px] ${isUnread ? "font-bold text-[#1d1d1f] dark:text-white" : "font-semibold text-[#3a3a3c] dark:text-[#ebebf5]"}`}
-                                >
-                                  {doc.tip}
-                                </span>
-                                {isUnread && (
-                                  <span className="px-1.5 py-0.5 rounded-full text-[9.5px] font-bold bg-[#ff3b30]/10 text-[#ff3b30] border border-[#ff3b30]/20">
-                                    NOU
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-
-                            {/* Id Solicitare */}
-                            <td className="py-2.5 px-3 tabular-nums whitespace-nowrap text-[#6e6e73] dark:text-[#98989d]">
-                              {doc.idSolicitare || "-"}
-                            </td>
-
-                            {/* Data Afișare */}
-                            <td
-                              className={`py-2.5 px-3 tabular-nums whitespace-nowrap ${primaryTextCls}`}
-                            >
-                              {doc.dataDepunere}
-                            </td>
-
-                            {/* Document — Vizualizare PDF + Descărcare directă + Toggle citit */}
-                            <td
-                              className="py-2 px-3 text-center"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <div className="inline-flex items-center gap-1 justify-center">
-                                <button
-                                  type="button"
-                                  onClick={() => openDocument(doc)}
-                                  className="rounded-full px-2.5 h-7 bg-[#0071e3]/10 hover:bg-[#0071e3] text-[#0071e3] hover:text-white border border-[#0071e3]/20 font-semibold text-[11px] inline-flex items-center justify-center transition-all cursor-pointer"
-                                  title="Vizualizează documentul PDF oficial ANAF"
-                                >
-                                  PDF
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleDownloadPortalSelection([docNumId])
-                                  }
-                                  className="w-7 h-7 rounded-full inline-flex items-center justify-center text-[#6e6e73] hover:text-[#0071e3] hover:bg-[#0071e3]/10 dark:text-[#98989d] dark:hover:text-[#0a84ff] transition-colors cursor-pointer"
-                                  title="Descarcă direct fișierul PDF"
-                                >
-                                  <Download className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    markReadMutation.mutate({
-                                      id: doc.id,
-                                      isRead: !doc.isRead,
-                                    })
-                                  }
-                                  disabled={markReadMutation.isPending}
-                                  className="w-7 h-7 rounded-full inline-flex items-center justify-center text-[#86868b] hover:text-[#1d1d1f] hover:bg-black/[0.05] dark:hover:text-white dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
-                                  title={
-                                    doc.isRead
-                                      ? "Marchează ca necitit"
-                                      : "Marchează ca citit"
-                                  }
-                                >
-                                  <Eye
-                                    className={`w-3.5 h-3.5 ${doc.isRead
-                                      ? "opacity-40"
-                                      : "text-[#0071e3]"
-                                      }`}
+                              <td
+                                className={`py-3 px-3 tabular-nums whitespace-nowrap ${primaryTextCls}`}
+                              >
+                                <div className="inline-flex items-center gap-2">
+                                  <span
+                                    className={`w-2 h-2 rounded-full shrink-0 ${
+                                      isUnread ? "bg-[#0071e3] dark:bg-[#0a84ff]" : "bg-transparent"
+                                    }`}
                                   />
-                                </button>
-                              </div>
-                            </td>
+                                  <span>{doc.cif}</span>
+                                </div>
+                              </td>
 
-                            {/* Detalii */}
-                            <td
-                              className={`py-2.5 px-3 leading-snug ${primaryTextCls}`}
-                            >
-                              <p className="line-clamp-2">{doc.detalii}</p>
-                            </td>
+                              <td className="py-3 px-3 whitespace-nowrap">
+                                <div className="flex items-center gap-1.5">
+                                  <span
+                                    className={`text-[12.5px] ${
+                                      isUnread
+                                        ? "font-bold text-[#1d1d1f] dark:text-white"
+                                        : "font-semibold text-[#3a3a3c] dark:text-[#ebebf5]"
+                                    }`}
+                                  >
+                                    {doc.tip}
+                                  </span>
+                                  {isUnread && (
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#0071e3]/10 text-[#0071e3] dark:bg-[#0a84ff]/18 dark:text-[#64d2ff]">
+                                      Nou
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
 
-                            {/* Data Arhivare */}
-                            <td className="py-2.5 px-3 tabular-nums whitespace-nowrap text-[#6e6e73] dark:text-[#98989d]">
-                              {doc.dataArhivare || "-"}
-                            </td>
-                          </tr>
-                        );
+                              <td className="py-3 px-3 tabular-nums whitespace-nowrap text-[#6e6e73] dark:text-[#98989d] text-[12.5px]">
+                                {doc.idSolicitare || "-"}
+                              </td>
+
+                              <td
+                                className={`py-3 px-3 tabular-nums whitespace-nowrap text-[12.5px] ${primaryTextCls}`}
+                              >
+                                {doc.dataDepunere}
+                              </td>
+
+                              <td
+                                className="py-2.5 px-3 text-center"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <div className="inline-flex items-center gap-1 justify-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => openDocument(doc)}
+                                    className="apple-btn-glass px-2.5 h-7 text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold text-[11.5px] inline-flex items-center justify-center cursor-pointer"
+                                    title="Vizualizează documentul PDF oficial ANAF"
+                                  >
+                                    PDF
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleDownloadPortalSelection([docNumId])
+                                    }
+                                    className="w-7 h-7 rounded-full inline-flex items-center justify-center text-[#6e6e73] hover:text-[#1d1d1f] hover:bg-black/[0.05] dark:text-[#98989d] dark:hover:text-[#f5f5f7] dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
+                                    title="Descarcă direct fișierul PDF"
+                                  >
+                                    <Download className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      markReadMutation.mutate({
+                                        id: doc.id,
+                                        isRead: !doc.isRead,
+                                      })
+                                    }
+                                    disabled={markReadMutation.isPending}
+                                    className="w-7 h-7 rounded-full inline-flex items-center justify-center text-[#8e8e93] hover:text-[#1d1d1f] hover:bg-black/[0.05] dark:hover:text-white dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
+                                    title={
+                                      doc.isRead
+                                        ? "Marchează ca necitit"
+                                        : "Marchează ca citit"
+                                    }
+                                  >
+                                    <Eye
+                                      className={`w-3.5 h-3.5 ${
+                                        doc.isRead ? "opacity-40" : "text-[#0071e3] dark:text-[#0a84ff]"
+                                      }`}
+                                    />
+                                  </button>
+                                </div>
+                              </td>
+
+                              <td
+                                className={`py-3 px-3 leading-snug text-[12.5px] ${primaryTextCls}`}
+                              >
+                                <p className="line-clamp-2">{doc.detalii}</p>
+                              </td>
+
+                              <td className="py-3 px-3 tabular-nums whitespace-nowrap text-[#6e6e73] dark:text-[#98989d] text-[12.5px]">
+                                {doc.dataArhivare || "-"}
+                              </td>
+                            </tr>
+                          );
                         })
                       )}
                     </tbody>
@@ -2086,10 +2049,10 @@ export default function SpvHub() {
                 </div>
               )}
 
-              {/* Subsol panou: Paginare + Notă discretă de arhivare */}
+              {/* Subsol panou: Paginare */}
               {filteredPortalDocs && filteredPortalDocs.length > 0 && (
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-4 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/70 text-xs">
-                  <div className="text-slate-500 dark:text-slate-400 tabular-nums">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-4 py-3 border-t border-black/[0.05] dark:border-white/[0.07] bg-[#fafafa] dark:bg-white/[0.02] text-[12px]">
+                  <div className="text-[#6e6e73] dark:text-[#98989d] tabular-nums">
                     Afișate {(page - 1) * pageSize + 1} –{" "}
                     {Math.min(page * pageSize, filteredPortalDocs.length)} din{" "}
                     {filteredPortalDocs.length} documente · Disponibile pentru
@@ -2101,7 +2064,7 @@ export default function SpvHub() {
                       type="button"
                       onClick={() => setPage(1)}
                       disabled={page === 1}
-                      className="rounded-full px-2.5 py-1 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 disabled:opacity-40 cursor-pointer font-bold"
+                      className="apple-btn-glass px-2.5 h-7 text-[#1d1d1f] dark:text-[#f5f5f7] disabled:opacity-40 cursor-pointer font-semibold"
                       title="Prima pagină"
                     >
                       |&lt;
@@ -2110,13 +2073,13 @@ export default function SpvHub() {
                       type="button"
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                       disabled={page === 1}
-                      className="rounded-full px-2.5 py-1 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 disabled:opacity-40 cursor-pointer font-bold"
+                      className="apple-btn-glass px-2.5 h-7 text-[#1d1d1f] dark:text-[#f5f5f7] disabled:opacity-40 cursor-pointer font-semibold"
                       title="Pagina precedentă"
                     >
                       &lt;
                     </button>
 
-                    <span className="px-3 py-1 font-semibold tabular-nums text-slate-800 dark:text-slate-200">
+                    <span className="px-2.5 py-1 font-semibold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">
                       {page} / {totalPages}
                     </span>
 
@@ -2126,7 +2089,7 @@ export default function SpvHub() {
                         setPage((p) => Math.min(totalPages, p + 1))
                       }
                       disabled={page === totalPages}
-                      className="rounded-full px-2.5 py-1 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 disabled:opacity-40 cursor-pointer font-bold"
+                      className="apple-btn-glass px-2.5 h-7 text-[#1d1d1f] dark:text-[#f5f5f7] disabled:opacity-40 cursor-pointer font-semibold"
                       title="Pagina următoare"
                     >
                       &gt;
@@ -2135,7 +2098,7 @@ export default function SpvHub() {
                       type="button"
                       onClick={() => setPage(totalPages)}
                       disabled={page === totalPages}
-                      className="rounded-full px-2.5 py-1 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 disabled:opacity-40 cursor-pointer font-bold"
+                      className="apple-btn-glass px-2.5 h-7 text-[#1d1d1f] dark:text-[#f5f5f7] disabled:opacity-40 cursor-pointer font-semibold"
                       title="Ultima pagină"
                     >
                       &gt;|
@@ -2154,9 +2117,9 @@ export default function SpvHub() {
                   <Skeleton className="h-9 w-full" />
                 </div>
               ) : (rawMessages?.length || 0) === 0 ? (
-                <div className="p-14 text-center text-slate-500">
-                  <Inbox className="w-10 h-10 mx-auto text-slate-300 mb-2" />
-                  <p className="font-semibold text-sm">
+                <div className="p-14 text-center text-[#6e6e73] dark:text-[#98989d]">
+                  <Inbox className="w-10 h-10 mx-auto opacity-30 mb-2" />
+                  <p className="font-semibold text-[13.5px]">
                     Nu există mesaje e-Factura în arhiva SPV.
                   </p>
                 </div>
@@ -2164,8 +2127,8 @@ export default function SpvHub() {
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-[#f5f5f7]/90 dark:bg-[#2c2c2e]/75 text-[#6e6e73] dark:text-[#98989d] text-[11px] border-b border-black/[0.06] dark:border-white/[0.08]">
-                        <TableHead className="w-9 pl-3.5 pr-1.5 text-center">
+                      <TableRow className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+                        <TableHead className="w-9 pl-4 pr-1.5 text-center">
                           <input
                             ref={masterEfacturaCheckboxRef}
                             type="checkbox"
@@ -2177,28 +2140,40 @@ export default function SpvHub() {
                             className="w-4 h-4 rounded-[5px] accent-[#0071e3] cursor-pointer align-middle disabled:opacity-30"
                           />
                         </TableHead>
-                        <TableHead className="w-32">Data SPV</TableHead>
-                        <TableHead className="w-36">Tip Mesaj ANAF</TableHead>
-                        <TableHead className="w-32">Emitent</TableHead>
-                        <TableHead className="w-32">Beneficiar</TableHead>
-                        <TableHead className="w-36">
-                          Index Încărcare SPV
+                        <TableHead className="w-32 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                          Data SPV
                         </TableHead>
-                        <TableHead className="w-32">ID Descărcare</TableHead>
-                        <TableHead>Factură / Partener în Sistem</TableHead>
-                        <TableHead className="w-32 text-center">
+                        <TableHead className="w-36 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                          Tip mesaj ANAF
+                        </TableHead>
+                        <TableHead className="w-32 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                          Emitent
+                        </TableHead>
+                        <TableHead className="w-32 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                          Beneficiar
+                        </TableHead>
+                        <TableHead className="w-36 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                          Index încărcare SPV
+                        </TableHead>
+                        <TableHead className="w-32 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                          ID descărcare
+                        </TableHead>
+                        <TableHead className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                          Factură / Partener în sistem
+                        </TableHead>
+                        <TableHead className="w-32 text-center text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
                           Acțiune
                         </TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody className="text-xs">
+                    <TableBody className="divide-y divide-black/[0.045] dark:divide-white/[0.06] text-[13px]">
                       {!filteredMessages || filteredMessages.length === 0 ? (
                         <TableRow>
                           <TableCell
                             colSpan={9}
                             className="py-12 px-4 text-center text-[#6e6e73] dark:text-[#98989d]"
                           >
-                            <p className="font-semibold text-xs text-[#1d1d1f] dark:text-[#f5f5f7]">
+                            <p className="font-medium text-[13px] text-[#1d1d1f] dark:text-[#f5f5f7]">
                               Niciun mesaj e-Factura nu corespunde căutării sau filtrului activ.
                             </p>
                             <button
@@ -2207,7 +2182,7 @@ export default function SpvHub() {
                                 setMessageFilter("all");
                                 setSearchMessageQuery("");
                               }}
-                              className="mt-2.5 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-semibold cursor-pointer shadow-2xs transition-all"
+                              className="apple-btn-glass mt-2.5 inline-flex items-center gap-1.5 px-4 h-8 text-[#1d1d1f] dark:text-[#f5f5f7] text-xs font-semibold cursor-pointer"
                             >
                               <RotateCcw className="w-3.5 h-3.5" />
                               <span>Resetează filtrele</span>
@@ -2216,140 +2191,139 @@ export default function SpvHub() {
                         </TableRow>
                       ) : (
                         filteredMessages.map((msg: any) => {
-                        const isReceived = msg.tip === "FACTURA PRIMITA";
-                        const isSent = msg.tip === "FACTURA TRIMISA";
-                        const isError = msg.tip === "ERORI FACTURA";
-                        const msgKey = String(msg.id);
-                        const isRowSelected = selectedEfacturaSet.has(msgKey);
+                          const isReceived = msg.tip === "FACTURA PRIMITA";
+                          const isSent = msg.tip === "FACTURA TRIMISA";
+                          const isError = msg.tip === "ERORI FACTURA";
+                          const msgKey = String(msg.id);
+                          const isRowSelected = selectedEfacturaSet.has(msgKey);
 
-                        return (
-                          <TableRow
-                            key={msg.id}
-                            onClick={() => {
-                              if (msg.pdfUrl) {
-                                setPreviewDoc({
-                                  isOpen: true,
-                                  title: `Factura ${msg.invoiceNumber || ""} — ${msg.partnerName || ""
+                          return (
+                            <TableRow
+                              key={msg.id}
+                              onClick={() => {
+                                if (msg.pdfUrl) {
+                                  setPreviewDoc({
+                                    isOpen: true,
+                                    title: `Factura ${msg.invoiceNumber || ""} — ${
+                                      msg.partnerName || ""
                                     }`,
-                                  pdfUrl: msg.pdfUrl,
-                                  filename: `Factura_${msg.invoiceNumber || msg.id
+                                    pdfUrl: msg.pdfUrl,
+                                    filename: `Factura_${
+                                      msg.invoiceNumber || msg.id
                                     }.pdf`,
-                                  type: isReceived ? "invoice" : "emitted",
-                                });
-                              } else {
-                                setSelectedSpvMessage(msg);
-                              }
-                            }}
-                            className={`cursor-pointer transition-colors ${isRowSelected
-                              ? "bg-[#0071e3]/[0.08] dark:bg-[#0a84ff]/[0.16]"
-                              : "hover:bg-black/[0.025] dark:hover:bg-white/[0.04]"
+                                    type: isReceived ? "invoice" : "emitted",
+                                  });
+                                } else {
+                                  setSelectedSpvMessage(msg);
+                                }
+                              }}
+                              className={`cursor-pointer transition-colors hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] ${
+                                isRowSelected
+                                  ? "bg-[#0071e3]/[0.05] dark:bg-[#0a84ff]/[0.12]"
+                                  : ""
                               }`}
-                          >
-                            <TableCell
-                              className="pl-3.5 pr-1.5 py-2.5 text-center"
-                              onClick={(e) => e.stopPropagation()}
                             >
-                              <input
-                                type="checkbox"
-                                checked={isRowSelected}
-                                disabled={!msg.pdfUrl}
-                                onChange={() => toggleEfacturaRow(msgKey)}
-                                aria-label={`Selectează factura ${msg.invoiceNumber || msg.id}`}
-                                className="w-4 h-4 rounded-[5px] accent-[#0071e3] cursor-pointer align-middle disabled:opacity-25"
-                              />
-                            </TableCell>
-                            <TableCell className="font-semibold tabular-nums whitespace-nowrap py-2.5">
-                              {msg.dataCreare}
-                            </TableCell>
-                            <TableCell className="py-2.5">
-                              <span
-                                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold ${isReceived
-                                  ? "bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
-                                  : isSent
-                                    ? "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
-                                    : "bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300 border border-red-200 dark:border-red-800"
+                              <TableCell
+                                className="pl-4 pr-1.5 py-3 text-center"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isRowSelected}
+                                  disabled={!msg.pdfUrl}
+                                  onChange={() => toggleEfacturaRow(msgKey)}
+                                  aria-label={`Selectează factura ${msg.invoiceNumber || msg.id}`}
+                                  className="w-4 h-4 rounded-[5px] accent-[#0071e3] cursor-pointer align-middle disabled:opacity-25"
+                                />
+                              </TableCell>
+                              <TableCell className="font-medium text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums whitespace-nowrap py-3">
+                                {msg.dataCreare}
+                              </TableCell>
+                              <TableCell className="py-3">
+                                <span
+                                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium ${
+                                    isReceived
+                                      ? "bg-amber-500/12 text-amber-700 dark:bg-amber-500/18 dark:text-amber-300"
+                                      : isSent
+                                        ? "bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300"
+                                        : "bg-rose-500/10 text-rose-700 dark:bg-rose-500/18 dark:text-rose-300"
                                   }`}
+                                >
+                                  {isReceived && (
+                                    <ArrowDownLeft className="w-3 h-3" />
+                                  )}
+                                  {isSent && <ArrowUpRight className="w-3 h-3" />}
+                                  {isError && <AlertCircle className="w-3 h-3" />}
+                                  <span>{msg.tip}</span>
+                                </span>
+                              </TableCell>
+                              <TableCell className="py-3">
+                                <span className="tabular-nums text-[#6e6e73] dark:text-[#98989d]">
+                                  {msg.cifEmitent || "-"}
+                                </span>
+                              </TableCell>
+                              <TableCell className="py-3">
+                                <span className="tabular-nums text-[#6e6e73] dark:text-[#98989d]">
+                                  {msg.cifBeneficiar || "-"}
+                                </span>
+                              </TableCell>
+                              <TableCell className="py-3">
+                                <span className="px-2.5 py-0.5 rounded-full text-[11.5px] font-medium bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#ebebf5] tabular-nums">
+                                  {msg.idSolicitare || "-"}
+                                </span>
+                              </TableCell>
+                              <TableCell className="py-3">
+                                <span className="text-[12px] text-[#6e6e73] dark:text-[#98989d] tabular-nums">
+                                  {msg.id}
+                                </span>
+                              </TableCell>
+                              <TableCell className="py-3">
+                                <span className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] truncate">
+                                  {msg.invoiceNumber ||
+                                    msg.partnerName ||
+                                    "În așteptare descărcare"}
+                                </span>
+                              </TableCell>
+                              <TableCell
+                                className="py-3 text-center"
+                                onClick={(e) => e.stopPropagation()}
                               >
-                                {isReceived && (
-                                  <ArrowDownLeft className="w-3 h-3 text-purple-600 dark:text-purple-400" />
-                                )}
-                                {isSent && (
-                                  <ArrowUpRight className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                                )}
-                                {isError && (
-                                  <AlertCircle className="w-3 h-3 text-red-600 dark:text-red-400" />
-                                )}
-                                <span>{msg.tip}</span>
-                              </span>
-                            </TableCell>
-                            <TableCell className="py-2.5">
-                              <span className="tabular-nums text-slate-700 dark:text-slate-300">
-                                {msg.cifEmitent || "-"}
-                              </span>
-                            </TableCell>
-                            <TableCell className="py-2.5">
-                              <span className="tabular-nums text-slate-700 dark:text-slate-300">
-                                {msg.cifBeneficiar || "-"}
-                              </span>
-                            </TableCell>
-                            <TableCell className="py-2.5">
-                              <Badge
-                                variant="outline"
-                                className="rounded-full text-[10.5px] tabular-nums"
-                              >
-                                {msg.idSolicitare || "-"}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="py-2.5">
-                              <span className="text-[11px] text-slate-600 dark:text-slate-400 tabular-nums">
-                                {msg.id}
-                              </span>
-                            </TableCell>
-                            <TableCell className="py-2.5">
-                              <span className="font-bold text-slate-900 dark:text-white truncate">
-                                {msg.invoiceNumber ||
-                                  msg.partnerName ||
-                                  "În așteptare descărcare"}
-                              </span>
-                            </TableCell>
-                            <TableCell
-                              className="py-2.5 text-center"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {msg.pdfUrl ? (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setPreviewDoc({
-                                      isOpen: true,
-                                      title: `Factura ${msg.invoiceNumber || ""
+                                {msg.pdfUrl ? (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setPreviewDoc({
+                                        isOpen: true,
+                                        title: `Factura ${
+                                          msg.invoiceNumber || ""
                                         } — ${msg.partnerName || ""}`,
-                                      pdfUrl: msg.pdfUrl,
-                                      filename: `Factura_${msg.invoiceNumber || msg.id
+                                        pdfUrl: msg.pdfUrl,
+                                        filename: `Factura_${
+                                          msg.invoiceNumber || msg.id
                                         }.pdf`,
-                                      type: isReceived ? "invoice" : "emitted",
-                                    })
-                                  }
-                                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/50 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 font-semibold transition-colors cursor-pointer"
-                                  title="Vizualizează PDF Factură"
-                                >
-                                  <Eye className="w-3.5 h-3.5" />
-                                  <span>Deschide</span>
-                                </button>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => setSelectedSpvMessage(msg)}
-                                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-semibold transition-colors cursor-pointer"
-                                  title="Vizualizează detalii mesaj ANAF"
-                                >
-                                  <FileText className="w-3.5 h-3.5" />
-                                  <span>Detalii</span>
-                                </button>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        );
+                                        type: isReceived ? "invoice" : "emitted",
+                                      })
+                                    }
+                                    className="apple-btn-glass inline-flex items-center gap-1 px-3 h-7 text-[#1d1d1f] dark:text-[#f5f5f7] text-[12px] font-medium cursor-pointer"
+                                    title="Vizualizează PDF Factură"
+                                  >
+                                    <Eye className="w-3.5 h-3.5" />
+                                    <span>Deschide</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedSpvMessage(msg)}
+                                    className="apple-btn-glass inline-flex items-center gap-1 px-3 h-7 text-[#1d1d1f] dark:text-[#f5f5f7] text-[12px] font-medium cursor-pointer"
+                                    title="Vizualizează detalii mesaj ANAF"
+                                  >
+                                    <FileText className="w-3.5 h-3.5" />
+                                    <span>Detalii</span>
+                                  </button>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
                         })
                       )}
                     </TableBody>
@@ -2366,10 +2340,10 @@ export default function SpvHub() {
         open={isConnectorModalOpen}
         onOpenChange={setIsConnectorModalOpen}
       >
-        <DialogContent className="sm:max-w-lg rounded-[22px]">
+        <DialogContent className="sm:max-w-lg bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.10] rounded-2xl">
           <DialogHeader>
             <div className="flex items-center gap-3 mb-1">
-              <div className="h-10 px-2.5 rounded-xl bg-white border border-slate-200 dark:border-slate-700 shadow-2xs flex items-center justify-center shrink-0">
+              <div className="h-10 px-2.5 rounded-xl bg-white border border-black/[0.08] shadow-2xs flex items-center justify-center shrink-0">
                 <img
                   src="https://static.anaf.ro/static/10/Anaf/primapagina/anaf_ro.png"
                   onError={(e) => {
@@ -2380,23 +2354,23 @@ export default function SpvHub() {
                   className="h-6 w-auto object-contain select-none"
                 />
               </div>
-              <DialogTitle className="text-base font-bold text-slate-900 dark:text-white leading-snug">
+              <DialogTitle className="text-[16px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] leading-snug">
                 Conector Chrome pentru Stick USB ANAF (SPVWS2)
               </DialogTitle>
             </div>
-            <DialogDescription className="text-xs text-slate-500">
+            <DialogDescription className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d]">
               Serviciul ANAF SPV pentru decizii, recipise și declarații (webserviced.anaf.ro) cere autentificare directă mTLS cu stick-ul USB. Extensia Chrome citește stick-ul tău și urcă automat în aplicație documentele PDF originale semnate de Ministerul Finanțelor.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-3.5 pt-1 text-xs">
+          <div className="space-y-3.5 pt-1 text-[12.5px]">
             {isLegacyConnector && (
-              <div className="rounded-2xl border border-amber-300 dark:border-amber-800 bg-amber-50/90 dark:bg-amber-950/40 p-3 space-y-2 text-amber-950 dark:text-amber-100">
-                <p className="font-bold text-xs">
+              <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 p-3.5 space-y-2 text-amber-900 dark:text-amber-200">
+                <p className="font-semibold text-xs">
                   Actualizare rapidă în Chrome (rulează încă v{connectorVersion}, actuală este v1.5.0 — fără Incognito):
                 </p>
-                <p className="text-[11px] leading-relaxed">
-                  Deschide <span className="font-bold">chrome://extensions</span> și apasă iconița rotundă de <span className="font-bold">Reîncărcare (Reload)</span> pe extensia <span className="font-bold">Factura/SPV</span> (sau șterge copia veche și încarcă folderul de mai jos), apoi dă Refresh la pagină. Versiunea v1.5.0 citește direct tokenul USB fără modul Incognito.
+                <p className="text-[11.5px] leading-relaxed">
+                  Deschide <span className="font-semibold">chrome://extensions</span> și apasă iconița rotundă de <span className="font-semibold">Reîncărcare (Reload)</span> pe extensia <span className="font-semibold">Factura/SPV</span> (sau șterge copia veche și încarcă folderul de mai jos), apoi dă Refresh la pagină. Versiunea v1.5.0 citește direct tokenul USB fără modul Incognito.
                 </p>
                 <button
                   type="button"
@@ -2406,7 +2380,7 @@ export default function SpvHub() {
                     setTimeout(() => setCopiedExtUrl(false), 1800);
                     toast.success("Adresa chrome://extensions a fost copiată — lipește-o într-un tab nou.");
                   }}
-                  className="rounded-full px-3 py-1 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-[11px] font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                  className="apple-btn-glass px-3 h-7 text-[#1d1d1f] dark:text-[#f5f5f7] text-[11.5px] font-medium inline-flex items-center gap-1.5 cursor-pointer"
                 >
                   {copiedExtUrl ? (
                     <>
@@ -2423,8 +2397,8 @@ export default function SpvHub() {
               </div>
             )}
 
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/70 p-3.5 space-y-2 text-slate-700 dark:text-slate-300">
-              <p className="font-semibold text-slate-900 dark:text-white">
+            <div className="rounded-2xl border border-black/[0.05] dark:border-white/[0.07] bg-[#f2f2f7] dark:bg-[#2c2c2e] p-3.5 space-y-2 text-[#3a3a3c] dark:text-[#ebebf5]">
+              <p className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                 Instalare / Reîncărcare în 3 pași (15 secunde, fără Incognito):
               </p>
               <p>
@@ -2448,12 +2422,12 @@ export default function SpvHub() {
             {typeof window !== "undefined" &&
               (window.location.hostname === "localhost" ||
                 window.location.hostname === "127.0.0.1") && (
-                <div className="rounded-2xl border border-blue-200 dark:border-blue-900 bg-blue-50/70 dark:bg-blue-950/30 p-3 space-y-1.5">
-                  <p className="text-[11px] font-semibold text-blue-900 dark:text-blue-200">
+                <div className="rounded-2xl border border-black/[0.05] dark:border-white/[0.07] bg-[#f2f2f7] dark:bg-[#2c2c2e] p-3.5 space-y-1.5">
+                  <p className="text-[11.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                     Calea folderului gata de încărcat în Chrome:
                   </p>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[11px] text-blue-950 dark:text-blue-100 break-all select-all">
+                    <span className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] break-all select-all">
                       /Users/eugeniucazmal/Downloads/dev_office/smart invoice/chrome-spv-connector
                     </span>
                     <button
@@ -2466,7 +2440,7 @@ export default function SpvHub() {
                         setTimeout(() => setCopiedPath(false), 1800);
                         toast.success("Calea a fost copiată.");
                       }}
-                      className="rounded-full px-3 py-1 bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-[11px] font-semibold inline-flex items-center gap-1 shrink-0 cursor-pointer"
+                      className="apple-btn-glass px-3 h-7 text-[#1d1d1f] dark:text-[#f5f5f7] text-[11.5px] font-medium inline-flex items-center gap-1 shrink-0 cursor-pointer"
                     >
                       {copiedPath ? (
                         <>
@@ -2489,7 +2463,7 @@ export default function SpvHub() {
                 type="button"
                 onClick={handleDownloadConnectorZip}
                 disabled={isDownloadingZip}
-                className="rounded-full inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 font-semibold cursor-pointer disabled:opacity-60"
+                className="apple-btn-glass inline-flex items-center gap-1.5 px-4 h-9 text-[#1d1d1f] dark:text-[#f5f5f7] font-medium cursor-pointer disabled:opacity-60"
               >
                 {isDownloadingZip ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -2503,7 +2477,7 @@ export default function SpvHub() {
                 <button
                   type="button"
                   onClick={handleCheckConnector}
-                  className="rounded-full inline-flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold cursor-pointer"
+                  className="apple-btn-glass inline-flex items-center gap-1.5 px-3.5 h-9 text-[#1d1d1f] dark:text-[#f5f5f7] font-medium cursor-pointer"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   <span>Verifică extensia</span>
@@ -2515,7 +2489,7 @@ export default function SpvHub() {
                       setIsConnectorModalOpen(false);
                       handleUsbSpvSync();
                     }}
-                    className="rounded-full inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold cursor-pointer"
+                    className="apple-btn-prominent inline-flex items-center gap-1.5 px-4 h-9 font-semibold cursor-pointer"
                   >
                     <ShieldCheck className="w-3.5 h-3.5" />
                     <span>Sincronizează acum</span>
@@ -2529,12 +2503,12 @@ export default function SpvHub() {
 
       {/* Modal Upload Recipisă / Document original SPV */}
       <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-        <DialogContent className="sm:max-w-md rounded-[22px]">
+        <DialogContent className="sm:max-w-md bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.10] rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="text-base font-bold text-slate-900 dark:text-white">
+            <DialogTitle className="text-[16px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
               Încarcă Recipisă sau Mesaj Original SPV ANAF
             </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
+            <DialogDescription className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d]">
               Selectați fișierul PDF sau arhiva ZIP originală descărcată din portalul ANAF (recipise, decizii D256, declarația D212, notificări).
             </DialogDescription>
           </DialogHeader>
@@ -2542,13 +2516,13 @@ export default function SpvHub() {
           <div className="space-y-4 pt-2">
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 rounded-2xl p-8 text-center cursor-pointer transition-colors bg-slate-50/50 dark:bg-slate-900/50"
+              className="border-2 border-dashed border-black/[0.12] dark:border-white/[0.14] hover:border-[#0071e3] rounded-2xl p-8 text-center cursor-pointer transition-colors bg-[#f2f2f7]/60 dark:bg-[#2c2c2e]/60"
             >
-              <Upload className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-              <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+              <Upload className="w-8 h-8 text-[#0071e3] dark:text-[#0a84ff] mx-auto mb-2" />
+              <p className="text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                 Apasă aici sau trage fișierul PDF / ZIP original descărcat din SPV
               </p>
-              <p className="text-[11px] text-slate-400 mt-1">
+              <p className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] mt-1">
                 Se salvează exclusiv fișierele reale semnate de Ministerul Finanțelor.
               </p>
             </div>
@@ -2563,7 +2537,7 @@ export default function SpvHub() {
             />
 
             {isUploading && (
-              <div className="flex items-center justify-center gap-2 text-xs text-blue-600 font-semibold py-2">
+              <div className="flex items-center justify-center gap-2 text-[12.5px] text-[#0071e3] dark:text-[#64d2ff] font-semibold py-2">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 <span>Se încarcă și se prelucrează documentul...</span>
               </div>
@@ -2580,44 +2554,44 @@ export default function SpvHub() {
             if (!open) setSelectedSpvMessage(null);
           }}
         >
-          <DialogContent className="sm:max-w-md rounded-[22px]">
+          <DialogContent className="sm:max-w-md bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.10] rounded-2xl">
             <DialogHeader>
-              <DialogTitle className="text-sm font-bold flex items-center gap-2">
-                <FileText className="w-4 h-4 text-blue-600" />
-                <span>Detalii Mesaj Oficial ANAF SPV</span>
+              <DialogTitle className="text-[16px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-2">
+                <FileText className="w-4 h-4 text-[#0071e3] dark:text-[#0a84ff]" />
+                <span>Detalii mesaj oficial ANAF SPV</span>
               </DialogTitle>
-              <DialogDescription className="text-xs text-slate-500">
+              <DialogDescription className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d]">
                 Informații oficiale recepționate direct de pe serverele
                 Ministerului Finanțelor
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-2.5 text-xs pt-2">
-              <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-slate-500">Tip Mesaj:</span>
-                <span className="font-bold">{selectedSpvMessage.tip}</span>
+            <div className="space-y-2.5 text-[12.5px] pt-2 text-[#1d1d1f] dark:text-[#f5f5f7]">
+              <div className="flex justify-between py-1.5 border-b border-black/[0.05] dark:border-white/[0.07]">
+                <span className="text-[#6e6e73] dark:text-[#98989d]">Tip mesaj:</span>
+                <span className="font-semibold">{selectedSpvMessage.tip}</span>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-slate-500">Data SPV:</span>
+              <div className="flex justify-between py-1.5 border-b border-black/[0.05] dark:border-white/[0.07]">
+                <span className="text-[#6e6e73] dark:text-[#98989d]">Data SPV:</span>
                 <span className="font-semibold tabular-nums">
                   {selectedSpvMessage.dataCreare}
                 </span>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-slate-500">CIF Emitent:</span>
+              <div className="flex justify-between py-1.5 border-b border-black/[0.05] dark:border-white/[0.07]">
+                <span className="text-[#6e6e73] dark:text-[#98989d]">CIF emitent:</span>
                 <span className="font-semibold tabular-nums">
                   {selectedSpvMessage.cifEmitent || "-"}
                 </span>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-slate-500">CIF Beneficiar:</span>
+              <div className="flex justify-between py-1.5 border-b border-black/[0.05] dark:border-white/[0.07]">
+                <span className="text-[#6e6e73] dark:text-[#98989d]">CIF beneficiar:</span>
                 <span className="font-semibold tabular-nums">
                   {selectedSpvMessage.cifBeneficiar || "-"}
                 </span>
               </div>
-              <div className="flex justify-between items-center py-1.5 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-slate-500">Index Încărcare SPV:</span>
-                <div className="flex items-center gap-1 font-bold tabular-nums">
+              <div className="flex justify-between items-center py-1.5 border-b border-black/[0.05] dark:border-white/[0.07]">
+                <span className="text-[#6e6e73] dark:text-[#98989d]">Index încărcare SPV:</span>
+                <div className="flex items-center gap-1 font-semibold tabular-nums">
                   <span>{selectedSpvMessage.idSolicitare || "-"}</span>
                   {selectedSpvMessage.idSolicitare && (
                     <button
@@ -2625,7 +2599,7 @@ export default function SpvHub() {
                       onClick={(e) =>
                         handleCopy(selectedSpvMessage.idSolicitare, e)
                       }
-                      className="w-7 h-7 rounded-full inline-flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-slate-200 dark:hover:bg-slate-800 cursor-pointer"
+                      className="w-7 h-7 rounded-full inline-flex items-center justify-center text-[#6e6e73] hover:text-[#1d1d1f] hover:bg-black/[0.05] dark:text-[#98989d] dark:hover:text-[#f5f5f7] dark:hover:bg-white/[0.08] cursor-pointer"
                       title="Copiază index"
                     >
                       {copiedId === selectedSpvMessage.idSolicitare ? (
@@ -2637,14 +2611,14 @@ export default function SpvHub() {
                   )}
                 </div>
               </div>
-              <div className="flex justify-between items-center py-1.5 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-slate-500">ID Descărcare ANAF:</span>
-                <div className="flex items-center gap-1 font-bold tabular-nums">
+              <div className="flex justify-between items-center py-1.5 border-b border-black/[0.05] dark:border-white/[0.07]">
+                <span className="text-[#6e6e73] dark:text-[#98989d]">ID descărcare ANAF:</span>
+                <div className="flex items-center gap-1 font-semibold tabular-nums">
                   <span>{selectedSpvMessage.id}</span>
                   <button
                     type="button"
                     onClick={(e) => handleCopy(selectedSpvMessage.id, e)}
-                    className="w-7 h-7 rounded-full inline-flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-slate-200 dark:hover:bg-slate-800 cursor-pointer"
+                    className="w-7 h-7 rounded-full inline-flex items-center justify-center text-[#6e6e73] hover:text-[#1d1d1f] hover:bg-black/[0.05] dark:text-[#98989d] dark:hover:text-[#f5f5f7] dark:hover:bg-white/[0.08] cursor-pointer"
                     title="Copiază ID descărcare"
                   >
                     {copiedId === selectedSpvMessage.id ? (
@@ -2655,18 +2629,18 @@ export default function SpvHub() {
                   </button>
                 </div>
               </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-slate-500">Factură / Stare:</span>
-                <span className="font-medium text-slate-800 dark:text-slate-200">
+              <div className="flex justify-between py-1.5 border-b border-black/[0.05] dark:border-white/[0.07]">
+                <span className="text-[#6e6e73] dark:text-[#98989d]">Factură / Stare:</span>
+                <span className="font-medium">
                   {selectedSpvMessage.invoiceNumber
                     ? `Factură înregistrată: ${selectedSpvMessage.invoiceNumber}`
                     : selectedSpvMessage.partnerName ||
-                    "Recepționat din ANAF SPV"}
+                      "Recepționat din ANAF SPV"}
                 </span>
               </div>
               {selectedSpvMessage.detalii && (
-                <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-xs">
-                  <p className="font-bold mb-1">Atenționare / Notă ANAF:</p>
+                <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-900 dark:text-amber-200 text-xs">
+                  <p className="font-semibold mb-1">Atenționare / Notă ANAF:</p>
                   <p>{selectedSpvMessage.detalii}</p>
                 </div>
               )}
@@ -2676,7 +2650,7 @@ export default function SpvHub() {
               <button
                 type="button"
                 onClick={() => setSelectedSpvMessage(null)}
-                className="px-4 py-1.5 rounded-full bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-white text-xs font-semibold cursor-pointer"
+                className="apple-btn-glass px-4 h-8 text-[#1d1d1f] dark:text-[#f5f5f7] text-xs font-medium cursor-pointer"
               >
                 Închide
               </button>

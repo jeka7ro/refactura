@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { Loader2, ArrowLeft, PackageOpen, Plus, Save, Trash2 } from "lucide-react";
+import { Loader2, ArrowLeft, Plus, Save, Trash2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import NirSelectorModal from "@/components/NirSelectorModal";
@@ -59,107 +59,134 @@ export default function BonConsumCreate() {
   };
 
   return (
-    <div className="p-3 sm:p-5 max-w-full space-y-6">
-      <div className="flex items-center gap-4">
-        <button
-          onClick={() => navigate("/bonuri-consum")}
-          className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-            <PackageOpen className="w-5 h-5 text-amber-600" />
-            Creare Bon de Consum
-          </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Selectează produse din stoc pentru a le consuma
-          </p>
-        </div>
-        <div className="ml-auto">
+    <div className="p-3 sm:p-5 max-w-full space-y-5 overflow-x-hidden">
+      {/* Header — Apple macOS Window Title & Action */}
+      <div className="flex items-center justify-between gap-3 flex-wrap px-0.5">
+        <div className="flex items-center gap-3 min-w-0">
           <button
+            type="button"
+            onClick={() => navigate("/bonuri-consum")}
+            aria-label="Înapoi la Bonuri de Consum"
+            className="apple-btn-glass w-9 h-9 rounded-full flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white transition-all cursor-pointer shrink-0"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <div className="min-w-0">
+            <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight truncate">
+              Creare Bon de Consum
+            </h1>
+            <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
+              Selectează produse din stoc pentru a le consuma
+            </p>
+          </div>
+        </div>
+        <div>
+          <button
+            type="button"
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-2 px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm rounded-xl transition-all shadow-sm shadow-amber-600/20 disabled:opacity-50"
+            className="apple-btn-prominent flex items-center justify-center gap-1.5 h-9 px-4 rounded-full text-white text-[12.5px] font-semibold transition-all disabled:opacity-50 cursor-pointer"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            {saving ? "Se salvează..." : "Salvează Bonul"}
+            <span>{saving ? "Se salvează..." : "Salvează Bonul"}</span>
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 space-y-4 shadow-sm md:col-span-1 h-fit">
-          <h2 className="font-bold text-sm text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-2">
-            Date Document
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="apple-surface p-5 space-y-4 md:col-span-1 h-fit">
+          <h2 className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+            Date document
           </h2>
           <div>
-            <label className="block text-xs font-bold text-slate-500 mb-1">Număr Bon</label>
+            <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1.5">
+              Număr bon
+            </label>
             <input
               type="text"
               value={number}
               onChange={e => setNumber(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm dark:text-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all"
+              className="apple-input w-full h-10 px-3.5 text-[13.5px] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none tabular-nums"
             />
           </div>
           <div>
-            <label className="block text-xs font-bold text-slate-500 mb-1">Data</label>
+            <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1.5">
+              Data
+            </label>
             <input
               type="date"
               value={date}
               onChange={e => setDate(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm dark:text-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all"
+              className="apple-input w-full h-10 px-3.5 text-[13.5px] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none tabular-nums"
             />
           </div>
           <div>
-            <label className="block text-xs font-bold text-slate-500 mb-1">Gestiune</label>
+            <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1.5">
+              Gestiune
+            </label>
             <input
               type="text"
               value={gestiune}
               onChange={e => setGestiune(e.target.value)}
               placeholder="Ex: Gestiunea Principală"
-              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm dark:text-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all"
+              className="apple-input w-full h-10 px-3.5 text-[13.5px] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
             />
           </div>
         </div>
 
-        <div className="md:col-span-2 space-y-4">
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/20">
-              <h2 className="font-bold text-sm text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-                Produse Consumate
+        <div className="md:col-span-2 space-y-4 min-w-0">
+          <div className="apple-surface overflow-hidden">
+            <div className="px-4 py-3 border-b border-black/[0.05] dark:border-white/[0.07] flex justify-between items-center bg-[#fafafa] dark:bg-white/[0.025] gap-2 flex-wrap">
+              <h2 className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                Produse consumate
               </h2>
               <button
+                type="button"
                 onClick={() => setShowNirModal(true)}
-                className="flex items-center gap-1.5 px-3 h-8 text-xs font-semibold text-sky-700 border border-sky-200 bg-sky-50 hover:bg-sky-100 rounded transition-colors"
+                className="apple-btn-glass flex items-center gap-1.5 h-8 px-3.5 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] text-[12px] font-semibold transition-all cursor-pointer"
               >
-                <Plus className="w-3.5 h-3.5" /> Adaugă din Stoc
+                <Plus className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#0a84ff]" />
+                <span>Adaugă din Stoc</span>
               </button>
             </div>
             
             {lines.length === 0 ? (
-              <div className="p-12 text-center text-slate-400 text-sm">
-                Niciun produs adăugat. Apasă pe "Adaugă din Stoc" pentru a alege produse din inventar.
+              <div className="p-12 text-center text-[#6e6e73] dark:text-[#98989d] text-[13px]">
+                Niciun produs adăugat. Apasă pe „Adaugă din Stoc” pentru a alege produse din inventar.
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left whitespace-nowrap">
-                  <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 uppercase text-[10px] font-bold tracking-wider">
+                  <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
                     <tr>
-                      <th className="px-4 py-3">Denumire</th>
-                      <th className="px-4 py-3 text-center">U/M</th>
-                      <th className="px-4 py-3 text-right">Cantitate</th>
-                      <th className="px-4 py-3 text-right">Preț unitar</th>
-                      <th className="px-4 py-3"></th>
+                      <th className="px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                        Denumire
+                      </th>
+                      <th className="px-4 py-3 text-center text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                        U/M
+                      </th>
+                      <th className="px-4 py-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                        Cantitate
+                      </th>
+                      <th className="px-4 py-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                        Preț unitar
+                      </th>
+                      <th className="px-4 py-3 w-12"></th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                  <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
                     {lines.map((l, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                        <td className="px-4 py-3 font-medium text-slate-900 dark:text-white max-w-[200px] truncate" title={l.description}>
+                      <tr
+                        key={idx}
+                        className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors"
+                      >
+                        <td
+                          className="px-4 py-3 text-[13.5px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] max-w-[220px] truncate"
+                          title={l.description}
+                        >
                           {l.description}
                         </td>
-                        <td className="px-4 py-3 text-center text-slate-600 dark:text-slate-400">
+                        <td className="px-4 py-3 text-center text-[13px] text-[#6e6e73] dark:text-[#98989d]">
                           {l.unit || "buc"}
                         </td>
                         <td className="px-4 py-3 text-right">
@@ -172,24 +199,28 @@ export default function BonConsumCreate() {
                             onChange={e => {
                               const val = parseFloat(e.target.value) || 0;
                               const newLines = [...lines];
-                              newLines[idx].quantity = Math.min(val, l.maxQuantity); // Prevent exceeding stock
+                              newLines[idx].quantity = Math.min(val, l.maxQuantity);
                               setLines(newLines);
                             }}
-                            className="w-24 text-right px-2 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded outline-none focus:border-amber-500"
+                            className="apple-input w-24 h-8 text-right px-2.5 text-[13px] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none tabular-nums"
                           />
-                          <div className="text-[9px] text-slate-400 mt-0.5">max: {l.maxQuantity}</div>
+                          <div className="text-[11px] text-[#8e8e93] mt-0.5 tabular-nums">
+                            max: {l.maxQuantity}
+                          </div>
                         </td>
-                        <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-400">
+                        <td className="px-4 py-3 text-right tabular-nums text-[13px] text-[#1d1d1f] dark:text-[#ebebf5]">
                           {formatNumber(l.unitPrice)}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <button
+                            type="button"
+                            aria-label="Șterge linie"
                             onClick={() => {
                               setLines(lines.filter((_, i) => i !== idx));
                             }}
-                            className="p-1.5 text-slate-400 hover:bg-rose-100 hover:text-rose-600 rounded transition-colors"
+                            className="apple-btn-destructive-soft w-8 h-8 rounded-full inline-flex items-center justify-center cursor-pointer"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </td>
                       </tr>
@@ -208,7 +239,7 @@ export default function BonConsumCreate() {
           onAdd={selected => {
             const newLines = selected.map(s => ({
               description: s.description,
-              quantity: s.quantity, // this is the 'remaining' in NirSelectorModal
+              quantity: s.quantity,
               maxQuantity: s.quantity,
               unitPrice: s.unitPrice,
               unit: s.unit,

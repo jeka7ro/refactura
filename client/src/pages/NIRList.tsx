@@ -12,17 +12,15 @@ import {
   ChevronRight,
   Trash2,
   Eye,
+  CheckCircle2,
   ClipboardCheck,
   FileDown,
   FileCode,
   FileSpreadsheet,
   Edit,
-  Calendar,
-  Tag,
   Layers,
   Building2,
   X,
-  RotateCcw,
   Sparkles,
 } from "lucide-react";
 import * as XLSX from "xlsx";
@@ -497,22 +495,33 @@ export default function NIRList() {
   };
 
   return (
-    <div className="p-3 sm:p-5 max-w-full space-y-4">
-      {/* Header Pagina */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
+    <div className="p-3 sm:p-5 max-w-full space-y-4 overflow-x-hidden">
+      {/* Header — Apple macOS Window Title & Actions */}
+      <div className="flex items-center justify-between gap-3 flex-wrap px-0.5">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-[#1d1d1f] dark:text-white flex items-center gap-2">
-            <ClipboardCheck className="w-5 h-5 text-teal-600" />
-            <span>NIR — Note de Intrare-Recepție</span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
+              NIR — Note de Intrare-Recepție
+            </h1>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <span>Live</span>
             </span>
-          </h1>
-          <p className="text-xs text-[#6e6e73] dark:text-[#98989d] mt-0.5">
-            Gestionează recepția mărfurilor de la furnizori
+          </div>
+          <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5 tabular-nums">
+            Gestionează recepția mărfurilor de la furnizori ·{" "}
+            <strong className="text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold">
+              {nirList.length}
+            </strong>{" "}
+            documente
+            {filtered.length !== nirList.length && (
+              <span className="ml-1.5 text-[#1d1d1f] dark:text-white font-medium">
+                ({filtered.length} afișate)
+              </span>
+            )}
           </p>
         </div>
+
         <div className="flex items-center gap-2 flex-wrap">
           <LiveAutoSyncControl
             onRefresh={() => refetch()}
@@ -520,18 +529,20 @@ export default function NIRList() {
             storageKey="nir_list_auto_sync"
             compact
           />
-          {/* Buton Distinct: Export Excel (.xlsx) */}
+          {/* Buton Secundar: Export Excel (.xlsx) */}
           <button
+            type="button"
             onClick={() => handleExportExcel(filtered)}
             title="Exportă lista de NIR-uri în format nativ Microsoft Excel (.xlsx)"
-            className="flex items-center gap-1.5 px-3.5 h-9 rounded-lg bg-[#107c41] hover:bg-[#0b5c30] text-white text-sm font-bold transition-all shadow-sm"
+            className="apple-btn-glass flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-semibold transition-all cursor-pointer"
           >
-            <FileSpreadsheet className="w-4 h-4" />
-            Export Excel (.xlsx)
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span>Export Excel (.xlsx)</span>
           </button>
 
-          {/* Buton Distinct: Simulează Import SAGA C */}
+          {/* Buton Secundar: Simulează Import SAGA C */}
           <button
+            type="button"
             onClick={() => {
               if (selectedIds.size > 0) {
                 handleSimulateSaga({ nirIds: Array.from(selectedIds) });
@@ -547,18 +558,21 @@ export default function NIRList() {
                 ? `Simulează și verifică importul în SAGA C pentru cele ${selectedIds.size} NIR-uri selectate`
                 : `Simulează și verifică importul în SAGA C pentru cele ${filtered.length} NIR-uri filtrate`
             }
-            className="flex items-center gap-1.5 px-3.5 h-9 rounded-lg bg-[#0e5a8a] hover:bg-[#0b476e] text-white text-sm font-bold transition-all shadow-sm disabled:opacity-50"
+            className="apple-btn-glass flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-semibold transition-all disabled:opacity-50 cursor-pointer tabular-nums"
           >
             {simulateNirImportMut.isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
             ) : (
-              <Sparkles className="w-4 h-4 text-sky-200" />
+              <Sparkles className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#0a84ff] shrink-0" />
             )}
-            Simulează SAGA {selectedIds.size > 0 ? `(${selectedIds.size})` : `(${filtered.length})`}
+            <span>
+              Simulează SAGA {selectedIds.size > 0 ? `(${selectedIds.size})` : `(${filtered.length})`}
+            </span>
           </button>
 
-          {/* Buton Distinct: Export SAGA (XML) */}
+          {/* Buton Secundar: Export SAGA (XML) */}
           <button
+            type="button"
             onClick={() => {
               if (selectedIds.size > 0) {
                 handleSaveSagaXml({ nirIds: Array.from(selectedIds) });
@@ -569,163 +583,318 @@ export default function NIRList() {
               }
             }}
             disabled={exportNirMut.isPending || (selectedIds.size === 0 && filtered.length === 0)}
-            title={selectedIds.size > 0 
-              ? `Exportă cele ${selectedIds.size} recepții selectate în format SAGA C (FACTURI.XML)` 
-              : `Exportă cele ${filtered.length} recepții filtrate în format SAGA C (FACTURI.XML)`}
-            className="flex items-center gap-1.5 px-3.5 h-9 rounded-full bg-slate-700 hover:bg-slate-800 text-white text-sm font-bold transition-all shadow-sm disabled:opacity-50"
+            title={
+              selectedIds.size > 0
+                ? `Exportă cele ${selectedIds.size} recepții selectate în format SAGA C (FACTURI.XML)`
+                : `Exportă cele ${filtered.length} recepții filtrate în format SAGA C (FACTURI.XML)`
+            }
+            className="apple-btn-glass flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-semibold transition-all disabled:opacity-50 cursor-pointer tabular-nums"
           >
             {exportNirMut.isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
             ) : (
-              <FileCode className="w-4 h-4 text-emerald-400" />
+              <FileCode className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
             )}
-            Export SAGA (XML) {selectedIds.size > 0 ? `(${selectedIds.size})` : `(${filtered.length})`}
+            <span>
+              Export SAGA (XML) {selectedIds.size > 0 ? `(${selectedIds.size})` : `(${filtered.length})`}
+            </span>
           </button>
 
-          {/* Buton Creare NIR */}
+          {/* Buton Primar: Creare NIR */}
           <button
+            type="button"
             onClick={() => navigate("/nir/nou")}
-            style={{ backgroundColor: "var(--tenant-theme-color, #16a34a)" }}
-            className="flex items-center gap-1.5 px-4 h-9 rounded-full text-white text-sm font-bold transition-all shadow-sm hover:brightness-90 active:brightness-75"
+            className="apple-btn-prominent flex items-center justify-center gap-1.5 h-9 px-4 rounded-full text-white text-[12.5px] font-semibold transition-all cursor-pointer"
           >
-            <Plus className="w-4 h-4" /> NIR Nou
+            <Plus className="w-4 h-4 shrink-0" />
+            <span>NIR Nou</span>
           </button>
         </div>
       </div>
 
-      {/* KPI Cards */}
+      {/* KPI Cards — Clean Rectangular 16px Apple Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {[
-          {
-            label: "Total NIR-uri",
-            value: nirList.length,
-            cls: "text-slate-900 dark:text-white",
-          },
-          {
-            label: "Finalizate",
-            value: statusCounts.finalizat,
-            style: { color: "var(--tenant-theme-color, #16a34a)" },
-          },
-          {
-            label: "Ciorne",
-            value: statusCounts.draft,
-            cls: "text-amber-600 dark:text-amber-400",
-          },
-        ].map((k) => (
-          <div
-            key={k.label}
-            className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] px-3.5 py-2.5 shadow-2xs"
-          >
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] mb-0.5">
-              {k.label}
-            </p>
-            <p className={`text-lg font-bold tabular-nums leading-tight ${k.cls || ""}`} style={k.style}>
-              {k.value}
-            </p>
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => {
+            setStatusFilter("all");
+            setPage(1);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setStatusFilter("all");
+              setPage(1);
+            }
+          }}
+          className="apple-surface outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 transition-all hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none"
+        >
+          <div className="flex items-center justify-between gap-2 w-full">
+            <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+              Total NIR-uri
+            </span>
+            <span className="w-7 h-7 rounded-[8px] bg-[#f2f4f7] dark:bg-[#2c2c2e] flex items-center justify-center shrink-0">
+              <ClipboardCheck className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#0a84ff]" />
+            </span>
           </div>
-        ))}
+          <div className="flex items-baseline gap-2 tabular-nums">
+            <span className="text-[22px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none tabular-nums">
+              {nirList.length}
+            </span>
+          </div>
+        </div>
+
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => {
+            setStatusFilter(statusFilter === "finalizat" ? "all" : "finalizat");
+            setPage(1);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setStatusFilter(statusFilter === "finalizat" ? "all" : "finalizat");
+              setPage(1);
+            }
+          }}
+          className="apple-surface outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 transition-all hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none"
+        >
+          <div className="flex items-center justify-between gap-2 w-full">
+            <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+              Finalizate
+            </span>
+            <span className="w-7 h-7 rounded-[8px] bg-[#eefbf3] dark:bg-emerald-500/18 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            </span>
+          </div>
+          <div className="flex items-baseline gap-2 tabular-nums">
+            <span className="text-[22px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none tabular-nums">
+              {statusCounts.finalizat}
+            </span>
+            {nirList.length > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300 leading-none">
+                {Math.round((statusCounts.finalizat / nirList.length) * 100)}%
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => {
+            setStatusFilter(statusFilter === "draft" ? "all" : "draft");
+            setPage(1);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setStatusFilter(statusFilter === "draft" ? "all" : "draft");
+              setPage(1);
+            }
+          }}
+          className="apple-surface outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 transition-all hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none"
+        >
+          <div className="flex items-center justify-between gap-2 w-full">
+            <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+              Ciorne
+            </span>
+            <span className="w-7 h-7 rounded-[8px] bg-[#fff6eb] dark:bg-amber-500/18 flex items-center justify-center shrink-0">
+              <Edit className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+            </span>
+          </div>
+          <div className="flex items-baseline gap-2 tabular-nums">
+            <span className="text-[22px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none tabular-nums">
+              {statusCounts.draft}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Banner selecție multiplă (Bulk Operations) */}
       {selectedIds.size > 0 && (
-        <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-[22px] shadow-md border bg-slate-900 text-white dark:bg-slate-800 dark:border-slate-700 animate-in fade-in duration-200 flex-wrap">
+        <div className="apple-surface px-4 py-2.5 flex items-center justify-between gap-3 flex-wrap animate-in fade-in duration-200">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white/20 text-xs font-bold tabular-nums">
+            <span className="inline-flex items-center justify-center min-w-6 h-6 px-2 rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] text-xs font-bold tabular-nums">
               {selectedIds.size}
             </span>
-            <span className="text-sm font-semibold">
+            <span className="text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
               NIR-uri selectate
             </span>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <button
+              type="button"
               onClick={() => setSelectedIds(new Set())}
-              className="px-3.5 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-colors"
+              className="apple-btn-glass px-3.5 h-8 rounded-full text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7] text-[12px] font-semibold transition-colors cursor-pointer"
             >
               Deselectează
             </button>
             <button
+              type="button"
               onClick={() => {
                 setBulkStatus("keep");
                 setBulkGestiune("");
                 setBulkAccount("");
                 setBulkEditOpen(true);
               }}
-              className="flex items-center gap-1.5 px-3.5 h-8 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-colors shadow-sm"
+              className="apple-btn-glass flex items-center gap-1.5 px-3.5 h-8 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] text-[12px] font-semibold transition-colors cursor-pointer"
             >
-              <Edit className="w-3.5 h-3.5" />
-              Bulk Edit
+              <Edit className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+              <span>Bulk Edit</span>
             </button>
             <button
+              type="button"
               onClick={() =>
                 handleExportExcel(nirList.filter((n) => selectedIds.has(n.id)))
               }
-              className="flex items-center gap-1.5 px-3.5 h-8 rounded-full bg-[#107c41] hover:bg-[#0b5c30] text-white text-xs font-bold transition-colors shadow-sm"
+              className="apple-btn-glass flex items-center gap-1.5 px-3.5 h-8 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] text-[12px] font-semibold transition-colors cursor-pointer tabular-nums"
             >
-              <FileSpreadsheet className="w-3.5 h-3.5" />
-              Export Excel .xlsx ({selectedIds.size})
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>Export Excel .xlsx ({selectedIds.size})</span>
             </button>
             <button
+              type="button"
               onClick={() =>
                 handleSaveSagaXml({ nirIds: Array.from(selectedIds) })
               }
               disabled={exportNirMut.isPending}
-              className="flex items-center gap-1.5 px-3.5 h-8 rounded-full bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold transition-colors shadow-sm disabled:opacity-50"
+              className="apple-btn-glass flex items-center gap-1.5 px-3.5 h-8 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] text-[12px] font-semibold transition-colors disabled:opacity-50 cursor-pointer tabular-nums"
             >
               {exportNirMut.isPending ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : (
-                <FileCode className="w-3.5 h-3.5 text-emerald-400" />
+                <FileCode className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
               )}
-              Export SAGA .xml ({selectedIds.size})
+              <span>Export SAGA .xml ({selectedIds.size})</span>
             </button>
             <button
+              type="button"
               onClick={() => setBulkDeleteOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 h-8 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors shadow-sm"
+              className="apple-btn-destructive-soft flex items-center gap-1.5 px-3.5 h-8 rounded-full text-[12px] font-semibold cursor-pointer tabular-nums"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              Șterge ({selectedIds.size})
+              <span>Șterge ({selectedIds.size})</span>
             </button>
           </div>
         </div>
       )}
 
-      {/* Card tabel cu filtre integrate sus și paginare jos */}
-      <div className="apple-surface overflow-hidden mt-2">
-        {/* Search & Filtre unificate fără dubluri */}
-        <div className="px-3.5 py-2.5 border-b border-black/[0.06] dark:border-white/[0.08] flex flex-col gap-2">
-          <div className="flex items-center gap-2 w-full flex-wrap xl:flex-nowrap min-w-0">
-            {/* Segmente Perioadă */}
-            <div className="apple-segmented max-w-full overflow-x-auto no-scrollbar shrink-0">
-              {[
-                { id: "all", label: "Toate" },
-                { id: "today", label: "Azi" },
-                { id: "month", label: "Lună" },
-                { id: "lastMonth", label: "Luna trec." },
-                { id: "year", label: "An" },
-              ].map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  data-active={period === item.id}
-                  onClick={() => {
-                    setPeriod(item.id);
-                    setPage(1);
-                  }}
-                  className="apple-segmented-item px-2.5 shrink-0"
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
+      {/* Unified Filter & Search Toolbar */}
+      <div className="apple-surface px-3 py-2.5">
+        <div className="flex flex-wrap xl:flex-nowrap items-center gap-1.5 2xl:gap-2 w-full min-w-0">
+          {/* 1. Segmente Perioadă */}
+          <div className="apple-segmented flex-wrap sm:flex-nowrap !rounded-2xl sm:!rounded-full max-w-full shrink-0">
+            {[
+              { id: "all", label: "Toate" },
+              { id: "today", label: "Azi" },
+              { id: "month", label: "Lună" },
+              { id: "lastMonth", label: "Luna trec." },
+              { id: "year", label: "An" },
+            ].map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                data-active={period === item.id}
+                onClick={() => {
+                  setPeriod(item.id);
+                  setPage(1);
+                }}
+                className="apple-segmented-item px-2 2xl:px-2.5 shrink-0"
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
 
-            {/* Cautare Pill */}
-            <div className="relative flex-1 min-w-[160px]">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          {/* 2. Segmente Status */}
+          <div className="apple-segmented max-w-full overflow-x-auto no-scrollbar shrink-0">
+            <button
+              type="button"
+              data-active={statusFilter === "finalizat"}
+              onClick={() => {
+                setStatusFilter(statusFilter === "finalizat" ? "all" : "finalizat");
+                setPage(1);
+              }}
+              className="apple-segmented-item px-2 2xl:px-2.5 tabular-nums shrink-0"
+            >
+              <span>Finalizate</span>
+              <span className="opacity-75">{statusCounts.finalizat}</span>
+            </button>
+            <button
+              type="button"
+              data-active={statusFilter === "draft"}
+              onClick={() => {
+                setStatusFilter(statusFilter === "draft" ? "all" : "draft");
+                setPage(1);
+              }}
+              className="apple-segmented-item px-2 2xl:px-2.5 tabular-nums shrink-0"
+            >
+              <span>Ciorne</span>
+              <span className="opacity-75">{statusCounts.draft}</span>
+            </button>
+          </div>
+
+          {/* 3. Right Side: Cont + Furnizor + Căutare + Reset */}
+          <div className="xl:ml-auto flex flex-wrap sm:flex-nowrap items-center gap-1.5 2xl:gap-2 w-full xl:w-auto xl:flex-1 justify-end min-w-0">
+            <Select
+              value={accountFilter}
+              onValueChange={(val) => {
+                setAccountFilter(val);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger
+                data-filtered={accountFilter !== "all"}
+                className="apple-pill-control h-[34px] w-auto shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 2xl:px-3"
+              >
+                <Layers className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
+                <SelectValue placeholder="Cont" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Cont: Toate</SelectItem>
+                {availableAccounts.map(({ acc, count }) => (
+                  <SelectItem key={acc} value={acc}>
+                    Cont {acc} ({count})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {availableSuppliers.length > 0 && (
+              <Select
+                value={supplierFilter}
+                onValueChange={(val) => {
+                  setSupplierFilter(val);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger
+                  data-filtered={supplierFilter !== "all"}
+                  className="apple-pill-control h-[34px] w-auto max-w-[175px] shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 2xl:px-3"
+                >
+                  <Building2 className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
+                  <SelectValue placeholder="Furnizor" />
+                </SelectTrigger>
+                <SelectContent className="max-h-64">
+                  <SelectItem value="all">Furnizor: Toți</SelectItem>
+                  {availableSuppliers.map(({ name, count }) => (
+                    <SelectItem key={name} value={name}>
+                      {name} ({count})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            <div className="relative flex-1 min-w-[140px] max-w-full sm:max-w-[260px]">
+              <Search className="w-3.5 h-3.5 text-[#8e8e93] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
-                style={{ paddingLeft: 34, paddingRight: search ? 76 : 14 }}
-                className="apple-pill-control rounded-full w-full h-[34px] outline-none text-[13px] text-[#1d1d1f] dark:text-white placeholder:text-[#8e8e93]"
-                placeholder="Caută NIR, furnizor, factură, cont, articol..."
+                style={{ paddingLeft: 34, paddingRight: search ? 72 : 14 }}
+                className="apple-pill-control rounded-full w-full h-[34px] outline-none text-[13px] text-[#1d1d1f] dark:text-white placeholder:text-[#8e8e93] focus:bg-white dark:focus:bg-[#2c2c2e] focus:border-black/15 dark:focus:border-white/20"
+                placeholder="Caută NIR, furnizor, factură..."
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
@@ -734,141 +903,46 @@ export default function NIRList() {
               />
               {search && (
                 <>
-                  <div className="absolute right-8 top-1/2 -translate-y-1/2 bg-primary text-white rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums">
+                  <span className="absolute right-7 top-1/2 -translate-y-1/2 bg-black/[0.07] dark:bg-white/[0.14] text-[#1d1d1f] dark:text-white rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums">
                     {filtered.length}/{nirList.length}
-                  </div>
+                  </span>
                   <button
+                    type="button"
                     onClick={() => setSearch("")}
                     aria-label="Șterge căutarea"
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full inline-flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center hover:bg-black/[0.07] dark:hover:bg-white/[0.12] cursor-pointer"
                   >
-                    <X className="w-3.5 h-3.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" />
+                    <X className="w-3 h-3 text-[#6e6e73] dark:text-[#98989d]" />
                   </button>
                 </>
               )}
             </div>
 
-            {/* Filtru Cont Contabil */}
-            <div className="shrink-0">
-              <Select
-                value={accountFilter}
-                onValueChange={(val) => {
-                  setAccountFilter(val);
-                  setPage(1);
-                }}
-              >
-                <SelectTrigger
-                  data-filtered={accountFilter !== "all"}
-                  className="apple-pill-control h-[34px] w-auto shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3"
-                >
-                  <Layers className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
-                  <SelectValue placeholder="Cont" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Cont: Toate</SelectItem>
-                  {availableAccounts.map(({ acc, count }) => (
-                    <SelectItem key={acc} value={acc}>
-                      Cont {acc} ({count})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Filtru Furnizor (dacă există) */}
-            {availableSuppliers.length > 0 && (
-              <div className="w-[140px] sm:w-[165px] flex-shrink-0">
-                <Select
-                  value={supplierFilter}
-                  onValueChange={(val) => {
-                    setSupplierFilter(val);
-                    setPage(1);
-                  }}
-                >
-                  <SelectTrigger
-                    className={`h-8 w-full rounded-full text-xs font-bold border ${
-                      supplierFilter !== "all"
-                        ? "border-purple-500 bg-purple-50/70 text-purple-800 dark:bg-purple-950/50 dark:text-purple-300 dark:border-purple-700"
-                        : "border-slate-200 bg-white text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
-                    } hover:bg-slate-50 focus:ring-2 focus:ring-teal-500 shadow-none flex items-center gap-1.5 px-3`}
-                  >
-                    <Building2 className="w-3.5 h-3.5 text-purple-500 flex-shrink-0" />
-                    <SelectValue placeholder="Furnizor" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-64">
-                    <SelectItem value="all">Furnizor: Toți</SelectItem>
-                    {availableSuppliers.map(({ name, count }) => (
-                      <SelectItem key={name} value={name}>
-                        {name} ({count})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {/* Resetare filtre active */}
             {hasActiveFilters && (
               <button
+                type="button"
                 onClick={resetFilters}
-                className="h-8 px-3 rounded-full text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800 flex items-center gap-1 transition-colors flex-shrink-0"
+                title="Elimină toate filtrele"
+                aria-label="Elimină toate filtrele"
+                className="apple-pill-control w-[34px] h-[34px] shrink-0 flex items-center justify-center text-[#6e6e73] hover:text-[#1d1d1f] dark:text-[#98989d] dark:hover:text-white cursor-pointer"
               >
-                <RotateCcw className="w-3 h-3" />
-                Resetează
+                <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
-
-          {/* Rând status rapid 1-click */}
-          <div className="pt-1.5 border-t border-black/[0.05] dark:border-white/[0.07] flex items-center justify-between gap-2 flex-wrap">
-            <div className="apple-segmented max-w-full overflow-x-auto no-scrollbar">
-              <button
-                type="button"
-                data-active={statusFilter === "all"}
-                onClick={() => {
-                  setStatusFilter("all");
-                  setPage(1);
-                }}
-                className="apple-segmented-item px-2.5 tabular-nums shrink-0"
-              >
-                Toate {nirList.length}
-              </button>
-              <button
-                type="button"
-                data-active={statusFilter === "finalizat"}
-                onClick={() => {
-                  setStatusFilter(statusFilter === "finalizat" ? "all" : "finalizat");
-                  setPage(1);
-                }}
-                className="apple-segmented-item px-2.5 tabular-nums shrink-0"
-              >
-                Finalizate {statusCounts.finalizat}
-              </button>
-              <button
-                type="button"
-                data-active={statusFilter === "draft"}
-                onClick={() => {
-                  setStatusFilter(statusFilter === "draft" ? "all" : "draft");
-                  setPage(1);
-                }}
-                className="apple-segmented-item px-2.5 tabular-nums shrink-0"
-              >
-                Ciorne {statusCounts.draft}
-              </button>
-            </div>
-          </div>
         </div>
+      </div>
 
-        {/* Tabelul NIR (Stilizat exact conform Screenshot 1) */}
+      {/* Table Surface — Clean Apple macOS Finder / Mail Table */}
+      <div className="apple-surface overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50">
-                {/* Checkbox Select All */}
-                <th className="px-3 py-3 w-10 text-center">
+            <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+              <tr>
+                <th className="px-4 py-3 w-10 text-center">
                   <input
                     type="checkbox"
-                    className="rounded border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-teal-600 focus:ring-teal-500 cursor-pointer"
+                    className="w-4 h-4 rounded border-black/20 dark:border-white/20 dark:bg-[#2c2c2e] text-primary cursor-pointer"
                     checked={
                       paginated.length > 0 &&
                       paginated.every((r) => selectedIds.has(r.id))
@@ -877,122 +951,131 @@ export default function NIRList() {
                     title="Selectează / Deselectează toate de pe pagină"
                   />
                 </th>
-                <th className="px-3 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-slate-400 w-10 whitespace-nowrap">
-                  #
+                <th className="px-3 py-3 w-12 text-center text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                  Nr.
                 </th>
                 <th
-                  className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-slate-700"
+                  className="px-4 py-3 text-left text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] cursor-pointer hover:text-[#1d1d1f] dark:hover:text-white whitespace-nowrap select-none transition-colors"
                   onClick={() => handleSort("nirNumber")}
                 >
                   <div className="flex items-center gap-1">
-                    NR. NIR / DATĂ{" "}
-                    <span className="text-blue-500">
+                    <span>Nr. NIR & Dată</span>
+                    <span className="text-[#1d1d1f] dark:text-white opacity-60">
                       {getSortIcon("nirNumber")}
                     </span>
                   </div>
                 </th>
                 <th
-                  className="px-3 py-3 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-slate-700"
+                  className="px-4 py-3 text-left text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] cursor-pointer hover:text-[#1d1d1f] dark:hover:text-white whitespace-nowrap select-none transition-colors"
                   onClick={() => handleSort("supplierName")}
                 >
                   <div className="flex items-center gap-1">
-                    FURNIZOR / FACTURĂ{" "}
-                    <span className="text-blue-500">
+                    <span>Furnizor & Factură</span>
+                    <span className="text-[#1d1d1f] dark:text-white opacity-60">
                       {getSortIcon("supplierName")}
                     </span>
                   </div>
                 </th>
                 <th
-                  className="px-3 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-slate-700"
+                  className="px-4 py-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] cursor-pointer hover:text-[#1d1d1f] dark:hover:text-white whitespace-nowrap select-none transition-colors"
                   onClick={() => handleSort("totalWithVat")}
                 >
                   <div className="flex items-center justify-end gap-1">
-                    FĂRĂ TVA + TVA = TOTAL{" "}
-                    <span className="text-blue-500">
+                    <span>Fără TVA + TVA = Total</span>
+                    <span className="text-[#1d1d1f] dark:text-white opacity-60">
                       {getSortIcon("totalWithVat")}
                     </span>
                   </div>
                 </th>
                 <th
-                  className="px-3 py-3 text-center text-[10px] font-bold uppercase tracking-wider text-slate-400 cursor-pointer hover:text-slate-700"
+                  className="px-4 py-3 text-center text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] cursor-pointer hover:text-[#1d1d1f] dark:hover:text-white whitespace-nowrap select-none transition-colors"
                   onClick={() => handleSort("status")}
                 >
                   <div className="flex items-center justify-center gap-1">
-                    STATUS{" "}
-                    <span className="text-blue-500">
+                    <span>Status</span>
+                    <span className="text-[#1d1d1f] dark:text-white opacity-60">
                       {getSortIcon("status")}
                     </span>
                   </div>
                 </th>
-                <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  ACȚIUNI
+                <th className="px-4 py-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                  Acțiuni
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center">
-                    <Loader2
-                      className="w-6 h-6 animate-spin mx-auto"
-                      style={{ color: "var(--tenant-theme-color, #16a34a)" }}
-                    />
+                  <td colSpan={7} className="py-14 text-center">
+                    <Loader2 className="w-6 h-6 animate-spin text-[#6e6e73] mx-auto" />
                   </td>
                 </tr>
               ) : paginated.length === 0 ? (
                 <tr>
                   <td
                     colSpan={7}
-                    className="py-12 text-center text-xs text-slate-400"
+                    className="py-12 text-center text-[13px] text-[#6e6e73] dark:text-[#98989d]"
                   >
-                    {hasActiveFilters
-                      ? "Niciun NIR găsit pentru filtrele aplicate."
-                      : "Niciun NIR creat. Apasă butonul NIR Nou sau iconița din tabelul Facturi."}
+                    <div className="flex flex-col items-center gap-2.5">
+                      <span>
+                        {hasActiveFilters
+                          ? "Niciun NIR găsit pentru filtrele aplicate."
+                          : "Niciun NIR creat. Apasă butonul NIR Nou sau iconița din tabelul Facturi."}
+                      </span>
+                      {hasActiveFilters && (
+                        <button
+                          type="button"
+                          onClick={resetFilters}
+                          className="apple-btn-glass px-4 h-8 text-[12px] font-semibold text-[#1d1d1f] dark:text-white cursor-pointer"
+                        >
+                          Resetează filtrele
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ) : (
                 paginated.map((row, i) => (
                   <tr
                     key={row.id}
-                    className={`hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer ${
+                    className={`transition-colors hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] cursor-pointer ${
                       selectedIds.has(row.id)
-                        ? "bg-teal-50/50 dark:bg-teal-950/20"
+                        ? "bg-[#0071e3]/[0.05] dark:bg-[#0a84ff]/[0.12]"
                         : ""
                     }`}
                     onClick={() => navigate(`/nir/${row.id}`)}
                   >
                     {/* Checkbox rând */}
                     <td
-                      className="px-3 py-3 text-center"
+                      className="px-4 py-3 text-center"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <input
                         type="checkbox"
-                        className="rounded border-slate-300 dark:border-slate-600 dark:bg-slate-800 text-teal-600 focus:ring-teal-500 cursor-pointer"
+                        className="w-4 h-4 rounded border-black/20 dark:border-white/20 dark:bg-[#2c2c2e] text-primary cursor-pointer"
                         checked={selectedIds.has(row.id)}
                         onChange={() => toggleSelect(row.id)}
                       />
                     </td>
-                    {/* # */}
-                    <td className="px-3 py-3 text-center text-[11px] text-slate-400 font-medium">
-                      {(page - 1) * rowsPerPage + i + 1}.
+                    {/* Nr. */}
+                    <td className="px-3 py-3 text-center text-[12px] text-[#8e8e93] font-medium tabular-nums whitespace-nowrap">
+                      {(page - 1) * rowsPerPage + i + 1}
                     </td>
                     {/* NR. NIR + Dată recepție dedesubt */}
-                    <td className="px-3 py-3">
+                    <td className="px-4 py-3">
                       <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate(`/nir/${row.id}`);
                         }}
-                        style={{ color: "var(--tenant-theme-color, #16a34a)" }}
-                        className="text-xs font-bold hover:underline block"
+                        className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] hover:underline tabular-nums block text-left cursor-pointer"
                       >
                         {row.nirNumber}
                       </button>
-                      <div className="text-[11px] text-slate-400 mt-0.5 whitespace-nowrap">
+                      <div className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5 whitespace-nowrap tabular-nums">
                         {formatDate(row.receiptDate)}
                       </div>
-                      {/* Evidențiere dacă termenul căutat a potrivit un cod de articol sau descriere din NIR */}
                       {search.trim() && (
                         <div className="mt-1 space-y-0.5">
                           {row.articleCodes
@@ -1002,7 +1085,7 @@ export default function NIRList() {
                             .map((c: string) => (
                               <span
                                 key={c}
-                                className="inline-block text-[10px] tabular-nums font-bold bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 px-1.5 py-0.2 rounded border border-emerald-300 dark:border-emerald-800 mr-1"
+                                className="inline-block text-[10.5px] tabular-nums font-semibold bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300 px-2 py-0.5 rounded-full mr-1"
                               >
                                 Cod: {c}
                               </span>
@@ -1015,7 +1098,7 @@ export default function NIRList() {
                             .map((d: string) => (
                               <div
                                 key={d}
-                                className="text-[10px] text-slate-500 truncate max-w-[200px]"
+                                className="text-[11px] text-[#6e6e73] dark:text-[#98989d] truncate max-w-[200px]"
                                 title={d}
                               >
                                 {d}
@@ -1025,84 +1108,83 @@ export default function NIRList() {
                       )}
                     </td>
                     {/* FURNIZOR + Factură sursă și dată factură dedesubt */}
-                    <td className="px-3 py-3">
-                      <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 max-w-[320px] truncate" title={row.supplierName || ""}>
+                    <td className="px-4 py-3">
+                      <div
+                        className="text-[13.5px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] max-w-[320px] truncate"
+                        title={row.supplierName || ""}
+                      >
                         {row.supplierName || "—"}
                       </div>
                       {row.invoiceNumber || (row as any).invoiceDate || (row as any).spvIndex ? (
                         <div
-                          className="text-[11px] text-slate-400 dark:text-slate-500 font-medium mt-0.5 max-w-[320px] flex items-center gap-1.5 flex-wrap"
+                          className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5 max-w-[320px] flex items-center gap-1.5 flex-wrap tabular-nums"
                           title={`Factură: ${row.invoiceNumber || ""}${(row as any).invoiceDate ? ` din ${formatDate((row as any).invoiceDate)}` : ""}${(row as any).spvIndex ? ` | SPV: ${(row as any).spvIndex}` : ""}`}
                         >
-                          <span className="text-slate-500 dark:text-slate-400 font-medium">{row.invoiceNumber || "Factură"}</span>
+                          <span className="font-medium">{row.invoiceNumber || "Factură"}</span>
                           {(row as any).invoiceDate && (
-                            <span className="text-slate-400 dark:text-slate-500 font-normal">
-                              din {formatDate((row as any).invoiceDate)}
+                            <span className="text-[#8e8e93]">
+                              · {formatDate((row as any).invoiceDate)}
                             </span>
                           )}
                           {(row as any).spvIndex && (
                             <span
-                              className="inline-flex items-center gap-0.5 text-[10px] tabular-nums font-semibold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800 rounded px-1.5 py-0.2"
+                              className="inline-flex items-center gap-0.5 text-[10.5px] tabular-nums font-medium text-[#3a3a3c] dark:text-[#ebebf5] bg-[#f2f2f7] dark:bg-[#2c2c2e] rounded-full px-2 py-0.5 leading-none"
                               title={`ID Încărcare SPV: ${(row as any).spvIndex}`}
                             >
-                              SPV: {(row as any).spvIndex}
+                              SPV #{(row as any).spvIndex}
                             </span>
                           )}
                         </div>
                       ) : (
-                        <div className="text-[11px] text-slate-400 mt-0.5">—</div>
+                        <div className="text-[11.5px] text-[#8e8e93] mt-0.5">—</div>
                       )}
                     </td>
                     {/* FĂRĂ TVA + TVA = TOTAL */}
-                    <td className="px-3 py-3 text-right whitespace-nowrap">
-                      <div className="tabular-nums text-xs">
-                        <span className="font-medium text-slate-600 dark:text-slate-300">
+                    <td className="px-4 py-3 text-right whitespace-nowrap tabular-nums">
+                      <div className="text-[12.5px]">
+                        <span className="font-medium text-[#6e6e73] dark:text-[#98989d]">
                           {(row.totalNet || 0).toLocaleString("ro-RO", {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,
                           })}
                         </span>
-                        <span className="text-slate-400 font-light mx-1">
-                          +
-                        </span>
-                        <span className="font-medium text-slate-500 dark:text-slate-400">
+                        <span className="text-[#8e8e93] mx-1">+</span>
+                        <span className="font-medium text-[#6e6e73] dark:text-[#98989d]">
                           {(row.totalVat || 0).toLocaleString("ro-RO", {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,
                           })}
                         </span>
-                        <span className="text-slate-400 font-light mx-1">
-                          =
-                        </span>
-                        <span className="font-bold text-slate-900 dark:text-white">
+                        <span className="text-[#8e8e93] mx-1">=</span>
+                        <span className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                           {(row.totalWithVat || 0).toLocaleString("ro-RO", {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,
                           })}
                         </span>{" "}
-                        <span className="text-[10px] font-normal text-slate-400">
+                        <span className="text-[11px] font-medium text-[#8e8e93]">
                           RON
                         </span>
                       </div>
-                      <div className="text-[11px] text-slate-400 font-medium mt-0.5">
+                      <div className="text-[11px] text-[#8e8e93] mt-0.5">
                         {row.linesCount ?? 0}{" "}
                         {row.linesCount === 1 ? "articol" : "articole"}
                       </div>
                     </td>
                     {/* STATUS */}
-                    <td className="px-3 py-3 text-center">
+                    <td className="px-4 py-3 text-center whitespace-nowrap">
                       {row.status === "finalizat" ? (
-                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold border bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800">
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300 leading-none">
                           Finalizat
                         </span>
                       ) : (
-                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold border bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800">
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/12 text-amber-700 dark:bg-amber-500/18 dark:text-amber-300 leading-none">
                           Draft
                         </span>
                       )}
                     </td>
                     {/* ACȚIUNI */}
-                    <td className="px-3 py-3">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <div
                         className="flex items-center gap-1.5 justify-end"
                         onClick={(e) => e.stopPropagation()}
@@ -1112,7 +1194,7 @@ export default function NIRList() {
                           onClick={() => setPdfViewer({ id: row.id, nirNumber: row.nirNumber })}
                           title="Vizualizează PDF"
                           aria-label="Vizualizează PDF"
-                          className="w-8 h-8 rounded-full flex items-center justify-center bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-600 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 transition-colors"
+                          className="apple-btn-glass w-8 h-8 rounded-full flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white transition-all cursor-pointer"
                         >
                           <Eye className="w-3.5 h-3.5" />
                         </button>
@@ -1121,7 +1203,7 @@ export default function NIRList() {
                           onClick={() => handleSavePdfNir(row.id, row.nirNumber)}
                           title="Salvează PDF NIR (alege calea de salvare)"
                           aria-label="Salvează PDF NIR"
-                          className="w-8 h-8 rounded-full flex items-center justify-center bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-800 transition-colors"
+                          className="apple-btn-glass w-8 h-8 rounded-full flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white transition-all cursor-pointer"
                         >
                           <FileDown className="w-3.5 h-3.5" />
                         </button>
@@ -1130,7 +1212,7 @@ export default function NIRList() {
                           onClick={() => handleSimulateSaga({ nirId: row.id })}
                           title={`Simulează și verifică NIR ${row.nirNumber} pentru SAGA C`}
                           aria-label="Simulează SAGA"
-                          className="w-8 h-8 rounded-full flex items-center justify-center bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/40 dark:hover:bg-sky-900/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 transition-colors"
+                          className="apple-btn-glass w-8 h-8 rounded-full flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white transition-all cursor-pointer"
                         >
                           <Sparkles className="w-3.5 h-3.5" />
                         </button>
@@ -1144,15 +1226,16 @@ export default function NIRList() {
                           }
                           title={`Salvează NIR ${row.nirNumber} în SAGA C (.xml)`}
                           aria-label="Salvează SAGA XML"
-                          className="w-8 h-8 rounded-full flex items-center justify-center bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/40 dark:hover:bg-teal-900/60 text-teal-600 dark:text-teal-300 border border-teal-200 dark:border-teal-800 transition-colors"
+                          className="apple-btn-glass w-8 h-8 rounded-full flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white transition-all cursor-pointer"
                         >
                           <FileCode className="w-3.5 h-3.5" />
                         </button>
                         <button
+                          type="button"
                           onClick={() => setDeleteTarget(row.id)}
                           title="Șterge NIR"
                           aria-label="Șterge NIR"
-                          className="w-8 h-8 rounded-full flex items-center justify-center bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/60 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 transition-colors"
+                          className="apple-btn-glass w-8 h-8 rounded-full flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#ff3b30] dark:hover:text-[#ff453a] transition-all cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -1165,48 +1248,67 @@ export default function NIRList() {
           </table>
         </div>
 
-        {/* Footer paginare */}
-        <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4 flex-wrap text-xs text-slate-500 bg-white dark:bg-slate-900">
-          <div className="flex items-center gap-2">
-            <span>Afișează</span>
-            <select
-              value={rowsPerPage}
-              onChange={(e) => {
-                setRowsPerPage(Number(e.target.value));
-                setPage(1);
-              }}
-              className="rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 text-xs font-bold outline-none cursor-pointer"
-            >
-              {[10, 15, 25, 50, 100].map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-              <option value={9999}>Toți</option>
-            </select>
-            <span className="tabular-nums">
-              Total înregistrări: <strong>{filtered.length}</strong>
+        {/* Footer paginare — Apple HIG Capsule Controls */}
+        <div className="px-4 py-3 border-t border-black/[0.05] dark:border-white/[0.07] flex items-center justify-between bg-[#fafafa]/85 dark:bg-white/[0.02] flex-wrap gap-2">
+          <div className="flex items-center gap-2 text-[12px] text-[#6e6e73] dark:text-[#98989d] tabular-nums">
+            <span className="flex items-center whitespace-nowrap">
+              Afișează
+              <Select
+                value={rowsPerPage.toString()}
+                onValueChange={(val) => {
+                  setRowsPerPage(Number(val));
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="apple-pill-control h-7 px-2.5 text-[12px] w-[66px] mx-1.5 bg-white dark:bg-[#2c2c2e]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="15">15</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                  <SelectItem value="9999">Toți</SelectItem>
+                </SelectContent>
+              </Select>
+            </span>
+            <span className="whitespace-nowrap ml-1">
+              din{" "}
+              <strong className="text-[#1d1d1f] dark:text-white font-semibold">
+                {filtered.length}
+              </strong>{" "}
+              documente
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="tabular-nums">
-              Pg. {page} / {totalPages}
+          <div className="flex items-center gap-1.5 text-[12px] text-[#6e6e73] dark:text-[#98989d] tabular-nums">
+            <span className="whitespace-nowrap mr-1.5">
+              Pagina{" "}
+              <strong className="text-[#1d1d1f] dark:text-white font-semibold">
+                {page}
+              </strong>{" "}
+              din{" "}
+              <strong className="text-[#1d1d1f] dark:text-white font-semibold">
+                {totalPages}
+              </strong>
             </span>
             <button
+              type="button"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
               aria-label="Pagina anterioară"
-              className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 disabled:opacity-30 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="apple-btn-glass w-8 h-8 rounded-full flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] disabled:opacity-35 transition-all cursor-pointer"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-3.5 h-3.5" />
             </button>
             <button
+              type="button"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
+              disabled={page >= totalPages}
               aria-label="Pagina următoare"
-              className="flex items-center justify-center w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 disabled:opacity-30 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="apple-btn-glass w-8 h-8 rounded-full flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] disabled:opacity-35 transition-all cursor-pointer"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -1236,7 +1338,7 @@ export default function NIRList() {
               onClick={() =>
                 deleteTarget && deleteNir.mutate({ id: deleteTarget })
               }
-              className="rounded-full bg-red-600 hover:bg-red-700 text-white"
+              className="rounded-full bg-[#ff3b30] hover:bg-[#d70015] text-white"
             >
               Șterge
             </AlertDialogAction>
@@ -1264,7 +1366,7 @@ export default function NIRList() {
               onClick={() =>
                 bulkDeleteMut.mutate({ ids: Array.from(selectedIds) })
               }
-              className="rounded-full bg-red-600 hover:bg-red-700 text-white"
+              className="rounded-full bg-[#ff3b30] hover:bg-[#d70015] text-white"
               disabled={bulkDeleteMut.isPending}
             >
               {bulkDeleteMut.isPending ? "Se șterge..." : `Șterge ${selectedIds.size} NIR-uri`}
@@ -1277,54 +1379,55 @@ export default function NIRList() {
       <Dialog open={bulkEditOpen} onOpenChange={setBulkEditOpen}>
         <DialogContent className="sm:max-w-md rounded-[22px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Edit className="w-5 h-5 text-amber-500" />
+            <DialogTitle className="flex items-center gap-2 text-[#1d1d1f] dark:text-[#f5f5f7]">
+              <Edit className="w-4 h-4 text-amber-500" />
               Modificare în masă ({selectedIds.size} NIR-uri)
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2 text-sm">
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1.5">
                 Status
               </label>
-              <select
-                value={bulkStatus}
-                onChange={(e) => setBulkStatus(e.target.value)}
-                className="w-full h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-amber-500"
-              >
-                <option value="keep">— Păstrează neschimbat —</option>
-                <option value="finalizat">Finalizat</option>
-                <option value="draft">Draft (Ciornă)</option>
-              </select>
+              <Select value={bulkStatus} onValueChange={setBulkStatus}>
+                <SelectTrigger className="apple-input w-full h-10 px-3 text-[13.5px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="keep">— Păstrează neschimbat —</SelectItem>
+                  <SelectItem value="finalizat">Finalizat</SelectItem>
+                  <SelectItem value="draft">Draft (Ciornă)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1.5">
                 Gestiune (opțional)
               </label>
               <input
                 value={bulkGestiune}
                 onChange={(e) => setBulkGestiune(e.target.value)}
                 placeholder="Lasă gol pentru a nu schimba"
-                className="w-full h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="apple-input w-full h-10 px-3.5 text-[13.5px] outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Cont Contabil Implicit (opțional)
+              <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1.5">
+                Cont contabil implicit (opțional)
               </label>
               <input
                 value={bulkAccount}
                 onChange={(e) => setBulkAccount(e.target.value)}
                 placeholder="Ex: 371, 301, 3028 (lasă gol pentru a nu schimba)"
-                className="w-full h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm px-3 focus:outline-none focus:ring-2 focus:ring-amber-500 tabular-nums"
+                className="apple-input w-full h-10 px-3.5 text-[13.5px] outline-none tabular-nums"
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="gap-2">
             <button
               type="button"
               onClick={() => setBulkEditOpen(false)}
-              className="px-4 py-2 rounded-full border border-slate-200 dark:border-slate-700 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              className="apple-btn-glass px-4 h-9 rounded-full text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
             >
               Anulează
             </button>
@@ -1343,7 +1446,7 @@ export default function NIRList() {
                   !bulkGestiune.trim() &&
                   !bulkAccount.trim())
               }
-              className="px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-sm font-bold transition-colors shadow-sm"
+              className="apple-btn-prominent px-4 h-9 rounded-full text-white text-[12.5px] font-semibold disabled:opacity-50 cursor-pointer"
             >
               {bulkUpdateMut.isPending ? "Se salvează..." : "Aplică modificările"}
             </button>

@@ -1,5 +1,19 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-26 17:08 — Unificare completă Apple HIG Dark/Light Mode pe toate cele 57 de pagini, tabele și modale (zero tentă bleumarin `slate`, zero mix vizual)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Eliminare definitivă a nuanței albastre/bleumarin (`slate-950/900/800`) pe Dark Mode și unificare primitive (`client/src/index.css`, `DataTable.tsx`, `skeleton.tsx`, `DashboardLayout.tsx`):**
+     - Remapat în `.dark` scara `--color-slate-*` și `--color-gray-*` la tonurile neutre Apple HIG (`#09090b`, `#0c0c0e`, `#1c1c1e`, `#2c2c2e`, `#3a3a3c`, `#8e8e93`, `#98989d`, `#f5f5f7`), curățat `.dark .apple-canvas` de reflexia albastră și trecut `<Skeleton>` pe `bg-black/[0.06] dark:bg-white/[0.08]`.
+     - Unificat `DataTable.tsx` la `.apple-surface`, `.apple-pill-control` și antete sentence-case `12px`, și eliminat dubla iluminare din sidebar pe `/devize` (`Facturi → Devize de Lucrări` vs `Gestiune → Devize`).
+  2. **Unificare structurală și cromatică completă pe toate paginile și modalele aplicației la standardul de pe `/facturi` (`AllInvoices.tsx`):**
+     - **Portal Contabil & Facturare secundară:** `AccountantPortal.tsx` (eliminat fundalul bleumarin și butonul alb `Export XML SAGA` pe Dark Mode, unificat toate cardurile KPI, filtrele `<Select>` / `.apple-segmented` și tabelul în `.apple-surface`), `SagaClassicPortalView.tsx`, `DevizeList.tsx`, `DevizDetail.tsx`, `EditDevizModal.tsx`, `Catalog.tsx`, `EmailLogs.tsx` (încadrare 100% a coloanei `Acțiuni` fără scroll orizontal), `SpvLogs.tsx`, `InvoiceArchive.tsx`.
+     - **Gestiune, Contracte, Parteneri & Centre de Cost:** `NIRList.tsx` (eliminat al doilea buton duplicat `Toate` și uniformizat butoanele Excel/SAGA la `.apple-btn-glass`), `NIRCreate.tsx`, `BonuriConsumList.tsx`, `BonConsumDetail.tsx`, `BonConsumCreate.tsx`, `Inventory.tsx`, `ContractsList.tsx`, `ContractDetail.tsx`, `ContractCreate.tsx`, `Clients.tsx`, `ClientDetails.tsx`, `CostCenters.tsx`, `CostCenterDetail.tsx`.
+     - **SAGA, SPV Hub, Rapoarte, Setări, HoReCa, Admin & Modale:** `SpvHub.tsx`, `SagaModule.tsx` (trecut banda verticală laterală pe suprafață neutră `#1c1c1e`), `SagaSyncPage.tsx`, `Reports.tsx`, `CursValutar.tsx`, `Integrations.tsx`, `Settings.tsx`, `ApiKeys.tsx`, `EmitInvoice.tsx`, `ReInvoice.tsx`, `AdminDashboard.tsx`, `SuperAdmin.tsx`, toate cele 11 ecrane `horeca/*` și cele 9 combobox-uri/modale partajate (`PartnerCombobox`, `ArticleCombobox`, `PlanConturiCombobox`, `NirSelectorModal`, `SagaImportSimulatorModal`, `InvoiceCurrencyCalculator`, `ContractSignaturePadModal`, `ContractVisualEditor`, `ConfirmModal`).
+- **Fișiere:** `client/src/index.css`, `client/src/components/{DashboardLayout,DataTable,EditDevizModal,SagaClassicPortalView,PartnerCombobox,ArticleCombobox,PlanConturiCombobox,NirSelectorModal,SagaImportSimulatorModal,InvoiceCurrencyCalculator,ContractSignaturePadModal,ContractVisualEditor}.tsx`, `client/src/components/ui/{skeleton,ConfirmModal}.tsx`, `client/src/pages/**` (43 pagini), `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori), `npm run build` (`0` erori) și audit vizual + RGB în Playwright Headless pe toate cele `46` de rute în Dark Mode + Light Mode (`0` Page Errors, `0` HTTP `>=400`, `0` suprafețe bleumarin, `0` butoane albe netematizate pe Dark Mode), fără `git push`.
+
 ### 2026-11-25 21:49 — Check-up complet cap-coadă: Securitate & Izolare Multi-Tenant, SPV/ANAF/Conector Chrome, Calcule Fiscale UBL/SAGA/Devize, HoReCa, PDF/Email, Kiosk și Geometrie UI/Dark Mode
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

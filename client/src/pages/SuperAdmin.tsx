@@ -71,20 +71,20 @@ export default function SuperAdmin() {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
+    <div className="flex h-screen bg-[#f5f5f7] dark:bg-[#09090b] text-[#1d1d1f] dark:text-[#f5f5f7] overflow-hidden">
       {/* ── Sidebar ── */}
-      <aside className="w-52 flex-shrink-0 bg-white border-r border-slate-200 flex flex-col">
+      <aside className="w-56 flex-shrink-0 bg-white dark:bg-[#18181a] border-r border-black/[0.06] dark:border-white/[0.08] flex flex-col">
         {/* Logo */}
-        <div className="px-4 py-4 border-b border-slate-100">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
+        <div className="px-4 py-4 border-b border-black/[0.06] dark:border-white/[0.08]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
               <FileText className="w-3.5 h-3.5 text-white" />
             </div>
             <div>
-              <div className="text-slate-900 text-sm font-bold leading-tight">
-                Refactura<span className="text-blue-600">.ro</span>
+              <div className="text-[#1d1d1f] dark:text-[#f5f5f7] text-sm font-bold leading-tight">
+                Refactura<span className="text-primary">.ro</span>
               </div>
-              <div className="text-slate-400 text-[10px] font-medium uppercase tracking-wider">
+              <div className="text-[#8e8e93] text-[10px] font-semibold tracking-wider">
                 Super Admin
               </div>
             </div>
@@ -92,19 +92,19 @@ export default function SuperAdmin() {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
+        <nav className="flex-1 py-3 px-2.5 space-y-0.5 overflow-y-auto">
           {NAV_ITEMS.map(item => (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all text-left ${
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-full text-[13px] transition-all text-left cursor-pointer ${
                 activeTab === item.id
-                  ? "bg-blue-50 text-blue-700 font-medium"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                  ? "apple-sidebar-active text-white font-semibold"
+                  : "text-[#636366] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
               }`}
             >
               <item.icon
-                className={`w-4 h-4 flex-shrink-0 ${activeTab === item.id ? "text-blue-600" : "text-slate-400"}`}
+                className={`w-4 h-4 flex-shrink-0 ${activeTab === item.id ? "text-white" : "text-[#636366] dark:text-[#98989d]"}`}
               />
               <span>{item.label}</span>
             </button>
@@ -112,17 +112,17 @@ export default function SuperAdmin() {
         </nav>
 
         {/* Footer actions */}
-        <div className="px-2 py-3 border-t border-slate-100 space-y-0.5">
+        <div className="px-2.5 py-3 border-t border-black/[0.06] dark:border-white/[0.08] space-y-0.5">
           <button
-            onClick={() => setLocation("/")}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all"
+            onClick={() => setLocation("/dashboard")}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-full text-[13px] text-[#636366] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-all cursor-pointer"
           >
-            <ChevronLeft className="w-4 h-4 text-slate-400" />
+            <ChevronLeft className="w-4 h-4 text-[#8e8e93]" />
             <span>Înapoi la App</span>
           </button>
           <button
             onClick={logout}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-red-500 hover:text-red-700 hover:bg-red-50 transition-all"
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-full text-[13px] text-[#ff3b30] dark:text-[#ff453a] hover:bg-red-500/10 transition-all cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
             <span>Deconectare</span>
@@ -132,7 +132,7 @@ export default function SuperAdmin() {
 
       {/* ── Main ── */}
       <main className="flex-1 overflow-y-auto">
-        <div className="w-full p-3 sm:p-5 space-y-6">
+        <div className="w-full p-3 sm:p-5 space-y-5 [&_div.bg-white]:dark:bg-[#1c1c1e] [&_div.border-slate-200]:dark:border-white/[0.08] [&_h1.text-slate-900]:dark:text-[#f5f5f7] [&_h2.text-slate-900]:dark:text-[#f5f5f7] [&_h3.text-slate-900]:dark:text-[#f5f5f7] [&_p.text-slate-900]:dark:text-[#f5f5f7] [&_td.text-slate-900]:dark:text-[#f5f5f7] [&_span.text-slate-900]:dark:text-[#f5f5f7] [&_thead]:dark:bg-white/[0.025]">
           {activeTab === "overview" && <OverviewTab />}
           {activeTab === "activity" && <ActivityTab />}
           {activeTab === "users" && <UsersTab />}
@@ -156,11 +156,11 @@ function PageHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between mb-6">
+    <div className="flex items-center justify-between mb-5">
       <div>
-        <h1 className="text-xl font-bold text-slate-900">{title}</h1>
+        <h1 className="text-[22px] font-bold tracking-[-0.024em] text-[#1d1d1f] dark:text-[#f5f5f7]">{title}</h1>
         {subtitle && (
-          <p className="text-sm text-slate-500 mt-0.5">{subtitle}</p>
+          <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">{subtitle}</p>
         )}
       </div>
       {action}

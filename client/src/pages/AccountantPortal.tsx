@@ -5,7 +5,6 @@ import {
   FileOutput,
   Calendar,
   Search,
-  CheckCircle2,
   AlertCircle,
   FileSpreadsheet,
   Package,
@@ -24,7 +23,7 @@ import {
   FileCode,
   ClipboardCheck,
   Layers,
-  Sparkles,
+  X,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
@@ -34,6 +33,13 @@ import AccountantPinLock from "@/components/AccountantPinLock";
 import DocumentModalPreview from "@/components/DocumentModalPreview";
 import SagaClassicPortalView from "@/components/SagaClassicPortalView";
 import { encodeWindows1250Blob } from "@/lib/fileSave";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 function formatCurrency(amount: number, currency: string = "RON"): string {
   return new Intl.NumberFormat("ro-RO", {
@@ -112,7 +118,9 @@ export default function AccountantPortal() {
 
   // Filtre Facturi Primite
   const [search, setSearch] = useState("");
-  const [period, setPeriod] = useState<"current_month" | "last_month" | "last_3_months" | "current_year" | "all" | "custom">("all");
+  const [period, setPeriod] = useState<
+    "current_month" | "last_month" | "last_3_months" | "current_year" | "all" | "custom"
+  >("all");
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
   const [nirFilter, setNirFilter] = useState<"all" | "cu_nir" | "fara_nir">("all");
@@ -120,7 +128,9 @@ export default function AccountantPortal() {
 
   // Filtre Facturi Emise
   const [searchEmitted, setSearchEmitted] = useState("");
-  const [periodEmitted, setPeriodEmitted] = useState<"current_month" | "last_month" | "last_3_months" | "current_year" | "all" | "custom">("all");
+  const [periodEmitted, setPeriodEmitted] = useState<
+    "current_month" | "last_month" | "last_3_months" | "current_year" | "all" | "custom"
+  >("all");
   const [customStartDateEmitted, setCustomStartDateEmitted] = useState("");
   const [customEndDateEmitted, setCustomEndDateEmitted] = useState("");
 
@@ -137,7 +147,6 @@ export default function AccountantPortal() {
   const {
     data: publicInfo,
     isLoading: isLoadingPublic,
-    refetch: refetchPublic,
   } = trpc.accountantPortal.getPublicInfo.useQuery(
     { token },
     { enabled: Boolean(token), retry: 1 }
@@ -169,7 +178,9 @@ export default function AccountantPortal() {
     try {
       sessionStorage.setItem(viewOverrideKey, next);
     } catch {}
-    toast.success(`Ați comutat pe ${next === "saga" ? "Modul SAGA C Clasic" : "Modul Modern"}`);
+    toast.success(
+      `Ați comutat pe ${next === "saga" ? "Modul SAGA C Clasic" : "Modul Modern"}`
+    );
   };
 
   // Verificare sesiune existentă
@@ -351,7 +362,7 @@ export default function AccountantPortal() {
   const allSuppliers = useMemo(() => {
     if (!portalData?.invoices) return [];
     const set = new Set<string>();
-    portalData.invoices.forEach((i) => {
+    portalData.invoices.forEach(i => {
       if (i.supplierName) set.add(i.supplierName.trim());
     });
     return Array.from(set).sort();
@@ -363,7 +374,7 @@ export default function AccountantPortal() {
     let list = portalData.invoices;
 
     if (activeDateRange.start || activeDateRange.end) {
-      list = list.filter((inv) => {
+      list = list.filter(inv => {
         if (!inv.issueDate) return false;
         const d = new Date(inv.issueDate);
         if (isNaN(d.getTime())) return true;
@@ -374,18 +385,18 @@ export default function AccountantPortal() {
     }
 
     if (nirFilter === "cu_nir") {
-      list = list.filter((inv) => inv.hasNir);
+      list = list.filter(inv => inv.hasNir);
     } else if (nirFilter === "fara_nir") {
-      list = list.filter((inv) => !inv.hasNir);
+      list = list.filter(inv => !inv.hasNir);
     }
 
     if (supplierFilter !== "all") {
-      list = list.filter((inv) => inv.supplierName === supplierFilter);
+      list = list.filter(inv => inv.supplierName === supplierFilter);
     }
 
     if (search.trim()) {
       const q = search.trim().toLowerCase();
-      list = list.filter((inv) => {
+      list = list.filter(inv => {
         return (
           inv.supplierName.toLowerCase().includes(q) ||
           inv.supplierCUI.toLowerCase().includes(q) ||
@@ -405,7 +416,7 @@ export default function AccountantPortal() {
     let list = portalData.emittedInvoices;
 
     if (activeEmittedDateRange.start || activeEmittedDateRange.end) {
-      list = list.filter((inv) => {
+      list = list.filter(inv => {
         if (!inv.issueDate) return false;
         const d = new Date(inv.issueDate);
         if (isNaN(d.getTime())) return true;
@@ -417,7 +428,7 @@ export default function AccountantPortal() {
 
     if (searchEmitted.trim()) {
       const q = searchEmitted.trim().toLowerCase();
-      list = list.filter((inv) => {
+      list = list.filter(inv => {
         return (
           inv.clientName.toLowerCase().includes(q) ||
           inv.clientCUI.toLowerCase().includes(q) ||
@@ -432,7 +443,7 @@ export default function AccountantPortal() {
 
   // KPI-uri Facturi Primite
   const currentKpis = useMemo(() => {
-    let totalCount = filteredInvoices.length;
+    const totalCount = filteredInvoices.length;
     let totalBase = 0;
     let totalVat = 0;
     let totalGross = 0;
@@ -454,13 +465,14 @@ export default function AccountantPortal() {
       totalGross: Math.round(totalGross * 100) / 100,
       withNirCount,
       withoutNirCount,
-      nirCoveragePercent: totalCount > 0 ? Math.round((withNirCount / totalCount) * 100) : 0,
+      nirCoveragePercent:
+        totalCount > 0 ? Math.round((withNirCount / totalCount) * 100) : 0,
     };
   }, [filteredInvoices]);
 
   // KPI-uri Facturi Emise
   const currentEmittedKpis = useMemo(() => {
-    let totalCount = filteredEmittedInvoices.length;
+    const totalCount = filteredEmittedInvoices.length;
     let totalBase = 0;
     let totalVat = 0;
     let totalGross = 0;
@@ -480,12 +492,14 @@ export default function AccountantPortal() {
   }, [filteredEmittedInvoices]);
 
   // Paginare
-  const activeList = activeTab === "received" ? filteredInvoices : filteredEmittedInvoices;
+  const activeList =
+    activeTab === "received" ? filteredInvoices : filteredEmittedInvoices;
   const totalPages = Math.ceil(activeList.length / pageSize) || 1;
+  const safePage = Math.min(page, totalPages);
   const paginatedItems = useMemo(() => {
-    const start = (page - 1) * pageSize;
+    const start = (safePage - 1) * pageSize;
     return activeList.slice(start, start + pageSize);
-  }, [activeList, page, pageSize]);
+  }, [activeList, safePage, pageSize]);
 
   // Reset paginare la schimbare tab
   useEffect(() => {
@@ -495,10 +509,13 @@ export default function AccountantPortal() {
 
   // Gestionare selecție multiplă
   const handleToggleSelectAll = () => {
-    if (selectedIds.size === filteredInvoices.length && filteredInvoices.length > 0) {
+    if (
+      selectedIds.size === filteredInvoices.length &&
+      filteredInvoices.length > 0
+    ) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(filteredInvoices.map((i) => i.id)));
+      setSelectedIds(new Set(filteredInvoices.map(i => i.id)));
     }
   };
 
@@ -518,24 +535,24 @@ export default function AccountantPortal() {
 
     const itemsToExport =
       selectedIds.size > 0
-        ? filteredInvoices.filter((i) => selectedIds.has(i.id))
+        ? filteredInvoices.filter(i => selectedIds.has(i.id))
         : filteredInvoices;
 
     const rows = itemsToExport.map((inv, idx) => ({
       "Nr. Crt.": idx + 1,
       "Dată Factură": formatDate(inv.issueDate),
       "Dată Scadență": formatDate(inv.dueDate),
-      "Furnizor": inv.supplierName,
+      Furnizor: inv.supplierName,
       "CUI Furnizor": inv.supplierCUI || "",
       "Număr Factură": inv.invoiceNumber,
       "Valoare Bază (fără TVA)": inv.totalBase,
-      "TVA": inv.totalVAT,
+      TVA: inv.totalVAT,
       "Total General": inv.total,
-      "Monedă": inv.currency,
+      Monedă: inv.currency,
       "Status NIR": inv.hasNir ? "Generat" : "Fără NIR",
       "Număr NIR": inv.nirNumber || "",
       "Dată NIR": formatDate(inv.nirDate),
-      "Gestiune": inv.gestiune || "",
+      Gestiune: inv.gestiune || "",
       "Index SPV": inv.spvIndex || "",
     }));
 
@@ -543,7 +560,9 @@ export default function AccountantPortal() {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Facturi Primite & NIR");
 
-    const companyCui = portalData?.company?.cui ? `_${portalData.company.cui}` : "";
+    const companyCui = portalData?.company?.cui
+      ? `_${portalData.company.cui}`
+      : "";
     const filename = `Facturi_Primite${companyCui}_${new Date().toISOString().slice(0, 10)}.xlsx`;
     XLSX.writeFile(workbook, filename);
     toast.success(`Fișierul ${filename} a fost exportat cu succes!`);
@@ -560,14 +579,14 @@ export default function AccountantPortal() {
       "Nr. Crt.": idx + 1,
       "Dată Factură": formatDate(inv.issueDate),
       "Dată Scadență": formatDate(inv.dueDate),
-      "Client": inv.clientName,
+      Client: inv.clientName,
       "CUI Client": inv.clientCUI || "",
       "Număr Factură": inv.invoiceNumber,
       "Valoare Bază (fără TVA)": inv.totalBase,
-      "TVA": inv.totalVAT,
+      TVA: inv.totalVAT,
       "Total Factură": inv.total,
-      "Monedă": inv.currency,
-      "Stare": inv.status,
+      Monedă: inv.currency,
+      Stare: inv.status,
       "Index SPV": inv.spvIndex || "",
     }));
 
@@ -575,7 +594,9 @@ export default function AccountantPortal() {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Facturi Emise");
 
-    const companyCui = portalData?.company?.cui ? `_${portalData.company.cui}` : "";
+    const companyCui = portalData?.company?.cui
+      ? `_${portalData.company.cui}`
+      : "";
     const filename = `Facturi_Emise${companyCui}_${new Date().toISOString().slice(0, 10)}.xlsx`;
     XLSX.writeFile(workbook, filename);
     toast.success(`Fișierul ${filename} a fost exportat cu succes!`);
@@ -610,7 +631,9 @@ export default function AccountantPortal() {
         for (let i = 0; i < binaryStr.length; i++) {
           bytes[i] = binaryStr.charCodeAt(i);
         }
-        blob = new Blob([bytes], { type: "application/xml;charset=windows-1250" });
+        blob = new Blob([bytes], {
+          type: "application/xml;charset=windows-1250",
+        });
       } else {
         blob = encodeWindows1250Blob(res.xml);
       }
@@ -623,9 +646,14 @@ export default function AccountantPortal() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      toast.success(`Fișierul ${res.filename} a fost descărcat!`, { id: "saga-export" });
+      toast.success(`Fișierul ${res.filename} a fost descărcat!`, {
+        id: "saga-export",
+      });
     } catch (err: any) {
-      toast.error(err?.message || "Eroare la generarea fișierului XML SAGA.", { id: "saga-export" });
+      toast.error(
+        err?.message || "Eroare la generarea fișierului XML SAGA.",
+        { id: "saga-export" }
+      );
     }
   };
 
@@ -633,7 +661,7 @@ export default function AccountantPortal() {
   const handleDownloadZipBundle = async () => {
     const targets =
       selectedIds.size > 0
-        ? filteredInvoices.filter((i) => selectedIds.has(i.id))
+        ? filteredInvoices.filter(i => selectedIds.has(i.id))
         : filteredInvoices;
 
     if (targets.length === 0) {
@@ -664,8 +692,13 @@ export default function AccountantPortal() {
             if (pdfRes.ok && !contentType.includes("text/html")) {
               const blob = await pdfRes.blob();
               if (blob.size > 0) {
-                const safeNum = (inv.invoiceNumber || String(inv.id)).replace(/[^a-zA-Z0-9-_]/g, "_");
-                const safeSupp = (inv.supplierName || "FURNIZ").replace(/[^a-zA-Z0-9-_]/g, "_").slice(0, 20);
+                const safeNum = (inv.invoiceNumber || String(inv.id)).replace(
+                  /[^a-zA-Z0-9-_]/g,
+                  "_"
+                );
+                const safeSupp = (inv.supplierName || "FURNIZ")
+                  .replace(/[^a-zA-Z0-9-_]/g, "_")
+                  .slice(0, 20);
                 invoicesFolder?.file(`Factura_${safeSupp}_${safeNum}.pdf`, blob);
                 addedFiles++;
               }
@@ -675,14 +708,18 @@ export default function AccountantPortal() {
 
         if (inv.hasNir && inv.nirId) {
           try {
-            const nirUrl = getAuthenticatedPdfUrl(`/api/pdf/nir/${inv.nirId}?download=1`);
+            const nirUrl = getAuthenticatedPdfUrl(
+              `/api/pdf/nir/${inv.nirId}?download=1`
+            );
             if (nirUrl) {
               const nirRes = await fetch(nirUrl, { credentials: "include" });
               const contentType = nirRes.headers.get("content-type") || "";
               if (nirRes.ok && !contentType.includes("text/html")) {
                 const blob = await nirRes.blob();
                 if (blob.size > 0) {
-                  const safeNirNum = (inv.nirNumber || String(inv.nirId)).replace(/[^a-zA-Z0-9-_]/g, "_");
+                  const safeNirNum = (
+                    inv.nirNumber || String(inv.nirId)
+                  ).replace(/[^a-zA-Z0-9-_]/g, "_");
                   nirFolder?.file(`NIR_${safeNirNum}.pdf`, blob);
                   addedFiles++;
                 }
@@ -693,13 +730,17 @@ export default function AccountantPortal() {
       }
 
       if (addedFiles === 0) {
-        toast.error("Niciun document PDF disponibil pentru descărcare în arhivă.", { id: "zip-bundle" });
+        toast.error(
+          "Niciun document PDF disponibil pentru descărcare în arhivă.",
+          { id: "zip-bundle" }
+        );
         return;
       }
 
       setZipProgress("Comprimare arhivă ZIP...");
       const content = await zip.generateAsync({ type: "blob" });
-      const companyName = portalData?.company?.name?.replace(/[^a-zA-Z0-9-_]/g, "_") || "Firma";
+      const companyName =
+        portalData?.company?.name?.replace(/[^a-zA-Z0-9-_]/g, "_") || "Firma";
       const filename = `Pachet_Contabilitate_${companyName}_${new Date().toISOString().slice(0, 10)}.zip`;
 
       const url = URL.createObjectURL(content);
@@ -712,7 +753,7 @@ export default function AccountantPortal() {
       URL.revokeObjectURL(url);
 
       toast.success(`Arhiva ${filename} a fost descărcată cu succes!`);
-    } catch (err: any) {
+    } catch {
       toast.error("Eroare la împachetarea arhivei ZIP.");
     } finally {
       setIsDownloadingZip(false);
@@ -725,9 +766,11 @@ export default function AccountantPortal() {
   // 1. Ecran de încărcare inițială
   if (isLoadingPublic || (Boolean(sessionToken) && isCheckingSession)) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center text-slate-700 dark:text-slate-300">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-3" />
-        <p className="text-sm font-medium">Se încarcă portalul contabil...</p>
+      <div className="min-h-screen apple-canvas flex flex-col items-center justify-center text-[#1d1d1f] dark:text-[#f5f5f7]">
+        <Loader2 className="w-7 h-7 animate-spin text-[#6e6e73] mb-3" />
+        <p className="text-[13.5px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+          Se încarcă portalul contabil...
+        </p>
       </div>
     );
   }
@@ -735,13 +778,15 @@ export default function AccountantPortal() {
   // 2. Portal negăsit sau dezactivat
   if (!publicInfo?.found || !publicInfo.isEnabled) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[22px] p-8 text-center text-slate-800 dark:text-white shadow-sm">
-          <div className="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 text-amber-600 mx-auto flex items-center justify-center mb-4">
-            <AlertCircle className="w-7 h-7" />
+      <div className="min-h-screen apple-canvas flex items-center justify-center p-4">
+        <div className="max-w-md w-full apple-surface p-8 text-center text-[#1d1d1f] dark:text-[#f5f5f7]">
+          <div className="w-12 h-12 rounded-2xl bg-[#fff6eb] dark:bg-amber-500/18 text-amber-600 dark:text-amber-400 mx-auto flex items-center justify-center mb-4">
+            <AlertCircle className="w-6 h-6" />
           </div>
-          <h2 className="text-lg font-bold mb-2">Portal Contabil Indisponibil</h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+          <h2 className="text-[18px] font-bold mb-2">
+            Portal contabil indisponibil
+          </h2>
+          <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] leading-relaxed">
             Acest portal nu este activ sau link-ul accesat este invalid. Vă rugăm să contactați
             administratorul firmei pentru a primi link-ul corect sau pentru a activa accesul.
           </p>
@@ -769,7 +814,7 @@ export default function AccountantPortal() {
   const incomingCount = portalData?.invoices?.length || 0;
   const emittedCount = portalData?.emittedInvoices?.length || 0;
 
-  // 4. Randare Mod SAGA C Clasic (Split-screen 2 grile identic cu SAGA C)
+  // 4. Randare Mod SAGA C Clasic
   if (viewMode === "saga") {
     return (
       <>
@@ -796,19 +841,23 @@ export default function AccountantPortal() {
           setPeriodEmitted={setPeriodEmitted}
           filteredEmittedInvoices={filteredEmittedInvoices}
           currentEmittedKpis={currentEmittedKpis}
-          onViewInvoicePdf={(inv) =>
+          onViewInvoicePdf={inv =>
             setPreviewDoc({
               isOpen: true,
-              title: `Factura ${inv.invoiceNumber} - ${activeTab === "received" ? inv.supplierName : inv.clientName}`,
+              title: `Factura ${inv.invoiceNumber} - ${
+                activeTab === "received" ? inv.supplierName : inv.clientName
+              }`,
               pdfUrl: getAuthenticatedPdfUrl(inv.pdfUrl),
               filename: `Factura_${inv.invoiceNumber}.pdf`,
               type: activeTab === "received" ? "invoice" : "emitted",
             })
           }
-          onViewNirPdf={(inv) => {
+          onViewNirPdf={inv => {
             const targetNirId = inv.nirId || inv.id;
             const rawNum = inv.nirNumber || targetNirId;
-            const targetNirNum = String(rawNum).startsWith("NIR") ? rawNum : `NIR-${rawNum}`;
+            const targetNirNum = String(rawNum).startsWith("NIR")
+              ? rawNum
+              : `NIR-${rawNum}`;
             setPreviewDoc({
               isOpen: true,
               title: `${targetNirNum} - ${inv.supplierName || ""}`.trim(),
@@ -825,33 +874,44 @@ export default function AccountantPortal() {
           onSwitchToModern={handleToggleViewMode}
         />
 
-        {/* Modal Universal Previzualizare PDF în fereastră SAGA */}
         <DocumentModalPreview
           isOpen={previewDoc.isOpen}
-          onClose={() => setPreviewDoc((prev) => ({ ...prev, isOpen: false, pdfUrl: null }))}
+          onClose={() =>
+            setPreviewDoc(prev => ({ ...prev, isOpen: false, pdfUrl: null }))
+          }
           title={previewDoc.title}
           pdfUrl={previewDoc.pdfUrl}
           filename={previewDoc.filename}
           type={previewDoc.type}
-          theme="saga"
         />
       </>
     );
   }
 
+  const hasActiveReceivedFilters =
+    Boolean(search) ||
+    period !== "all" ||
+    nirFilter !== "all" ||
+    supplierFilter !== "all";
+
+  const hasActiveEmittedFilters =
+    Boolean(searchEmitted) || periodEmitted !== "all";
+
   // 5. Spațiul de lucru principal MOD MODERN cu SIDEBAR și PREVIZUALIZARE ÎN MODAL
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col md:flex-row font-sans">
+    <div className="min-h-screen apple-canvas text-[#1d1d1f] dark:text-[#f5f5f7] flex flex-col md:flex-row font-sans">
       {/* SIDEBAR DEDICAT PENTRU CONTABIL (Desktop) */}
-      <aside className="hidden md:flex w-56 xl:w-60 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex-col shrink-0 min-h-screen sticky top-0 h-screen z-20">
+      <aside className="hidden md:flex w-56 xl:w-60 bg-white/90 dark:bg-[#18181a] backdrop-blur-xl border-r border-black/[0.06] dark:border-white/[0.08] flex-col shrink-0 min-h-screen sticky top-0 h-screen z-20">
         {/* Antet Sidebar */}
-        <div className="p-4 border-b border-slate-200 dark:border-slate-800">
+        <div className="p-4 border-b border-black/[0.06] dark:border-white/[0.08]">
           <div className="flex items-center gap-3">
             {publicInfo.logoUrl ? (
               <div
-                className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center p-1 border border-slate-200 dark:border-slate-700 bg-white shrink-0 shadow-2xs"
+                className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center p-1 border border-black/[0.08] dark:border-white/[0.10] bg-white shrink-0"
                 style={{
-                  backgroundColor: publicInfo.logoBgColor || (publicInfo.logoHasBackground ? "#0f172a" : "#ffffff"),
+                  backgroundColor:
+                    publicInfo.logoBgColor ||
+                    (publicInfo.logoHasBackground ? "#1c1c1e" : "#ffffff"),
                 }}
               >
                 <img
@@ -861,77 +921,90 @@ export default function AccountantPortal() {
                 />
               </div>
             ) : (
-              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 text-blue-600 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-[#f2f4f7] dark:bg-[#2c2c2e] text-[#0071e3] dark:text-[#0a84ff] flex items-center justify-center shrink-0">
                 <Building2 className="w-5 h-5" />
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <h1 className="text-sm font-bold text-slate-900 dark:text-white truncate" title={publicInfo.companyName}>
+              <div
+                className="text-[13.5px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] truncate"
+                title={publicInfo.companyName}
+              >
                 {publicInfo.companyName}
-              </h1>
+              </div>
               {publicInfo.cui && (
-                <p className="text-[11px] text-slate-500 tabular-nums mt-0.5">
-                  CUI: {publicInfo.cui}
+                <p className="text-[11px] text-[#6e6e73] dark:text-[#98989d] tabular-nums mt-0.5">
+                  CUI {publicInfo.cui}
                 </p>
               )}
             </div>
           </div>
-          <div className="mt-3 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200 dark:border-blue-800 text-[11px] font-semibold">
-            <ShieldCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-            <span>Portal Contabilitate</span>
+          <div className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#ebebf5] text-[11px] font-medium">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span>Portal contabilitate</span>
           </div>
         </div>
 
         {/* Meniu Sidebar — Facturi Primite & Facturi Emise */}
         <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3 py-1">
-            Documente Contabile
+          <div className="text-[11px] font-medium text-[#8e8e93] px-3 py-1">
+            Documente contabile
           </div>
 
-          {/* Buton Facturi Primite */}
           <button
             type="button"
             onClick={() => setActiveTab("received")}
-            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-full text-xs font-semibold transition-colors ${
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-full text-[12.5px] transition-all cursor-pointer ${
               activeTab === "received"
-                ? "bg-blue-600 text-white shadow-xs"
-                : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                ? "apple-sidebar-active"
+                : "text-[#3a3a3c] dark:text-[#ebebf5] font-medium hover:bg-black/[0.045] dark:hover:bg-white/[0.06]"
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <FileText className={`w-4 h-4 ${activeTab === "received" ? "text-white" : "text-blue-600"}`} />
-              <span>Facturi Primite</span>
+              <FileText
+                className={`w-4 h-4 ${
+                  activeTab === "received"
+                    ? "text-white"
+                    : "text-[#6e6e73] dark:text-[#98989d]"
+                }`}
+              />
+              <span>Facturi primite</span>
             </div>
             <span
-              className={`px-2 py-0.5 rounded-full text-[10px] font-bold tabular-nums ${
+              className={`px-2 py-0.5 rounded-full text-[11px] font-semibold tabular-nums ${
                 activeTab === "received"
                   ? "bg-white/20 text-white"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
+                  : "bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#6e6e73] dark:text-[#98989d]"
               }`}
             >
               {incomingCount}
             </span>
           </button>
 
-          {/* Buton Facturi Emise */}
           <button
             type="button"
             onClick={() => setActiveTab("emitted")}
-            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-full text-xs font-semibold transition-colors ${
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-full text-[12.5px] transition-all cursor-pointer ${
               activeTab === "emitted"
-                ? "bg-blue-600 text-white shadow-xs"
-                : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                ? "apple-sidebar-active"
+                : "text-[#3a3a3c] dark:text-[#ebebf5] font-medium hover:bg-black/[0.045] dark:hover:bg-white/[0.06]"
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <FileOutput className={`w-4 h-4 ${activeTab === "emitted" ? "text-white" : "text-emerald-600"}`} />
-              <span>Facturi Emise</span>
+              <FileOutput
+                className={`w-4 h-4 ${
+                  activeTab === "emitted"
+                    ? "text-white"
+                    : "text-[#6e6e73] dark:text-[#98989d]"
+                }`}
+              />
+              <span>Facturi emise</span>
             </div>
             <span
-              className={`px-2 py-0.5 rounded-full text-[10px] font-bold tabular-nums ${
+              className={`px-2 py-0.5 rounded-full text-[11px] font-semibold tabular-nums ${
                 activeTab === "emitted"
                   ? "bg-white/20 text-white"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
+                  : "bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#6e6e73] dark:text-[#98989d]"
               }`}
             >
               {emittedCount}
@@ -940,11 +1013,11 @@ export default function AccountantPortal() {
         </nav>
 
         {/* Footer Sidebar: Buton Închide Sesiunea */}
-        <div className="p-3 border-t border-slate-200 dark:border-slate-800 space-y-2">
+        <div className="p-3 border-t border-black/[0.06] dark:border-white/[0.08]">
           <button
             type="button"
             onClick={handleLockPortal}
-            className="w-full flex items-center justify-center gap-2 h-9 px-3 rounded-full border border-slate-200 dark:border-slate-700 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 dark:hover:bg-rose-950/40 dark:hover:text-rose-300 dark:hover:border-rose-800 text-slate-700 dark:text-slate-300 text-xs font-semibold transition-colors"
+            className="apple-btn-glass w-full flex items-center justify-center gap-2 h-9 px-3 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] hover:text-[#ff3b30] dark:hover:text-[#ff453a] text-[12.5px] font-semibold cursor-pointer"
           >
             <Lock className="w-3.5 h-3.5" />
             <span>Închide sesiunea</span>
@@ -955,10 +1028,16 @@ export default function AccountantPortal() {
       {/* ZONA PRINCIPALĂ DE CONȚINUT */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Bara Mobilă (sub md:) */}
-        <div className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-3 py-2.5 flex items-center justify-between gap-2">
+        <div className="md:hidden bg-white/90 dark:bg-[#18181a] backdrop-blur-xl border-b border-black/[0.06] dark:border-white/[0.08] px-3 py-2.5 flex items-center justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <div className="text-xs font-bold text-slate-900 dark:text-white truncate">{publicInfo.companyName}</div>
-            {publicInfo.cui && <div className="text-[10px] text-slate-500 tabular-nums">CUI: {publicInfo.cui}</div>}
+            <div className="text-[13px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] truncate">
+              {publicInfo.companyName}
+            </div>
+            {publicInfo.cui && (
+              <div className="text-[11px] text-[#6e6e73] dark:text-[#98989d] tabular-nums">
+                CUI {publicInfo.cui}
+              </div>
+            )}
           </div>
           <div className="apple-segmented shrink-0">
             <button
@@ -982,316 +1061,543 @@ export default function AccountantPortal() {
             type="button"
             aria-label="Închide sesiunea"
             onClick={handleLockPortal}
-            className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 shrink-0"
+            className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] shrink-0 cursor-pointer"
           >
             <Lock className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        {/* Antet Pagină */}
-        <header className="sticky top-0 z-10 apple-glass bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-3.5 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">
-              {activeTab === "received" ? "Facturi Primite & NIR-uri" : "Facturi Emise (Vânzări)"}
-            </h2>
-            <span className="text-xs text-slate-400">•</span>
-            <span className="text-xs text-slate-500 font-medium">
-              {activeTab === "received" ? "Intrări de la furnizori" : "Ieșiri către clienți"}
-            </span>
+        <main className="p-3 sm:p-5 space-y-4 flex-1 min-w-0 max-w-full">
+          {/* Page Header */}
+          <div className="flex items-center justify-between gap-3 flex-wrap px-0.5">
+            <div>
+              <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
+                {activeTab === "received"
+                  ? "Facturi primite & NIR-uri"
+                  : "Facturi emise (vânzări)"}
+              </h1>
+              <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5 tabular-nums">
+                {activeTab === "received" ? (
+                  <>
+                    Intrări de la furnizori ·{" "}
+                    <strong className="text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold">
+                      {incomingCount}
+                    </strong>{" "}
+                    documente
+                    {filteredInvoices.length !== incomingCount && (
+                      <span className="ml-1.5 text-[#1d1d1f] dark:text-white font-medium">
+                        ({filteredInvoices.length} afișate)
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    Ieșiri către clienți ·{" "}
+                    <strong className="text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold">
+                      {emittedCount}
+                    </strong>{" "}
+                    documente
+                    {filteredEmittedInvoices.length !== emittedCount && (
+                      <span className="ml-1.5 text-[#1d1d1f] dark:text-white font-medium">
+                        ({filteredEmittedInvoices.length} afișate)
+                      </span>
+                    )}
+                  </>
+                )}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={handleToggleViewMode}
+                className="apple-btn-glass flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-full text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
+                title="Comută la vederea clasică de lucru SAGA C (ecran împărțit pe 2 tabele dense)"
+              >
+                <Layers className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d]" />
+                <span>Mod SAGA Clasic</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => refetchData()}
+                disabled={isFetching}
+                title="Reîmprospătează datele"
+                className="apple-btn-glass flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-full text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] disabled:opacity-50 cursor-pointer"
+              >
+                <RefreshCw
+                  className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`}
+                />
+                <span>Actualizează</span>
+              </button>
+
+              {activeTab === "received" ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleExportExcel}
+                    disabled={filteredInvoices.length === 0}
+                    className="apple-btn-glass flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-full text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] disabled:opacity-50 cursor-pointer"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span>Export Excel (.xlsx)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleDownloadSagaXml}
+                    disabled={downloadSagaXmlMutation.isPending}
+                    className="apple-btn-glass flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-full text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] disabled:opacity-50 cursor-pointer"
+                  >
+                    {downloadSagaXmlMutation.isPending ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <FileCode className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d]" />
+                    )}
+                    <span>Export XML SAGA</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleDownloadZipBundle}
+                    disabled={filteredInvoices.length === 0 || isDownloadingZip}
+                    className="apple-btn-prominent flex items-center justify-center gap-1.5 h-9 px-4 rounded-full text-white text-[12.5px] font-semibold disabled:opacity-50 cursor-pointer"
+                  >
+                    {isDownloadingZip ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>{zipProgress || "Comprimare..."}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Package className="w-3.5 h-3.5" />
+                        <span>Descarcă Pachet ZIP</span>
+                      </>
+                    )}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleExportEmittedExcel}
+                  disabled={filteredEmittedInvoices.length === 0}
+                  className="apple-btn-glass flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-full text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] disabled:opacity-50 cursor-pointer"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>Export Excel (.xlsx)</span>
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Buton Comutator la Mod SAGA C Clasic */}
-            <button
-              type="button"
-              onClick={handleToggleViewMode}
-              className="h-8 px-3 rounded-full border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 text-[#1F4E79] dark:text-blue-300 text-xs font-bold flex items-center gap-1.5 transition shadow-2xs cursor-pointer"
-              title="Comută la vederea clasică de lucru SAGA C (ecran împărțit pe 2 tabele dense)"
-            >
-              <Layers className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-              <span>Mod SAGA Clasic</span>
-            </button>
-
-            <button
-              onClick={() => refetchData()}
-              disabled={isFetching}
-              title="Reîmprospătează datele"
-              className="h-8 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center gap-1.5 transition shadow-2xs disabled:opacity-50"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin text-blue-600" : ""}`} />
-              <span className="hidden sm:inline">Actualizează</span>
-            </button>
-          </div>
-        </header>
-
-        <main className="p-3.5 sm:p-4 lg:p-5 space-y-4 flex-1 min-w-0">
           {/* TAB 1: FACTURI PRIMITE */}
           {activeTab === "received" && (
             <>
-              {/* Top KPI Cards Primite */}
-              <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5">
-                <div className="bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] rounded-2xl px-3.5 py-2.5 shadow-2xs flex items-center justify-between">
-                  <div className="min-w-0">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">Facturi Primite</span>
-                    <div className="text-lg font-bold tabular-nums text-slate-900 dark:text-white mt-0.5 leading-tight">{currentKpis.totalCount}</div>
-                    <div className="text-[10.5px] text-slate-400">în selecția activă</div>
+              {/* KPI Cards Primite */}
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                <div className="apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+                  <div className="flex items-center justify-between gap-2 w-full">
+                    <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+                      Facturi primite
+                    </span>
+                    <span className="w-7 h-7 rounded-[8px] bg-[#f2f4f7] dark:bg-[#2c2c2e] flex items-center justify-center shrink-0">
+                      <FileText className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#0a84ff]" />
+                    </span>
                   </div>
-                  <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/60 text-blue-600 flex items-center justify-center shrink-0">
-                    <FileText className="w-3.5 h-3.5" />
-                  </div>
-                </div>
-
-                <div className="bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] rounded-2xl px-3.5 py-2.5 shadow-2xs flex items-center justify-between">
-                  <div className="min-w-0">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">Bază Impozabilă</span>
-                    <div className="text-base sm:text-lg font-bold tabular-nums text-slate-900 dark:text-white mt-0.5 leading-tight truncate">{formatCurrency(currentKpis.totalBase)}</div>
-                    <div className="text-[10.5px] text-slate-400">valoare fără TVA</div>
-                  </div>
-                  <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60 text-emerald-600 flex items-center justify-center shrink-0">
-                    <Coins className="w-3.5 h-3.5" />
+                  <div className="flex items-baseline gap-2 tabular-nums">
+                    <span className="text-[22px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none">
+                      {currentKpis.totalCount}
+                    </span>
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] rounded-2xl px-3.5 py-2.5 shadow-2xs flex items-center justify-between">
-                  <div className="min-w-0">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">TVA Deductibil</span>
-                    <div className="text-base sm:text-lg font-bold tabular-nums text-amber-600 dark:text-amber-400 mt-0.5 leading-tight truncate">{formatCurrency(currentKpis.totalVat)}</div>
-                    <div className="text-[10.5px] text-slate-400">sumă totală TVA</div>
+                <div className="apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+                  <div className="flex items-center justify-between gap-2 w-full">
+                    <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+                      Bază impozabilă
+                    </span>
+                    <span className="w-7 h-7 rounded-[8px] bg-[#eefbf3] dark:bg-emerald-500/18 flex items-center justify-center shrink-0">
+                      <Coins className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    </span>
                   </div>
-                  <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/60 text-amber-600 flex items-center justify-center shrink-0">
-                    <Percent className="w-3.5 h-3.5" />
-                  </div>
-                </div>
-
-                <div className="bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] rounded-2xl px-3.5 py-2.5 shadow-2xs flex items-center justify-between">
-                  <div className="min-w-0">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">Total de Plată</span>
-                    <div className="text-base sm:text-lg font-bold tabular-nums text-slate-900 dark:text-white mt-0.5 leading-tight truncate">{formatCurrency(currentKpis.totalGross)}</div>
-                    <div className="text-[10.5px] text-slate-400">valoare brută cu TVA</div>
-                  </div>
-                  <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/60 text-indigo-600 flex items-center justify-center shrink-0">
-                    <Receipt className="w-3.5 h-3.5" />
+                  <div className="tabular-nums min-w-0">
+                    <span className="text-[20px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none truncate block">
+                      {formatCurrency(currentKpis.totalBase)}
+                    </span>
                   </div>
                 </div>
 
-                <div className="col-span-2 lg:col-span-1 bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] rounded-2xl px-3.5 py-2.5 shadow-2xs flex items-center justify-between">
-                  <div className="flex-1 mr-2 min-w-0">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">Recepții NIR</span>
-                    <div className="flex items-baseline gap-1.5 mt-0.5 tabular-nums">
-                      <span className="text-lg font-bold text-slate-900 dark:text-white leading-tight">{currentKpis.withNirCount}</span>
-                      <span className="text-xs text-slate-500">/ {currentKpis.totalCount}</span>
-                      <span className="text-xs font-bold text-teal-600 dark:text-teal-400 ml-auto">{currentKpis.nirCoveragePercent}%</span>
+                <div className="apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+                  <div className="flex items-center justify-between gap-2 w-full">
+                    <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+                      TVA deductibil
+                    </span>
+                    <span className="w-7 h-7 rounded-[8px] bg-[#fff6eb] dark:bg-amber-500/18 flex items-center justify-center shrink-0">
+                      <Percent className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                    </span>
+                  </div>
+                  <div className="tabular-nums min-w-0">
+                    <span className="text-[20px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none truncate block">
+                      {formatCurrency(currentKpis.totalVat)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+                  <div className="flex items-center justify-between gap-2 w-full">
+                    <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+                      Total de plată
+                    </span>
+                    <span className="w-7 h-7 rounded-[8px] bg-[#f2f4f7] dark:bg-[#2c2c2e] flex items-center justify-center shrink-0">
+                      <Receipt className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#0a84ff]" />
+                    </span>
+                  </div>
+                  <div className="tabular-nums min-w-0">
+                    <span className="text-[20px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none truncate block">
+                      {formatCurrency(currentKpis.totalGross)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="col-span-2 lg:col-span-1 apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2">
+                  <div className="flex items-center justify-between gap-2 w-full">
+                    <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+                      Recepții NIR
+                    </span>
+                    <span className="w-7 h-7 rounded-[8px] bg-teal-500/10 dark:bg-teal-500/18 flex items-center justify-center shrink-0">
+                      <ClipboardCheck className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                    </span>
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex items-baseline gap-1.5 tabular-nums">
+                      <span className="text-[22px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none">
+                        {currentKpis.withNirCount}
+                      </span>
+                      <span className="text-[12px] text-[#6e6e73] dark:text-[#98989d]">
+                        / {currentKpis.totalCount}
+                      </span>
+                      <span className="ml-auto px-2 py-0.5 rounded-full text-[11px] font-medium bg-teal-500/10 text-teal-700 dark:bg-teal-500/18 dark:text-teal-300 leading-none">
+                        {currentKpis.nirCoveragePercent}%
+                      </span>
                     </div>
-                    <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mt-1">
-                      <div className="bg-teal-500 h-full rounded-full transition-all duration-300" style={{ width: `${currentKpis.nirCoveragePercent}%` }} />
+                    <div className="w-full bg-[#f2f2f7] dark:bg-[#2c2c2e] h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className="bg-teal-500 h-full rounded-full transition-all duration-300"
+                        style={{ width: `${currentKpis.nirCoveragePercent}%` }}
+                      />
                     </div>
-                  </div>
-                  <div className="w-8 h-8 rounded-xl bg-teal-50 dark:bg-teal-950/40 border border-teal-200/60 dark:border-teal-800/60 text-teal-600 flex items-center justify-center shrink-0">
-                    <ClipboardCheck className="w-3.5 h-3.5" />
                   </div>
                 </div>
               </div>
 
-              {/* Filtre Primite */}
-              <div className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 shadow-xs p-3.5 space-y-3">
-                <div className="flex items-center gap-2.5 w-full flex-wrap">
-                  <div className="relative flex-1 min-w-[220px]">
-                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    <input
-                      type="text"
-                      value={search}
-                      onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                      placeholder="Caută furnizor, CUI, număr factură..."
-                      className="w-full h-8 pl-9 pr-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+              {/* Unified Single-Row Filter & Search Toolbar (Primite) */}
+              <div className="apple-surface px-3 py-2.5">
+                <div className="flex flex-wrap xl:flex-nowrap items-center gap-1.5 2xl:gap-2 w-full min-w-0">
+                  {/* Period Segmented Track */}
+                  <div className="apple-segmented flex-wrap sm:flex-nowrap !rounded-2xl sm:!rounded-full max-w-full shrink-0">
+                    {[
+                      { id: "all", label: "Toate" },
+                      { id: "current_month", label: "Lună" },
+                      { id: "last_month", label: "Luna trec." },
+                      { id: "last_3_months", label: "3 luni" },
+                      { id: "current_year", label: "An" },
+                      { id: "custom", label: "Interval" },
+                    ].map(item => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        data-active={period === item.id}
+                        onClick={() => {
+                          setPeriod(item.id as any);
+                          setPage(1);
+                        }}
+                        className="apple-segmented-item px-2 2xl:px-2.5 shrink-0"
+                      >
+                        {item.label}
+                      </button>
+                    ))}
                   </div>
 
-                  <div className="w-[160px] sm:w-[180px] flex-shrink-0 relative">
-                    <Calendar className="w-3.5 h-3.5 text-blue-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    <select
-                      value={period}
-                      onChange={(e: any) => { setPeriod(e.target.value); setPage(1); }}
-                      className="w-full h-8 pl-8 pr-4 rounded-full border border-slate-200 dark:border-slate-700 text-xs font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                    >
-                      <option value="all">Perioadă: Toate</option>
-                      <option value="current_month">Luna curentă</option>
-                      <option value="last_month">Luna anterioară</option>
-                      <option value="last_3_months">Ultimele 3 luni</option>
-                      <option value="current_year">Anul curent</option>
-                      <option value="custom">Personalizat...</option>
-                    </select>
-                  </div>
+                  {period === "custom" && (
+                    <div className="inline-flex items-center gap-1 px-2.5 h-[34px] rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] text-xs tabular-nums shrink-0 max-w-full overflow-x-auto no-scrollbar">
+                      <Calendar className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
+                      <input
+                        type="date"
+                        value={customStartDate}
+                        onChange={e => {
+                          setCustomStartDate(e.target.value);
+                          setPage(1);
+                        }}
+                        className="h-6 px-1 text-xs tabular-nums bg-transparent text-[#1d1d1f] dark:text-[#f5f5f7] outline-none w-[104px]"
+                      />
+                      <span className="text-[#8e8e93]">–</span>
+                      <input
+                        type="date"
+                        value={customEndDate}
+                        onChange={e => {
+                          setCustomEndDate(e.target.value);
+                          setPage(1);
+                        }}
+                        className="h-6 px-1 text-xs tabular-nums bg-transparent text-[#1d1d1f] dark:text-[#f5f5f7] outline-none w-[104px]"
+                      />
+                    </div>
+                  )}
 
-                  <div className="w-[145px] sm:w-[165px] flex-shrink-0 relative">
-                    <ClipboardCheck className="w-3.5 h-3.5 text-teal-600 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    <select
-                      value={nirFilter}
-                      onChange={(e: any) => { setNirFilter(e.target.value); setPage(1); }}
-                      className="w-full h-8 pl-8 pr-4 rounded-full border border-slate-200 dark:border-slate-700 text-xs font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                    >
-                      <option value="all">NIR: Toate</option>
-                      <option value="cu_nir">Cu NIR generat</option>
-                      <option value="fara_nir">○ Fără NIR</option>
-                    </select>
-                  </div>
-
-                  <div className="w-[150px] sm:w-[180px] flex-shrink-0 relative">
-                    <Building2 className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    <select
-                      value={supplierFilter}
-                      onChange={(e) => { setSupplierFilter(e.target.value); setPage(1); }}
-                      className="w-full h-8 pl-8 pr-4 rounded-full border border-slate-200 dark:border-slate-700 text-xs font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer truncate"
-                    >
-                      <option value="all">Furnizor: Toți ({allSuppliers.length})</option>
-                      {allSuppliers.map((supp) => (
-                        <option key={supp} value={supp}>{supp}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {period === "custom" && (
-                  <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
-                    <span className="text-xs font-medium text-slate-500">De la:</span>
-                    <input
-                      type="date"
-                      value={customStartDate}
-                      onChange={(e) => setCustomStartDate(e.target.value)}
-                      className="h-8 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs tabular-nums text-slate-900 dark:text-white outline-none"
-                    />
-                    <span className="text-xs font-medium text-slate-500">Până la:</span>
-                    <input
-                      type="date"
-                      value={customEndDate}
-                      onChange={(e) => setCustomEndDate(e.target.value)}
-                      className="h-8 px-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs tabular-nums text-slate-900 dark:text-white outline-none"
-                    />
-                  </div>
-                )}
-
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <div className="text-xs text-slate-500 tabular-nums">
-                    Afișare <span className="font-bold text-slate-900 dark:text-white">{filteredInvoices.length}</span> facturi găsite
-                    {selectedIds.size > 0 && (
-                      <span className="ml-2 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 font-bold border border-blue-200 dark:border-blue-800">
-                        {selectedIds.size} selectate
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2">
+                  {/* NIR Filter Segmented */}
+                  <div className="apple-segmented max-w-full overflow-x-auto no-scrollbar shrink-0">
                     <button
-                      onClick={handleExportExcel}
-                      disabled={filteredInvoices.length === 0}
-                      className="h-8 px-3.5 rounded-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 transition-colors shadow-2xs disabled:opacity-50"
+                      type="button"
+                      data-active={nirFilter === "cu_nir"}
+                      onClick={() => {
+                        setNirFilter(nirFilter === "cu_nir" ? "all" : "cu_nir");
+                        setPage(1);
+                      }}
+                      className="apple-segmented-item px-2 2xl:px-2.5 tabular-nums shrink-0"
                     >
-                      <FileSpreadsheet className="w-3.5 h-3.5" />
-                      <span>Export Excel (.xlsx)</span>
+                      <span>Cu NIR</span>
+                      <span className="opacity-75">{currentKpis.withNirCount}</span>
                     </button>
-
                     <button
-                      onClick={handleDownloadZipBundle}
-                      disabled={filteredInvoices.length === 0 || isDownloadingZip}
-                      className="h-8 px-3.5 rounded-full text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-1.5 transition-colors shadow-2xs disabled:opacity-50"
+                      type="button"
+                      data-active={nirFilter === "fara_nir"}
+                      onClick={() => {
+                        setNirFilter(
+                          nirFilter === "fara_nir" ? "all" : "fara_nir"
+                        );
+                        setPage(1);
+                      }}
+                      className="apple-segmented-item px-2 2xl:px-2.5 tabular-nums shrink-0"
                     >
-                      {isDownloadingZip ? (
+                      <span>Fără NIR</span>
+                      <span className="opacity-75">
+                        {currentKpis.withoutNirCount}
+                      </span>
+                    </button>
+                  </div>
+
+                  {/* Right Side: Supplier Select + Search + Reset */}
+                  <div className="xl:ml-auto flex flex-wrap sm:flex-nowrap items-center gap-1.5 2xl:gap-2 w-full xl:w-auto xl:flex-1 justify-end min-w-0">
+                    <Select
+                      value={supplierFilter}
+                      onValueChange={val => {
+                        setSupplierFilter(val);
+                        setPage(1);
+                      }}
+                    >
+                      <SelectTrigger
+                        data-filtered={supplierFilter !== "all"}
+                        className="apple-pill-control h-[34px] w-auto max-w-[210px] shrink-0 whitespace-nowrap flex items-center gap-1.5 px-2.5 2xl:px-3"
+                      >
+                        <Building2 className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
+                        <SelectValue placeholder="Toți furnizorii" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">
+                          Toți furnizorii ({allSuppliers.length})
+                        </SelectItem>
+                        {allSuppliers.map(supp => (
+                          <SelectItem key={supp} value={supp}>
+                            {supp}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <div className="relative flex-1 min-w-[130px] max-w-full sm:max-w-[260px]">
+                      <Search className="w-3.5 h-3.5 text-[#8e8e93] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={search}
+                        onChange={e => {
+                          setSearch(e.target.value);
+                          setPage(1);
+                        }}
+                        placeholder="Caută furnizor, CUI, factură..."
+                        style={{ paddingLeft: 34, paddingRight: search ? 74 : 14 }}
+                        className="apple-pill-control rounded-full w-full h-[34px] outline-none text-[13px] text-[#1d1d1f] dark:text-white placeholder:text-[#8e8e93] focus:bg-white dark:focus:bg-[#2c2c2e] focus:border-black/15 dark:focus:border-white/20"
+                      />
+                      {search && (
                         <>
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          <span>{zipProgress || "Comprimare..."}</span>
-                        </>
-                      ) : (
-                        <>
-                          <Package className="w-3.5 h-3.5" />
-                          <span>Descarcă Pachet ZIP</span>
+                          <span className="absolute right-7 top-1/2 -translate-y-1/2 bg-black/[0.07] dark:bg-white/[0.14] text-[#1d1d1f] dark:text-white rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums whitespace-nowrap">
+                            {filteredInvoices.length}/{incomingCount}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSearch("");
+                              setPage(1);
+                            }}
+                            aria-label="Șterge căutarea"
+                            className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center hover:bg-black/[0.07] dark:hover:bg-white/[0.12] cursor-pointer"
+                          >
+                            <X className="w-3 h-3 text-[#6e6e73] dark:text-[#98989d]" />
+                          </button>
                         </>
                       )}
-                    </button>
+                    </div>
 
-                    <button
-                      onClick={handleDownloadSagaXml}
-                      disabled={downloadSagaXmlMutation.isPending}
-                      className="h-8 px-3.5 rounded-full text-xs font-semibold bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 flex items-center gap-1.5 transition-colors shadow-2xs disabled:opacity-50"
-                    >
-                      {downloadSagaXmlMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileCode className="w-3.5 h-3.5" />}
-                      <span>Export XML SAGA</span>
-                    </button>
+                    {hasActiveReceivedFilters && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearch("");
+                          setPeriod("all");
+                          setNirFilter("all");
+                          setSupplierFilter("all");
+                          setPage(1);
+                        }}
+                        title="Elimină toate filtrele"
+                        aria-label="Elimină toate filtrele"
+                        className="apple-pill-control w-[34px] h-[34px] shrink-0 flex items-center justify-center text-[#6e6e73] hover:text-[#1d1d1f] dark:text-[#98989d] dark:hover:text-white cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
 
               {/* Tabel Facturi Primite */}
-              <div className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
+              <div className="apple-surface overflow-hidden">
+                {selectedIds.size > 0 && (
+                  <div className="flex items-center justify-between gap-3 px-4 py-2 bg-[#f2f2f7]/90 dark:bg-[#2c2c2e]/85 border-b border-black/[0.06] dark:border-white/[0.08]">
+                    <span className="text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums">
+                      {selectedIds.size} facturi selectate pentru export
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedIds(new Set())}
+                      className="apple-btn-glass px-3 h-7 rounded-full text-[12px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
+                    >
+                      Deselectează
+                    </button>
+                  </div>
+                )}
+
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse text-xs">
-                    <thead>
-                      <tr className="bg-slate-50/80 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold text-slate-500 uppercase tracking-wide select-none">
-                        <th className="px-2.5 py-2.5 w-8 text-center">
+                  <table className="w-full text-left text-[13px]">
+                    <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+                      <tr>
+                        <th className="px-4 py-3 w-10 text-center">
                           <input
                             type="checkbox"
-                            checked={selectedIds.size === filteredInvoices.length && filteredInvoices.length > 0}
+                            checked={
+                              selectedIds.size === filteredInvoices.length &&
+                              filteredInvoices.length > 0
+                            }
                             onChange={handleToggleSelectAll}
-                            className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                            className="w-4 h-4 rounded border-black/20 dark:border-white/25 text-primary cursor-pointer"
                           />
                         </th>
-                        <th className="px-1.5 py-2.5 w-8 text-center text-slate-400">#</th>
-                        <th className="px-2.5 py-2.5 whitespace-nowrap">Dată / Scad.</th>
-                        <th className="px-2.5 py-2.5">Furnizor & CUI</th>
-                        <th className="px-2.5 py-2.5 whitespace-nowrap">Nr. Factură</th>
-                        <th className="px-2 py-2.5 text-right whitespace-nowrap">Bază</th>
-                        <th className="px-2 py-2.5 text-right whitespace-nowrap">TVA</th>
-                        <th className="px-2.5 py-2.5 text-right whitespace-nowrap">Total</th>
-                        <th className="px-2 py-2.5 text-center whitespace-nowrap">Status NIR</th>
-                        <th className="px-2 py-2.5 text-center w-16 whitespace-nowrap">Doc</th>
+                        <th className="px-3 py-3 w-12 text-center text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                          Nr.
+                        </th>
+                        <th className="px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                          Dată & Scadență
+                        </th>
+                        <th className="px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                          Furnizor & CUI
+                        </th>
+                        <th className="px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                          Nr. factură
+                        </th>
+                        <th className="px-4 py-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                          Bază
+                        </th>
+                        <th className="px-4 py-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                          TVA
+                        </th>
+                        <th className="px-4 py-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                          Total
+                        </th>
+                        <th className="px-4 py-3 text-center text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                          Status NIR
+                        </th>
+                        <th className="px-4 py-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                          Documente
+                        </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
                       {isLoadingData ? (
                         <tr>
-                          <td colSpan={10} className="py-12 text-center">
-                            <Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto" />
+                          <td colSpan={10} className="py-14 text-center">
+                            <Loader2 className="w-6 h-6 animate-spin text-[#6e6e73] mx-auto" />
                           </td>
                         </tr>
                       ) : paginatedItems.length === 0 ? (
                         <tr>
-                          <td colSpan={10} className="py-10 text-center text-slate-500 bg-slate-50/50 dark:bg-slate-900/40">
+                          <td
+                            colSpan={10}
+                            className="py-12 text-center text-[13px] text-[#6e6e73] dark:text-[#98989d]"
+                          >
                             Nu a fost găsită nicio factură conform filtrelor selectate.
                           </td>
                         </tr>
                       ) : (
                         paginatedItems.map((inv: any, idx) => {
-                          const rowNumber = (page - 1) * pageSize + idx + 1;
+                          const rowNumber = (safePage - 1) * pageSize + idx + 1;
                           const isSelected = selectedIds.has(inv.id);
 
                           return (
                             <tr
                               key={inv.id}
-                              className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors ${isSelected ? "bg-blue-50/50 dark:bg-blue-950/30" : ""}`}
+                              className={`hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors ${
+                                isSelected
+                                  ? "bg-[#0071e3]/[0.05] dark:bg-[#0a84ff]/[0.12]"
+                                  : ""
+                              }`}
                             >
-                              <td className="px-2.5 py-2 text-center">
+                              <td className="px-4 py-3 text-center">
                                 <input
                                   type="checkbox"
                                   checked={isSelected}
                                   onChange={() => handleToggleSelect(inv.id)}
-                                  className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                  className="w-4 h-4 rounded border-black/20 dark:border-white/25 text-primary cursor-pointer"
                                 />
                               </td>
-                              <td className="px-1.5 py-2 text-center tabular-nums font-bold text-xs text-slate-400">{rowNumber}</td>
-                              <td className="px-2.5 py-2 whitespace-nowrap tabular-nums">
-                                <div className="font-semibold text-slate-900 dark:text-white leading-tight">{formatDate(inv.issueDate)}</div>
-                                {inv.dueDate && <div className="text-[10px] text-slate-400 mt-0.5">Scad: {formatDate(inv.dueDate)}</div>}
+                              <td className="px-3 py-3 text-center tabular-nums font-medium text-[12px] text-[#8e8e93]">
+                                {rowNumber}
                               </td>
-                              <td className="px-2.5 py-2 max-w-[170px] xl:max-w-[220px]">
-                                <div className="font-bold text-slate-900 dark:text-white truncate" title={inv.supplierName}>{inv.supplierName}</div>
+                              <td className="px-4 py-3 whitespace-nowrap tabular-nums">
+                                <div className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#ebebf5] leading-tight">
+                                  {formatDate(inv.issueDate)}
+                                </div>
+                                {inv.dueDate && (
+                                  <div className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
+                                    Scad. {formatDate(inv.dueDate)}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 max-w-[230px]">
+                                <div
+                                  className="text-[13.5px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] truncate"
+                                  title={inv.supplierName}
+                                >
+                                  {inv.supplierName}
+                                </div>
                                 {inv.supplierCUI && (
                                   <div className="flex items-center gap-1 mt-0.5">
-                                    <span className="text-[10px] tabular-nums text-slate-500">{inv.supplierCUI}</span>
-                                    <button onClick={(e) => handleCopyCui(inv.supplierCUI, e)} title="Copiază CUI" aria-label="Copiază CUI" className="w-6 h-6 rounded-full inline-flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-                                      {copiedCui === inv.supplierCUI ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                                    <span className="text-[11.5px] tabular-nums text-[#6e6e73] dark:text-[#98989d]">
+                                      CUI {inv.supplierCUI}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={e => handleCopyCui(inv.supplierCUI, e)}
+                                      title="Copiază CUI"
+                                      aria-label="Copiază CUI"
+                                      className="w-5 h-5 rounded-full inline-flex items-center justify-center text-[#8e8e93] hover:text-[#1d1d1f] hover:bg-black/[0.06] dark:hover:text-white dark:hover:bg-white/[0.10] transition cursor-pointer"
+                                    >
+                                      {copiedCui === inv.supplierCUI ? (
+                                        <Check className="w-3 h-3 text-emerald-500" />
+                                      ) : (
+                                        <Copy className="w-3 h-3" />
+                                      )}
                                     </button>
                                   </div>
                                 )}
                               </td>
-                              <td className="px-2.5 py-2 whitespace-nowrap">
+                              <td className="px-4 py-3 whitespace-nowrap">
                                 <button
                                   type="button"
                                   onClick={() =>
@@ -1304,52 +1610,70 @@ export default function AccountantPortal() {
                                     })
                                   }
                                   title="Deschide factura în fereastră"
-                                  className="font-semibold text-blue-600 dark:text-blue-400 hover:underline text-left block"
+                                  className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] hover:underline tabular-nums text-left block cursor-pointer"
                                 >
                                   {inv.invoiceNumber}
                                 </button>
                                 {inv.spvIndex ? (
                                   <div
-                                    className="text-[10px] tabular-nums text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5"
+                                    className="text-[11px] tabular-nums text-[#8e8e93] mt-0.5"
                                     title={`Index încărcare SPV: ${inv.spvIndex}`}
                                   >
-                                    <span className="text-[10px] uppercase font-bold text-slate-400">SPV:</span>
-                                    <span>{inv.spvIndex}</span>
+                                    SPV #{inv.spvIndex}
                                   </div>
                                 ) : null}
                               </td>
-                              <td className="px-2 py-2 text-right tabular-nums text-slate-700 dark:text-slate-300 whitespace-nowrap">{formatCurrency(inv.totalBase, inv.currency)}</td>
-                              <td className="px-2 py-2 text-right tabular-nums text-slate-500 whitespace-nowrap">{formatCurrency(inv.totalVAT, inv.currency)}</td>
-                              <td className="px-2.5 py-2 text-right tabular-nums font-bold text-slate-900 dark:text-white whitespace-nowrap">{formatCurrency(inv.total, inv.currency)}</td>
-                              <td className="px-2 py-2 text-center whitespace-nowrap">
+                              <td className="px-4 py-3 text-right tabular-nums text-[13px] text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                                {formatCurrency(inv.totalBase, inv.currency)}
+                              </td>
+                              <td className="px-4 py-3 text-right tabular-nums text-[13px] text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                                {formatCurrency(inv.totalVAT, inv.currency)}
+                              </td>
+                              <td className="px-4 py-3 text-right tabular-nums text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] whitespace-nowrap">
+                                {formatCurrency(inv.total, inv.currency)}
+                              </td>
+                              <td className="px-4 py-3 text-center whitespace-nowrap">
                                 {inv.hasNir ? (
                                   <button
                                     type="button"
                                     onClick={() => {
                                       const targetNirId = inv.nirId || inv.id;
                                       const rawNum = inv.nirNumber || targetNirId;
-                                      const targetNirNum = String(rawNum).startsWith("NIR") ? rawNum : `NIR #${rawNum}`;
+                                      const targetNirNum = String(rawNum).startsWith(
+                                        "NIR"
+                                      )
+                                        ? rawNum
+                                        : `NIR #${rawNum}`;
                                       setPreviewDoc({
                                         isOpen: true,
                                         title: `${targetNirNum} — ${inv.supplierName}`,
-                                        pdfUrl: getAuthenticatedPdfUrl(`/api/pdf/nir/${targetNirId}`),
+                                        pdfUrl: getAuthenticatedPdfUrl(
+                                          `/api/pdf/nir/${targetNirId}`
+                                        ),
                                         filename: `${targetNirNum}.pdf`,
                                         type: "nir",
                                       });
                                     }}
                                     title="Deschide NIR în fereastră"
-                                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/50 border border-teal-200 dark:border-teal-800 transition-colors cursor-pointer"
+                                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-teal-500/10 text-teal-700 hover:bg-teal-500/18 dark:bg-teal-500/18 dark:text-teal-300 transition-colors cursor-pointer tabular-nums leading-none"
                                   >
-                                    <ClipboardCheck className="w-3 h-3 text-teal-600 dark:text-teal-400 shrink-0" />
-                                    <span>{inv.nirNumber ? (String(inv.nirNumber).startsWith("NIR") ? inv.nirNumber : `NIR #${inv.nirNumber}`) : "Recepție"}</span>
+                                    <ClipboardCheck className="w-3 h-3 shrink-0" />
+                                    <span>
+                                      {inv.nirNumber
+                                        ? String(inv.nirNumber).startsWith("NIR")
+                                          ? inv.nirNumber
+                                          : `NIR #${inv.nirNumber}`
+                                        : "Recepție"}
+                                    </span>
                                   </button>
                                 ) : (
-                                  <span className="text-slate-400 text-xs">Fără NIR</span>
+                                  <span className="text-[#8e8e93] text-[12px]">
+                                    Fără NIR
+                                  </span>
                                 )}
                               </td>
-                              {/* Butoane Documente — Iconițe compacte */}
-                              <td className="px-2 py-2 text-center whitespace-nowrap">
-                                <div className="flex items-center justify-center gap-1.5">
+                              <td className="px-4 py-3 text-right whitespace-nowrap">
+                                <div className="flex items-center justify-end gap-1.5">
                                   <button
                                     type="button"
                                     onClick={() =>
@@ -1363,7 +1687,7 @@ export default function AccountantPortal() {
                                     }
                                     title="Deschide factura în fereastră"
                                     aria-label="Deschide factura"
-                                    className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800 flex items-center justify-center transition-colors shadow-2xs"
+                                    className="w-8 h-8 rounded-full apple-btn-glass text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer"
                                   >
                                     <FileText className="w-3.5 h-3.5" />
                                   </button>
@@ -1374,18 +1698,24 @@ export default function AccountantPortal() {
                                       onClick={() => {
                                         const targetNirId = inv.nirId || inv.id;
                                         const rawNum = inv.nirNumber || targetNirId;
-                                        const targetNirNum = String(rawNum).startsWith("NIR") ? rawNum : `NIR #${rawNum}`;
+                                        const targetNirNum = String(
+                                          rawNum
+                                        ).startsWith("NIR")
+                                          ? rawNum
+                                          : `NIR #${rawNum}`;
                                         setPreviewDoc({
                                           isOpen: true,
                                           title: `${targetNirNum} — ${inv.supplierName}`,
-                                          pdfUrl: getAuthenticatedPdfUrl(`/api/pdf/nir/${targetNirId}`),
+                                          pdfUrl: getAuthenticatedPdfUrl(
+                                            `/api/pdf/nir/${targetNirId}`
+                                          ),
                                           filename: `${targetNirNum}.pdf`,
                                           type: "nir",
                                         });
                                       }}
                                       title="Deschide NIR în fereastră"
                                       aria-label="Deschide NIR"
-                                      className="w-8 h-8 rounded-full bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/50 border border-teal-200 dark:border-teal-800 flex items-center justify-center transition-colors shadow-2xs"
+                                      className="w-8 h-8 rounded-full apple-btn-glass text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 flex items-center justify-center transition-colors cursor-pointer"
                                     >
                                       <ClipboardCheck className="w-3.5 h-3.5" />
                                     </button>
@@ -1400,40 +1730,73 @@ export default function AccountantPortal() {
                   </table>
                 </div>
 
-                {/* Paginare Footer */}
-                <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 bg-white dark:bg-slate-900">
-                  <div className="flex items-center gap-2">
-                    <span>Rânduri pe pagină:</span>
-                    <select
-                      value={pageSize}
-                      onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
-                      className="h-7 px-2.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none cursor-pointer text-xs"
-                    >
-                      <option value={10}>10</option>
-                      <option value={25}>25</option>
-                      <option value={50}>50</option>
-                      <option value={100}>100</option>
-                    </select>
-                    <span className="text-slate-400 ml-2 tabular-nums">
-                      Afișare {filteredInvoices.length > 0 ? (page - 1) * pageSize + 1 : 0}-{Math.min(page * pageSize, filteredInvoices.length)} din {filteredInvoices.length}
+                {/* Paginare Footer Primite */}
+                <div className="px-4 py-3 border-t border-black/[0.05] dark:border-white/[0.07] bg-[#fafafa] dark:bg-white/[0.02] flex items-center justify-between flex-wrap gap-2 tabular-nums">
+                  <div className="flex items-center gap-3 text-[12px] text-[#6e6e73] dark:text-[#98989d]">
+                    <div className="flex items-center gap-1.5 whitespace-nowrap">
+                      <span>Rânduri:</span>
+                      <Select
+                        value={String(pageSize)}
+                        onValueChange={val => {
+                          setPageSize(Number(val));
+                          setPage(1);
+                        }}
+                      >
+                        <SelectTrigger className="h-7 px-2.5 text-xs border-black/[0.08] bg-white dark:bg-[#2c2c2e] dark:border-white/[0.10] w-[68px] rounded-full tabular-nums">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="10">10</SelectItem>
+                          <SelectItem value="25">25</SelectItem>
+                          <SelectItem value="50">50</SelectItem>
+                          <SelectItem value="100">100</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <span>
+                      Afișare{" "}
+                      <strong className="text-[#1d1d1f] dark:text-white font-semibold">
+                        {filteredInvoices.length > 0
+                          ? (safePage - 1) * pageSize + 1
+                          : 0}
+                        –
+                        {Math.min(safePage * pageSize, filteredInvoices.length)}
+                      </strong>{" "}
+                      din{" "}
+                      <strong className="text-[#1d1d1f] dark:text-white font-semibold">
+                        {filteredInvoices.length}
+                      </strong>
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 text-[12px] text-[#6e6e73] dark:text-[#98989d]">
+                    <span className="mr-1.5">
+                      Pagina{" "}
+                      <strong className="text-[#1d1d1f] dark:text-white font-semibold">
+                        {safePage}
+                      </strong>{" "}
+                      din{" "}
+                      <strong className="text-[#1d1d1f] dark:text-white font-semibold">
+                        {totalPages}
+                      </strong>
+                    </span>
                     <button
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      disabled={page <= 1}
-                      className="h-7 px-3 rounded-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 transition font-medium"
+                      type="button"
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      disabled={safePage <= 1}
+                      aria-label="Pagina anterioară"
+                      className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white disabled:opacity-35 transition cursor-pointer"
                     >
-                      Anterior
+                      <ChevronLeft className="w-3.5 h-3.5" />
                     </button>
-                    <span className="font-bold tabular-nums text-slate-700 dark:text-slate-200 px-1">{page} / {totalPages}</span>
                     <button
-                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                      disabled={page >= totalPages}
-                      className="h-7 px-3 rounded-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 transition font-medium"
+                      type="button"
+                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                      disabled={safePage >= totalPages}
+                      aria-label="Pagina următoare"
+                      className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white disabled:opacity-35 transition cursor-pointer"
                     >
-                      Următor
+                      <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
@@ -1444,155 +1807,275 @@ export default function AccountantPortal() {
           {/* TAB 2: FACTURI EMISE */}
           {activeTab === "emitted" && (
             <>
-              {/* Top KPI Cards Emise */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-                <div className="bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] rounded-2xl px-3.5 py-2.5 shadow-2xs flex items-center justify-between">
-                  <div className="min-w-0">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">Facturi Emise</span>
-                    <div className="text-lg font-bold tabular-nums text-slate-900 dark:text-white mt-0.5 leading-tight">{currentEmittedKpis.totalCount}</div>
-                    <div className="text-[10.5px] text-slate-400">vânzări către clienți</div>
+              {/* KPI Cards Emise */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+                  <div className="flex items-center justify-between gap-2 w-full">
+                    <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+                      Facturi emise
+                    </span>
+                    <span className="w-7 h-7 rounded-[8px] bg-[#eefbf3] dark:bg-emerald-500/18 flex items-center justify-center shrink-0">
+                      <FileOutput className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    </span>
                   </div>
-                  <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60 text-emerald-600 flex items-center justify-center shrink-0">
-                    <FileOutput className="w-3.5 h-3.5" />
-                  </div>
+                  <span className="text-[22px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none tabular-nums">
+                    {currentEmittedKpis.totalCount}
+                  </span>
                 </div>
 
-                <div className="bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] rounded-2xl px-3.5 py-2.5 shadow-2xs flex items-center justify-between">
-                  <div className="min-w-0">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">Bază Facturată</span>
-                    <div className="text-base sm:text-lg font-bold tabular-nums text-slate-900 dark:text-white mt-0.5 leading-tight truncate">{formatCurrency(currentEmittedKpis.totalBase)}</div>
-                    <div className="text-[10.5px] text-slate-400">venituri nete (fără TVA)</div>
+                <div className="apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+                  <div className="flex items-center justify-between gap-2 w-full">
+                    <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+                      Bază facturată
+                    </span>
+                    <span className="w-7 h-7 rounded-[8px] bg-[#f2f4f7] dark:bg-[#2c2c2e] flex items-center justify-center shrink-0">
+                      <Coins className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#0a84ff]" />
+                    </span>
                   </div>
-                  <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/60 text-blue-600 flex items-center justify-center shrink-0">
-                    <Coins className="w-3.5 h-3.5" />
-                  </div>
+                  <span className="text-[20px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none tabular-nums truncate">
+                    {formatCurrency(currentEmittedKpis.totalBase)}
+                  </span>
                 </div>
 
-                <div className="bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] rounded-2xl px-3.5 py-2.5 shadow-2xs flex items-center justify-between">
-                  <div className="min-w-0">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">TVA Colectat</span>
-                    <div className="text-base sm:text-lg font-bold tabular-nums text-amber-600 dark:text-amber-400 mt-0.5 leading-tight truncate">{formatCurrency(currentEmittedKpis.totalVat)}</div>
-                    <div className="text-[10.5px] text-slate-400">sumă totală TVA emis</div>
+                <div className="apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+                  <div className="flex items-center justify-between gap-2 w-full">
+                    <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+                      TVA colectat
+                    </span>
+                    <span className="w-7 h-7 rounded-[8px] bg-[#fff6eb] dark:bg-amber-500/18 flex items-center justify-center shrink-0">
+                      <Percent className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                    </span>
                   </div>
-                  <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/60 text-amber-600 flex items-center justify-center shrink-0">
-                    <Percent className="w-3.5 h-3.5" />
-                  </div>
+                  <span className="text-[20px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none tabular-nums truncate">
+                    {formatCurrency(currentEmittedKpis.totalVat)}
+                  </span>
                 </div>
 
-                <div className="bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] rounded-2xl px-3.5 py-2.5 shadow-2xs flex items-center justify-between">
-                  <div className="min-w-0">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">Total General Emis</span>
-                    <div className="text-base sm:text-lg font-bold tabular-nums text-slate-900 dark:text-white mt-0.5 leading-tight truncate">{formatCurrency(currentEmittedKpis.totalGross)}</div>
-                    <div className="text-[10.5px] text-slate-400">total de încasat</div>
+                <div className="apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+                  <div className="flex items-center justify-between gap-2 w-full">
+                    <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+                      Total general emis
+                    </span>
+                    <span className="w-7 h-7 rounded-[8px] bg-[#eefbf3] dark:bg-emerald-500/18 flex items-center justify-center shrink-0">
+                      <Receipt className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    </span>
                   </div>
-                  <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/60 text-indigo-600 flex items-center justify-center shrink-0">
-                    <Receipt className="w-3.5 h-3.5" />
-                  </div>
+                  <span className="text-[20px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none tabular-nums truncate">
+                    {formatCurrency(currentEmittedKpis.totalGross)}
+                  </span>
                 </div>
               </div>
 
-              {/* Filtre Emise */}
-              <div className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 shadow-xs p-3.5 space-y-3">
-                <div className="flex items-center gap-2.5 w-full flex-wrap">
-                  <div className="relative flex-1 min-w-[220px]">
-                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    <input
-                      type="text"
-                      value={searchEmitted}
-                      onChange={(e) => { setSearchEmitted(e.target.value); setPage(1); }}
-                      placeholder="Caută client, CUI, număr factură emisă..."
-                      className="w-full h-8 pl-9 pr-3 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-900 dark:text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+              {/* Unified Single-Row Filter & Search Toolbar (Emise) */}
+              <div className="apple-surface px-3 py-2.5">
+                <div className="flex flex-wrap xl:flex-nowrap items-center gap-1.5 2xl:gap-2 w-full min-w-0">
+                  <div className="apple-segmented flex-wrap sm:flex-nowrap !rounded-2xl sm:!rounded-full max-w-full shrink-0">
+                    {[
+                      { id: "all", label: "Toate" },
+                      { id: "current_month", label: "Lună" },
+                      { id: "last_month", label: "Luna trec." },
+                      { id: "last_3_months", label: "3 luni" },
+                      { id: "current_year", label: "An" },
+                      { id: "custom", label: "Interval" },
+                    ].map(item => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        data-active={periodEmitted === item.id}
+                        onClick={() => {
+                          setPeriodEmitted(item.id as any);
+                          setPage(1);
+                        }}
+                        className="apple-segmented-item px-2 2xl:px-2.5 shrink-0"
+                      >
+                        {item.label}
+                      </button>
+                    ))}
                   </div>
 
-                  <div className="w-[160px] sm:w-[180px] flex-shrink-0 relative">
-                    <Calendar className="w-3.5 h-3.5 text-blue-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    <select
-                      value={periodEmitted}
-                      onChange={(e: any) => { setPeriodEmitted(e.target.value); setPage(1); }}
-                      className="w-full h-8 pl-8 pr-4 rounded-full border border-slate-200 dark:border-slate-700 text-xs font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                    >
-                      <option value="all">Perioadă: Toate</option>
-                      <option value="current_month">Luna curentă</option>
-                      <option value="last_month">Luna anterioară</option>
-                      <option value="last_3_months">Ultimele 3 luni</option>
-                      <option value="current_year">Anul curent</option>
-                      <option value="custom">Personalizat...</option>
-                    </select>
-                  </div>
-                </div>
+                  {periodEmitted === "custom" && (
+                    <div className="inline-flex items-center gap-1 px-2.5 h-[34px] rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] text-xs tabular-nums shrink-0 max-w-full overflow-x-auto no-scrollbar">
+                      <Calendar className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
+                      <input
+                        type="date"
+                        value={customStartDateEmitted}
+                        onChange={e => {
+                          setCustomStartDateEmitted(e.target.value);
+                          setPage(1);
+                        }}
+                        className="h-6 px-1 text-xs tabular-nums bg-transparent text-[#1d1d1f] dark:text-[#f5f5f7] outline-none w-[104px]"
+                      />
+                      <span className="text-[#8e8e93]">–</span>
+                      <input
+                        type="date"
+                        value={customEndDateEmitted}
+                        onChange={e => {
+                          setCustomEndDateEmitted(e.target.value);
+                          setPage(1);
+                        }}
+                        className="h-6 px-1 text-xs tabular-nums bg-transparent text-[#1d1d1f] dark:text-[#f5f5f7] outline-none w-[104px]"
+                      />
+                    </div>
+                  )}
 
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <div className="text-xs text-slate-500">
-                    Afișare <span className="font-bold text-slate-900 dark:text-white">{filteredEmittedInvoices.length}</span> facturi emise găsite
-                  </div>
+                  <div className="xl:ml-auto flex items-center gap-1.5 w-full xl:w-auto xl:flex-1 justify-end min-w-0">
+                    <div className="relative flex-1 min-w-[140px] max-w-full sm:max-w-[300px]">
+                      <Search className="w-3.5 h-3.5 text-[#8e8e93] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={searchEmitted}
+                        onChange={e => {
+                          setSearchEmitted(e.target.value);
+                          setPage(1);
+                        }}
+                        placeholder="Caută client, CUI, factură emisă..."
+                        style={{
+                          paddingLeft: 34,
+                          paddingRight: searchEmitted ? 74 : 14,
+                        }}
+                        className="apple-pill-control rounded-full w-full h-[34px] outline-none text-[13px] text-[#1d1d1f] dark:text-white placeholder:text-[#8e8e93] focus:bg-white dark:focus:bg-[#2c2c2e] focus:border-black/15 dark:focus:border-white/20"
+                      />
+                      {searchEmitted && (
+                        <>
+                          <span className="absolute right-7 top-1/2 -translate-y-1/2 bg-black/[0.07] dark:bg-white/[0.14] text-[#1d1d1f] dark:text-white rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums whitespace-nowrap">
+                            {filteredEmittedInvoices.length}/{emittedCount}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSearchEmitted("");
+                              setPage(1);
+                            }}
+                            aria-label="Șterge căutarea"
+                            className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center hover:bg-black/[0.07] dark:hover:bg-white/[0.12] cursor-pointer"
+                          >
+                            <X className="w-3 h-3 text-[#6e6e73] dark:text-[#98989d]" />
+                          </button>
+                        </>
+                      )}
+                    </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleExportEmittedExcel}
-                      disabled={filteredEmittedInvoices.length === 0}
-                      className="h-8 px-3.5 rounded-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 transition-colors shadow-2xs disabled:opacity-50"
-                    >
-                      <FileSpreadsheet className="w-3.5 h-3.5" />
-                      <span>Export Excel (.xlsx)</span>
-                    </button>
+                    {hasActiveEmittedFilters && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchEmitted("");
+                          setPeriodEmitted("all");
+                          setPage(1);
+                        }}
+                        title="Elimină toate filtrele"
+                        aria-label="Elimină toate filtrele"
+                        className="apple-pill-control w-[34px] h-[34px] shrink-0 flex items-center justify-center text-[#6e6e73] hover:text-[#1d1d1f] dark:text-[#98989d] dark:hover:text-white cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
 
               {/* Tabel Facturi Emise */}
-              <div className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
+              <div className="apple-surface overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse text-xs">
-                    <thead>
-                      <tr className="bg-slate-50/80 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold text-slate-500 uppercase tracking-wide select-none">
-                        <th className="px-1.5 py-2.5 w-8 text-center text-slate-400">#</th>
-                        <th className="px-2.5 py-2.5 whitespace-nowrap">Dată / Scad.</th>
-                        <th className="px-2.5 py-2.5">Client & CUI</th>
-                        <th className="px-2.5 py-2.5 whitespace-nowrap">Nr. Factură</th>
-                        <th className="px-2 py-2.5 text-right whitespace-nowrap">Bază</th>
-                        <th className="px-2 py-2.5 text-right whitespace-nowrap">TVA</th>
-                        <th className="px-2.5 py-2.5 text-right whitespace-nowrap">Total</th>
-                        <th className="px-2.5 py-2.5 text-center whitespace-nowrap">Stare</th>
-                        <th className="px-2 py-2.5 text-center w-14 whitespace-nowrap">Doc</th>
+                  <table className="w-full text-left text-[13px]">
+                    <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+                      <tr>
+                        <th className="px-3 py-3 w-12 text-center text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                          Nr.
+                        </th>
+                        <th className="px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                          Dată & Scadență
+                        </th>
+                        <th className="px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                          Client & CUI
+                        </th>
+                        <th className="px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                          Nr. factură
+                        </th>
+                        <th className="px-4 py-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                          Bază
+                        </th>
+                        <th className="px-4 py-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                          TVA
+                        </th>
+                        <th className="px-4 py-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                          Total
+                        </th>
+                        <th className="px-4 py-3 text-center text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                          Stare
+                        </th>
+                        <th className="px-4 py-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                          Document
+                        </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
                       {isLoadingData ? (
                         <tr>
-                          <td colSpan={9} className="py-12 text-center">
-                            <Loader2 className="w-6 h-6 animate-spin text-blue-600 mx-auto" />
+                          <td colSpan={9} className="py-14 text-center">
+                            <Loader2 className="w-6 h-6 animate-spin text-[#6e6e73] mx-auto" />
                           </td>
                         </tr>
                       ) : paginatedItems.length === 0 ? (
                         <tr>
-                          <td colSpan={9} className="py-10 text-center text-slate-500 bg-slate-50/50 dark:bg-slate-900/40">
+                          <td
+                            colSpan={9}
+                            className="py-12 text-center text-[13px] text-[#6e6e73] dark:text-[#98989d]"
+                          >
                             Nu a fost găsită nicio factură emisă conform filtrelor.
                           </td>
                         </tr>
                       ) : (
                         paginatedItems.map((inv: any, idx) => {
-                          const rowNumber = (page - 1) * pageSize + idx + 1;
+                          const rowNumber = (safePage - 1) * pageSize + idx + 1;
 
                           return (
-                            <tr key={`${inv.source}-${inv.id}`} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
-                              <td className="px-1.5 py-2 text-center tabular-nums font-bold text-xs text-slate-400">{rowNumber}</td>
-                              <td className="px-2.5 py-2 whitespace-nowrap tabular-nums">
-                                <div className="font-semibold text-slate-900 dark:text-white leading-tight">{formatDate(inv.issueDate)}</div>
-                                {inv.dueDate && <div className="text-[10px] text-slate-400 mt-0.5">Scad: {formatDate(inv.dueDate)}</div>}
+                            <tr
+                              key={`${inv.source}-${inv.id}`}
+                              className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors"
+                            >
+                              <td className="px-3 py-3 text-center tabular-nums font-medium text-[12px] text-[#8e8e93]">
+                                {rowNumber}
                               </td>
-                              <td className="px-2.5 py-2 max-w-[170px] xl:max-w-[220px]">
-                                <div className="font-bold text-slate-900 dark:text-white truncate" title={inv.clientName}>{inv.clientName}</div>
+                              <td className="px-4 py-3 whitespace-nowrap tabular-nums">
+                                <div className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#ebebf5] leading-tight">
+                                  {formatDate(inv.issueDate)}
+                                </div>
+                                {inv.dueDate && (
+                                  <div className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
+                                    Scad. {formatDate(inv.dueDate)}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 max-w-[230px]">
+                                <div
+                                  className="text-[13.5px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] truncate"
+                                  title={inv.clientName}
+                                >
+                                  {inv.clientName}
+                                </div>
                                 {inv.clientCUI && (
                                   <div className="flex items-center gap-1 mt-0.5">
-                                    <span className="text-[10px] tabular-nums text-slate-500">{inv.clientCUI}</span>
-                                    <button onClick={(e) => handleCopyCui(inv.clientCUI, e)} title="Copiază CUI" aria-label="Copiază CUI" className="w-6 h-6 rounded-full inline-flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-                                      {copiedCui === inv.clientCUI ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                                    <span className="text-[11.5px] tabular-nums text-[#6e6e73] dark:text-[#98989d]">
+                                      CUI {inv.clientCUI}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={e => handleCopyCui(inv.clientCUI, e)}
+                                      title="Copiază CUI"
+                                      aria-label="Copiază CUI"
+                                      className="w-5 h-5 rounded-full inline-flex items-center justify-center text-[#8e8e93] hover:text-[#1d1d1f] hover:bg-black/[0.06] dark:hover:text-white dark:hover:bg-white/[0.10] transition cursor-pointer"
+                                    >
+                                      {copiedCui === inv.clientCUI ? (
+                                        <Check className="w-3 h-3 text-emerald-500" />
+                                      ) : (
+                                        <Copy className="w-3 h-3" />
+                                      )}
                                     </button>
                                   </div>
                                 )}
                               </td>
-                              <td className="px-2.5 py-2 whitespace-nowrap">
+                              <td className="px-4 py-3 whitespace-nowrap">
                                 <button
                                   type="button"
                                   onClick={() =>
@@ -1605,29 +2088,34 @@ export default function AccountantPortal() {
                                     })
                                   }
                                   title="Deschide factura în fereastră"
-                                  className="font-semibold text-emerald-600 dark:text-emerald-400 hover:underline text-left block"
+                                  className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] hover:underline tabular-nums text-left block cursor-pointer"
                                 >
                                   {inv.invoiceNumber}
                                 </button>
                                 {inv.spvIndex ? (
                                   <div
-                                    className="text-[10px] tabular-nums text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5"
+                                    className="text-[11px] tabular-nums text-[#8e8e93] mt-0.5"
                                     title={`Index încărcare SPV: ${inv.spvIndex}`}
                                   >
-                                    <span className="text-[10px] uppercase font-bold text-slate-400">SPV:</span>
-                                    <span>{inv.spvIndex}</span>
+                                    SPV #{inv.spvIndex}
                                   </div>
                                 ) : null}
                               </td>
-                              <td className="px-2 py-2 text-right tabular-nums text-slate-700 dark:text-slate-300 whitespace-nowrap">{formatCurrency(inv.totalBase, inv.currency)}</td>
-                              <td className="px-2 py-2 text-right tabular-nums text-slate-500 whitespace-nowrap">{formatCurrency(inv.totalVAT, inv.currency)}</td>
-                              <td className="px-2.5 py-2 text-right tabular-nums font-bold text-slate-900 dark:text-white whitespace-nowrap">{formatCurrency(inv.total, inv.currency)}</td>
-                              <td className="px-2.5 py-2 text-center whitespace-nowrap">
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                                  {inv.status || "emis"}
+                              <td className="px-4 py-3 text-right tabular-nums text-[13px] text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                                {formatCurrency(inv.totalBase, inv.currency)}
+                              </td>
+                              <td className="px-4 py-3 text-right tabular-nums text-[13px] text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                                {formatCurrency(inv.totalVAT, inv.currency)}
+                              </td>
+                              <td className="px-4 py-3 text-right tabular-nums text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] whitespace-nowrap">
+                                {formatCurrency(inv.total, inv.currency)}
+                              </td>
+                              <td className="px-4 py-3 text-center whitespace-nowrap">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 dark:bg-emerald-500/18 dark:text-emerald-300 dark:border-emerald-500/25 leading-none">
+                                  {inv.status || "Emis"}
                                 </span>
                               </td>
-                              <td className="px-2 py-2 text-center whitespace-nowrap">
+                              <td className="px-4 py-3 text-right whitespace-nowrap">
                                 <button
                                   type="button"
                                   onClick={() =>
@@ -1641,7 +2129,7 @@ export default function AccountantPortal() {
                                   }
                                   title="Deschide factura în fereastră"
                                   aria-label="Deschide factura"
-                                  className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800 inline-flex items-center justify-center transition-colors shadow-2xs"
+                                  className="w-8 h-8 rounded-full apple-btn-glass text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white inline-flex items-center justify-center transition-colors cursor-pointer"
                                 >
                                   <FileText className="w-3.5 h-3.5" />
                                 </button>
@@ -1655,39 +2143,75 @@ export default function AccountantPortal() {
                 </div>
 
                 {/* Paginare Footer Emise */}
-                <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 bg-white dark:bg-slate-900">
-                  <div className="flex items-center gap-2">
-                    <span>Rânduri pe pagină:</span>
-                    <select
-                      value={pageSize}
-                      onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
-                      className="h-7 px-2.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none cursor-pointer text-xs"
-                    >
-                      <option value={10}>10</option>
-                      <option value={25}>25</option>
-                      <option value={50}>50</option>
-                      <option value={100}>100</option>
-                    </select>
-                    <span className="text-slate-400 ml-2 tabular-nums">
-                      Afișare {filteredEmittedInvoices.length > 0 ? (page - 1) * pageSize + 1 : 0}-{Math.min(page * pageSize, filteredEmittedInvoices.length)} din {filteredEmittedInvoices.length}
+                <div className="px-4 py-3 border-t border-black/[0.05] dark:border-white/[0.07] bg-[#fafafa] dark:bg-white/[0.02] flex items-center justify-between flex-wrap gap-2 tabular-nums">
+                  <div className="flex items-center gap-3 text-[12px] text-[#6e6e73] dark:text-[#98989d]">
+                    <div className="flex items-center gap-1.5 whitespace-nowrap">
+                      <span>Rânduri:</span>
+                      <Select
+                        value={String(pageSize)}
+                        onValueChange={val => {
+                          setPageSize(Number(val));
+                          setPage(1);
+                        }}
+                      >
+                        <SelectTrigger className="h-7 px-2.5 text-xs border-black/[0.08] bg-white dark:bg-[#2c2c2e] dark:border-white/[0.10] w-[68px] rounded-full tabular-nums">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="10">10</SelectItem>
+                          <SelectItem value="25">25</SelectItem>
+                          <SelectItem value="50">50</SelectItem>
+                          <SelectItem value="100">100</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <span>
+                      Afișare{" "}
+                      <strong className="text-[#1d1d1f] dark:text-white font-semibold">
+                        {filteredEmittedInvoices.length > 0
+                          ? (safePage - 1) * pageSize + 1
+                          : 0}
+                        –
+                        {Math.min(
+                          safePage * pageSize,
+                          filteredEmittedInvoices.length
+                        )}
+                      </strong>{" "}
+                      din{" "}
+                      <strong className="text-[#1d1d1f] dark:text-white font-semibold">
+                        {filteredEmittedInvoices.length}
+                      </strong>
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 text-[12px] text-[#6e6e73] dark:text-[#98989d]">
+                    <span className="mr-1.5">
+                      Pagina{" "}
+                      <strong className="text-[#1d1d1f] dark:text-white font-semibold">
+                        {safePage}
+                      </strong>{" "}
+                      din{" "}
+                      <strong className="text-[#1d1d1f] dark:text-white font-semibold">
+                        {totalPages}
+                      </strong>
+                    </span>
                     <button
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      disabled={page <= 1}
-                      className="h-7 px-3 rounded-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 transition font-medium"
+                      type="button"
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      disabled={safePage <= 1}
+                      aria-label="Pagina anterioară"
+                      className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white disabled:opacity-35 transition cursor-pointer"
                     >
-                      Anterior
+                      <ChevronLeft className="w-3.5 h-3.5" />
                     </button>
-                    <span className="font-bold tabular-nums text-slate-700 dark:text-slate-200 px-1">{page} / {totalPages}</span>
                     <button
-                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                      disabled={page >= totalPages}
-                      className="h-7 px-3 rounded-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 transition font-medium"
+                      type="button"
+                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                      disabled={safePage >= totalPages}
+                      aria-label="Pagina următoare"
+                      className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white disabled:opacity-35 transition cursor-pointer"
                     >
-                      Următor
+                      <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
@@ -1700,7 +2224,9 @@ export default function AccountantPortal() {
       {/* MODAL UNIVERSAL PENTRU PREVIZUALIZARE PDF ÎN FEREASTRĂ (FĂRĂ TAB NOU) */}
       <DocumentModalPreview
         isOpen={previewDoc.isOpen}
-        onClose={() => setPreviewDoc((prev) => ({ ...prev, isOpen: false, pdfUrl: null }))}
+        onClose={() =>
+          setPreviewDoc(prev => ({ ...prev, isOpen: false, pdfUrl: null }))
+        }
         title={previewDoc.title}
         pdfUrl={previewDoc.pdfUrl}
         filename={previewDoc.filename}

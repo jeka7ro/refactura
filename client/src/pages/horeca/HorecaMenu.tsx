@@ -82,28 +82,23 @@ export default function HorecaMenu() {
   const syrveProducts = syrveMenu?.products || [];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-w-full overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
-            <BookOpen className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-              Management Meniu
-            </h1>
-            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">
-              Categorii, Produse, Rețete & Meniu Syrve Live
-            </p>
-          </div>
+      <div className="flex items-center justify-between gap-3 flex-wrap px-0.5">
+        <div>
+          <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
+            Management meniu
+          </h1>
+          <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
+            Categorii, produse, rețete & meniu Syrve Live
+          </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {activeTab === "syrve" && (
             <select
               value={syrveBrand}
               onChange={e => setSyrveBrand(e.target.value)}
-              className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-3 py-2 rounded-full text-sm font-medium focus:outline-none focus:border-blue-500 shadow-sm"
+              className="apple-pill-control px-3.5 h-[34px] text-[12.5px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none cursor-pointer"
             >
               <option value="rollmaster">Roll Master</option>
               <option value="lovesushi">Love Sushi</option>
@@ -116,7 +111,7 @@ export default function HorecaMenu() {
             <select
               value={locationId}
               onChange={e => setSelectedLocationId(Number(e.target.value))}
-              className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-3 py-2 rounded-full text-sm font-medium focus:outline-none focus:border-blue-500 shadow-sm"
+              className="apple-pill-control px-3.5 h-[34px] text-[12.5px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none cursor-pointer"
             >
               {locations.map(l => (
                 <option key={l.id} value={l.id}>
@@ -128,40 +123,50 @@ export default function HorecaMenu() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 bg-slate-100 dark:bg-slate-800/60 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 w-fit shadow-sm">
-        <button
-          onClick={() => setActiveTab("syrve")}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all ${activeTab === "syrve" ? "bg-blue-600 text-white shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"}`}
-        >
-          <LinkIcon className="w-4 h-4" /> Syrve Live ({syrveProducts.length})
-        </button>
-        <button
-          onClick={() => setActiveTab("categories")}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all ${activeTab === "categories" ? "bg-blue-600 text-white shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"}`}
-        >
-          <Tag className="w-4 h-4" /> Categorii
-        </button>
-        <button
-          onClick={() => setActiveTab("items")}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all ${activeTab === "items" ? "bg-blue-600 text-white shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"}`}
-        >
-          <UtensilsCrossed className="w-4 h-4" /> Produse & Prețuri
-        </button>
-        <button
-          onClick={() => setActiveTab("recipes")}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all ${activeTab === "recipes" ? "bg-blue-600 text-white shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"}`}
-        >
-          <ChefHat className="w-4 h-4" /> Rețetar
-        </button>
+      {/* Tabs inside apple-surface */}
+      <div className="apple-surface px-3 py-2.5">
+        <div className="apple-segmented flex-wrap !rounded-2xl sm:!rounded-full max-w-full">
+          <button
+            type="button"
+            data-active={activeTab === "syrve"}
+            onClick={() => setActiveTab("syrve")}
+            className="apple-segmented-item px-3.5 h-8 text-xs tabular-nums"
+          >
+            <LinkIcon className="w-3.5 h-3.5" /> Syrve Live ({syrveProducts.length})
+          </button>
+          <button
+            type="button"
+            data-active={activeTab === "categories"}
+            onClick={() => setActiveTab("categories")}
+            className="apple-segmented-item px-3.5 h-8 text-xs"
+          >
+            <Tag className="w-3.5 h-3.5" /> Categorii
+          </button>
+          <button
+            type="button"
+            data-active={activeTab === "items"}
+            onClick={() => setActiveTab("items")}
+            className="apple-segmented-item px-3.5 h-8 text-xs"
+          >
+            <UtensilsCrossed className="w-3.5 h-3.5" /> Produse & prețuri
+          </button>
+          <button
+            type="button"
+            data-active={activeTab === "recipes"}
+            onClick={() => setActiveTab("recipes")}
+            className="apple-segmented-item px-3.5 h-8 text-xs"
+          >
+            <ChefHat className="w-3.5 h-3.5" /> Rețetar
+          </button>
+        </div>
       </div>
 
       {/* Alert Warning pentru Rețetar */}
       {activeTab === "recipes" && (
-        <div className="bg-amber-50 dark:bg-yellow-500/10 border border-amber-200 dark:border-yellow-500/20 text-amber-800 dark:text-yellow-400 p-4 rounded-xl flex gap-3 shadow-sm">
-          <AlertCircle className="w-5 h-5 flex-shrink-0" />
-          <div className="text-sm font-medium">
-            <p className="font-bold mb-1">
+        <div className="bg-amber-500/10 dark:bg-amber-500/14 border border-amber-500/20 text-amber-800 dark:text-amber-300 p-4 rounded-2xl flex gap-3">
+          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+          <div className="text-[13px]">
+            <p className="font-semibold mb-0.5">
               Atenție: Rețetarul scade stocurile automat!
             </p>
             <p className="opacity-90 leading-snug">
@@ -174,27 +179,28 @@ export default function HorecaMenu() {
       )}
 
       {/* Content */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
+      <div className="apple-surface overflow-hidden">
         {activeTab === "syrve" && (
-          <div className="p-6">
+          <div className="p-5 sm:p-6">
             {syrveLoading ? (
               <div className="flex justify-center py-12">
-                <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                <Loader2 className="w-7 h-7 text-primary animate-spin" />
               </div>
             ) : selectedSyrveProduct ? (
-              <div className="animate-in fade-in zoom-in-95 duration-200 p-2 sm:p-6">
+              <div className="animate-in fade-in zoom-in-95 duration-200 p-2 sm:p-4">
                 <button
+                  type="button"
                   onClick={() => setSelectedSyrveProduct(null)}
-                  className="mb-8 flex items-center gap-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors font-semibold"
+                  className="apple-btn-glass mb-6 inline-flex items-center gap-1.5 px-3.5 h-8 text-xs font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
                 >
-                  <ChevronLeft className="w-5 h-5" />
-                  Înapoi la Meniu
+                  <ChevronLeft className="w-4 h-4" />
+                  Înapoi la meniu
                 </button>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-start">
-                  {/* IMAGINE URIAȘĂ */}
-                  <div 
-                    className="relative rounded-3xl overflow-hidden bg-slate-100 dark:bg-slate-800 shadow-md border border-slate-200 dark:border-slate-700 aspect-square flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity group"
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
+                  {/* IMAGINE */}
+                  <div
+                    className="relative rounded-2xl overflow-hidden bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.06] dark:border-white/[0.08] aspect-square flex items-center justify-center cursor-pointer hover:opacity-95 transition-opacity group"
                     onClick={() => {
                       if (selectedSyrveProduct.image) {
                         setFullscreenImage(selectedSyrveProduct.image);
@@ -208,52 +214,52 @@ export default function HorecaMenu() {
                           alt={selectedSyrveProduct.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                          <Search className="w-12 h-12 text-white opacity-0 group-hover:opacity-100 drop-shadow-md transition-opacity" />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors flex items-center justify-center">
+                          <Search className="w-10 h-10 text-white opacity-0 group-hover:opacity-100 drop-shadow-md transition-opacity" />
                         </div>
                       </>
                     ) : (
-                      <UtensilsCrossed className="w-24 h-24 text-slate-300 dark:text-slate-600" />
+                      <UtensilsCrossed className="w-20 h-20 text-[#8e8e93]" />
                     )}
                   </div>
 
                   {/* DETALII */}
-                  <div className="flex flex-col h-full py-4">
-                    <span className="inline-block px-3 py-1 bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 text-xs font-bold rounded-full w-fit mb-4">
+                  <div className="flex flex-col h-full py-2">
+                    <span className="inline-block px-3 py-1 bg-[#0071e3]/10 dark:bg-[#0a84ff]/18 text-[#0071e3] dark:text-[#64d2ff] text-xs font-semibold rounded-full w-fit mb-3">
                       {selectedSyrveProduct.categoryName || "Fără categorie"}
                     </span>
-                    
-                    <h2 className="text-4xl lg:text-5xl font-black text-slate-900 dark:text-white leading-tight mb-4 tracking-tight">
+
+                    <h2 className="text-3xl lg:text-4xl font-bold text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight mb-3 tracking-tight">
                       {selectedSyrveProduct.name}
                     </h2>
-                    
-                    <div className="text-3xl font-black text-slate-900 dark:text-white mb-8 pb-8 border-b border-slate-200 dark:border-slate-800">
-                      {selectedSyrveProduct.price} <span className="text-xl text-slate-500 font-bold">RON</span>
+
+                    <div className="text-2xl font-bold text-[#1d1d1f] dark:text-[#f5f5f7] mb-6 pb-6 border-b border-black/[0.06] dark:border-white/[0.08] tabular-nums">
+                      {selectedSyrveProduct.price} <span className="text-base text-[#6e6e73] dark:text-[#98989d] font-semibold">RON</span>
                     </div>
 
                     {selectedSyrveProduct.description && (
-                      <div className="mb-10">
-                        <h3 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">Ingrediente / Descriere</h3>
-                        <div 
-                          className="text-lg text-slate-600 dark:text-slate-300 leading-relaxed font-medium"
-                          dangerouslySetInnerHTML={{ __html: formatSafeDescriptionHtml(selectedSyrveProduct.description) }} 
+                      <div className="mb-8">
+                        <h3 className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-2.5">Ingrediente / descriere</h3>
+                        <div
+                          className="text-[15px] text-[#1d1d1f] dark:text-[#ebebf5] leading-relaxed"
+                          dangerouslySetInnerHTML={{ __html: formatSafeDescriptionHtml(selectedSyrveProduct.description) }}
                         />
                       </div>
                     )}
 
                     {selectedSyrveProduct.modifierGroups && selectedSyrveProduct.modifierGroups.length > 0 && (
                       <div>
-                        <h3 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">Modificatori ({selectedSyrveProduct.modifierGroups.length})</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <h3 className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-3 tabular-nums">Modificatori ({selectedSyrveProduct.modifierGroups.length})</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {selectedSyrveProduct.modifierGroups.map((group: any, idx: number) => (
-                            <div key={idx} className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
-                              <div className="font-bold text-slate-900 dark:text-white mb-2">
+                            <div key={idx} className="bg-[#f2f2f7] dark:bg-[#2c2c2e] p-3.5 rounded-xl border border-black/[0.06] dark:border-white/[0.08]">
+                              <div className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] mb-1.5 text-sm">
                                 Grupa {idx + 1}
                               </div>
-                              <div className="text-sm text-slate-500 space-y-1">
-                                <p>Minim: <strong className="text-slate-700 dark:text-slate-300">{group.minQuantity}</strong></p>
-                                <p>Maxim: <strong className="text-slate-700 dark:text-slate-300">{group.maxQuantity}</strong></p>
-                                <p className="text-xs mt-2 text-slate-400">ID: {group.modifierId}</p>
+                              <div className="text-xs text-[#6e6e73] dark:text-[#98989d] space-y-1 tabular-nums">
+                                <p>Minim: <strong className="text-[#1d1d1f] dark:text-[#ebebf5]">{group.minQuantity}</strong></p>
+                                <p>Maxim: <strong className="text-[#1d1d1f] dark:text-[#ebebf5]">{group.maxQuantity}</strong></p>
+                                <p className="text-[11px] mt-1.5 text-[#8e8e93]">ID: {group.modifierId}</p>
                               </div>
                             </div>
                           ))}
@@ -265,29 +271,29 @@ export default function HorecaMenu() {
               </div>
             ) : (
               <>
-                <div className="mb-4 flex items-center justify-between">
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    <strong className="text-slate-900 dark:text-white">
+                <div className="mb-4 flex items-center justify-between flex-wrap gap-2">
+                  <p className="text-[13px] text-[#6e6e73] dark:text-[#98989d] tabular-nums">
+                    <strong className="text-[#1d1d1f] dark:text-[#f5f5f7]">
                       {syrveProducts.length}
                     </strong>{" "}
                     produse în{" "}
-                    <strong className="text-slate-900 dark:text-white">
+                    <strong className="text-[#1d1d1f] dark:text-[#f5f5f7]">
                       {syrveCategories.length}
                     </strong>{" "}
                     categorii — brand{" "}
-                    <strong className="text-blue-600">{syrveBrand}</strong>
+                    <strong className="text-primary">{syrveBrand}</strong>
                   </p>
-                  <span className="text-xs text-amber-600 font-semibold">
-                    READ-ONLY din Syrve (iiko)
+                  <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-amber-500/12 text-amber-700 dark:text-amber-300 font-medium">
+                    Read-only din Syrve (iiko)
                   </span>
                 </div>
 
                 {/* Categories pills */}
-                <div className="flex flex-wrap gap-2 mb-5">
+                <div className="flex flex-wrap gap-1.5 mb-5">
                   {syrveCategories.map((c: any) => (
                     <span
                       key={c.id || c.name}
-                      className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-3 py-1.5 rounded-full text-xs font-semibold border border-slate-200 dark:border-slate-700"
+                      className="bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#ebebf5] px-3 py-1 rounded-full text-xs font-medium border border-black/[0.06] dark:border-white/[0.08]"
                     >
                       {c.name}
                     </span>
@@ -295,32 +301,32 @@ export default function HorecaMenu() {
                 </div>
 
                 {/* Products table */}
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto -mx-5 sm:-mx-6">
                   <table className="w-full text-sm">
-                    <thead className="bg-slate-50 dark:bg-slate-800/50">
-                      <tr className="text-slate-600 dark:text-slate-400 text-left text-xs uppercase tracking-wider">
-                        <th className="px-4 py-3 font-semibold text-center w-12">
+                    <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-y border-black/[0.05] dark:border-white/[0.07]">
+                      <tr className="text-[#6e6e73] dark:text-[#98989d] text-left text-[12px] font-medium">
+                        <th className="px-4 py-3 font-medium text-center w-12">
                           Nr.
                         </th>
-                        <th className="px-4 py-3 font-semibold w-16">Foto</th>
-                        <th className="px-4 py-3 font-semibold">Produs</th>
-                        <th className="px-4 py-3 font-semibold text-right">
+                        <th className="px-4 py-3 font-medium w-16">Foto</th>
+                        <th className="px-4 py-3 font-medium">Produs</th>
+                        <th className="px-4 py-3 font-medium text-right">
                           Preț
                         </th>
-                        <th className="px-4 py-3 font-semibold">Categorie</th>
-                        <th className="px-4 py-3 font-semibold">
+                        <th className="px-4 py-3 font-medium">Categorie</th>
+                        <th className="px-4 py-3 font-medium">
                           Modificatori
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06] tabular-nums">
                       {syrveProducts.map((p: any, idx: number) => (
                         <tr
                           key={p.id}
                           onClick={() => setSelectedSyrveProduct(p)}
-                          className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
+                          className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors cursor-pointer"
                         >
-                          <td className="px-4 py-2.5 text-center text-slate-400 text-xs">
+                          <td className="px-4 py-2.5 text-center text-[#8e8e93] text-xs">
                             {idx + 1}
                           </td>
                           <td className="px-4 py-2.5">
@@ -328,44 +334,44 @@ export default function HorecaMenu() {
                               <img
                                 src={getProxiedHorecaImageUrl(p.image)}
                                 alt={p.name}
-                                className="w-10 h-10 rounded-lg object-cover bg-slate-100"
+                                className="w-10 h-10 rounded-lg object-cover bg-[#f2f2f7] dark:bg-[#2c2c2e]"
                                 onError={e => {
                                   (e.target as HTMLImageElement).style.display =
                                     "none";
                                 }}
                               />
                             ) : (
-                              <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 text-xs">
+                              <div className="w-10 h-10 rounded-lg bg-[#f2f2f7] dark:bg-[#2c2c2e] flex items-center justify-center text-[#8e8e93] text-xs">
                                 —
                               </div>
                             )}
                           </td>
                           <td className="px-4 py-2.5">
-                            <span className="font-semibold text-slate-900 dark:text-white">
+                            <span className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] text-[13.5px]">
                               {p.name}
                             </span>
                             {p.description && (
-                              <p 
-                                className="text-xs text-slate-400 mt-0.5 line-clamp-1" 
-                                dangerouslySetInnerHTML={{ __html: formatSafeDescriptionHtml(p.description) }} 
+                              <p
+                                className="text-xs text-[#6e6e73] dark:text-[#98989d] mt-0.5 line-clamp-1"
+                                dangerouslySetInnerHTML={{ __html: formatSafeDescriptionHtml(p.description) }}
                               />
                             )}
                           </td>
-                          <td className="px-4 py-2.5 text-right font-bold text-blue-600 dark:text-blue-400">
+                          <td className="px-4 py-2.5 text-right font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] text-[13.5px]">
                             {p.price} RON
                           </td>
                           <td className="px-4 py-2.5">
-                            <span className="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-slate-600 dark:text-slate-300">
+                            <span className="text-xs bg-[#f2f2f7] dark:bg-[#2c2c2e] px-2.5 py-0.5 rounded-full text-[#3a3a3c] dark:text-[#ebebf5]">
                               {p.categoryName || "—"}
                             </span>
                           </td>
                           <td className="px-4 py-2.5">
                             {p.modifierGroups && p.modifierGroups.length > 0 ? (
-                              <span className="text-xs text-green-600 font-semibold">
+                              <span className="text-xs text-emerald-700 dark:text-emerald-300 font-medium">
                                 {p.modifierGroups.length} grupe
                               </span>
                             ) : (
-                              <span className="text-xs text-slate-400">—</span>
+                              <span className="text-xs text-[#8e8e93]">—</span>
                             )}
                           </td>
                         </tr>
@@ -374,8 +380,8 @@ export default function HorecaMenu() {
                   </table>
                 </div>
 
-                <div className="mt-3 px-4 py-2 text-xs text-slate-400 border-t border-slate-100 dark:border-slate-800">
-                  Total: <strong>{syrveProducts.length}</strong> produse afișate
+                <div className="mt-3 pt-3 text-xs text-[#6e6e73] dark:text-[#98989d] border-t border-black/[0.05] dark:border-white/[0.07] tabular-nums">
+                  Total: <strong className="text-[#1d1d1f] dark:text-[#f5f5f7]">{syrveProducts.length}</strong> produse afișate
                 </div>
               </>
             )}
@@ -384,16 +390,17 @@ export default function HorecaMenu() {
 
         {/* FULLSCREEN IMAGE LIGHTBOX */}
         {fullscreenImage && (
-          <div 
+          <div
             className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-in fade-in duration-200"
             onClick={() => setFullscreenImage(null)}
           >
             <button
-              onClick={(e) => {
+              type="button"
+              onClick={e => {
                 e.stopPropagation();
                 setFullscreenImage(null);
               }}
-              className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors backdrop-blur-md"
+              className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors backdrop-blur-md cursor-pointer"
             >
               <X className="w-6 h-6" />
             </button>
@@ -401,7 +408,7 @@ export default function HorecaMenu() {
               src={getProxiedHorecaImageUrl(fullscreenImage)}
               alt="Fullscreen View"
               className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
+              onClick={e => e.stopPropagation()}
             />
           </div>
         )}
@@ -452,46 +459,47 @@ function CategoriesTab({ locationId }: { locationId: number }) {
 
   return (
     <div>
-      <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
-        <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-          Categorii Meniu
+      <div className="px-4 sm:px-5 py-3.5 border-b border-black/[0.05] dark:border-white/[0.07] flex justify-between items-center bg-[#fafafa] dark:bg-white/[0.025]">
+        <h2 className="text-[15px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7]">
+          Categorii meniu
         </h2>
         <button
+          type="button"
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-sm font-bold transition-colors shadow-sm"
+          className={`${showForm ? "apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7]" : "apple-btn-prominent text-white"} inline-flex items-center gap-1.5 px-4 h-8 text-xs font-semibold cursor-pointer`}
         >
-          {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+          {showForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
           {showForm ? "Anulează" : "Categorie nouă"}
         </button>
       </div>
 
       {showForm && (
-        <div className="p-5 bg-blue-50/50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
+        <div className="p-5 bg-[#f5f5f7]/60 dark:bg-white/[0.02] border-b border-black/[0.05] dark:border-white/[0.07]">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-slate-600 dark:text-slate-400 text-sm font-semibold mb-1">
+              <label className="block text-[#6e6e73] dark:text-[#98989d] text-[12.5px] font-medium mb-1">
                 Nume *
               </label>
               <input
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 placeholder="ex: Pizza"
-                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 focus:outline-none shadow-sm"
+                className="apple-input w-full h-9 px-3 text-sm"
               />
             </div>
             <div>
-              <label className="block text-slate-600 dark:text-slate-400 text-sm font-semibold mb-1">
-                Simbol / Etichetă
+              <label className="block text-[#6e6e73] dark:text-[#98989d] text-[12.5px] font-medium mb-1">
+                Simbol / etichetă
               </label>
               <input
                 value={form.icon}
                 onChange={e => setForm(f => ({ ...f, icon: e.target.value }))}
                 placeholder=""
-                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 focus:outline-none shadow-sm"
+                className="apple-input w-full h-9 px-3 text-sm"
               />
             </div>
             <div>
-              <label className="block text-slate-600 dark:text-slate-400 text-sm font-semibold mb-1">
+              <label className="block text-[#6e6e73] dark:text-[#98989d] text-[12.5px] font-medium mb-1">
                 Ordine
               </label>
               <input
@@ -500,14 +508,15 @@ function CategoriesTab({ locationId }: { locationId: number }) {
                 onChange={e =>
                   setForm(f => ({ ...f, sortOrder: Number(e.target.value) }))
                 }
-                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 focus:outline-none shadow-sm"
+                className="apple-input w-full h-9 px-3 text-sm tabular-nums"
               />
             </div>
             <div className="flex items-end">
               <button
+                type="button"
                 onClick={() => createMut.mutate({ locationId, ...form })}
                 disabled={createMut.isPending || !form.name.trim()}
-                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-full text-sm font-bold transition-colors shadow-sm"
+                className="apple-btn-prominent w-full flex items-center justify-center gap-1.5 disabled:opacity-50 text-white px-4 h-9 text-xs font-semibold cursor-pointer"
               >
                 {createMut.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -523,32 +532,32 @@ function CategoriesTab({ locationId }: { locationId: number }) {
 
       {isLoading ? (
         <div className="p-8 flex justify-center">
-          <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+          <Loader2 className="w-6 h-6 text-primary animate-spin" />
         </div>
       ) : (
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
-            <tr className="text-slate-600 dark:text-slate-400 text-left font-semibold">
-              <th className="px-4 py-3 uppercase tracking-wider text-xs">
+          <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+            <tr className="text-[#6e6e73] dark:text-[#98989d] text-left font-medium text-[12px]">
+              <th className="px-4 py-3 font-medium">
                 Icon
               </th>
-              <th className="px-4 py-3 uppercase tracking-wider text-xs">
-                Nume Categorie
+              <th className="px-4 py-3 font-medium">
+                Nume categorie
               </th>
-              <th className="px-4 py-3 uppercase tracking-wider text-xs">
+              <th className="px-4 py-3 font-medium">
                 Ordine
               </th>
-              <th className="px-4 py-3 uppercase tracking-wider text-xs text-right">
+              <th className="px-4 py-3 font-medium text-right">
                 Acțiuni
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+          <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06] tabular-nums">
             {categories.length === 0 && (
               <tr>
                 <td
                   colSpan={4}
-                  className="p-8 text-center text-slate-500 dark:text-slate-400"
+                  className="p-8 text-center text-[#6e6e73] dark:text-[#98989d] text-[13px]"
                 >
                   Nu există categorii. Adaugă prima categorie.
                 </td>
@@ -557,21 +566,22 @@ function CategoriesTab({ locationId }: { locationId: number }) {
             {categories.map(c => (
               <tr
                 key={c.id}
-                className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors"
               >
-                <td className="px-4 py-3 text-2xl">{c.icon}</td>
-                <td className="px-4 py-3 font-bold text-slate-900 dark:text-white text-base">
+                <td className="px-4 py-3 text-xl">{c.icon}</td>
+                <td className="px-4 py-3 font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] text-[14px]">
                   {c.name}
                 </td>
-                <td className="px-4 py-3 text-slate-600 dark:text-slate-400 font-medium">
+                <td className="px-4 py-3 text-[#6e6e73] dark:text-[#98989d] font-medium">
                   {c.sortOrder}
                 </td>
                 <td className="px-4 py-3 text-right">
                   <button
+                    type="button"
                     onClick={() => setCategoryToDelete(c)}
-                    className="p-2 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                    className="apple-btn-glass w-8 h-8 inline-flex items-center justify-center text-[#ff3b30] dark:text-[#ff453a] hover:bg-[#ff3b30]/10 cursor-pointer"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </td>
               </tr>
@@ -584,22 +594,22 @@ function CategoriesTab({ locationId }: { locationId: number }) {
         open={!!categoryToDelete}
         onOpenChange={open => !open && setCategoryToDelete(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.10]">
           <AlertDialogHeader>
-            <AlertDialogTitle>
+            <AlertDialogTitle className="text-[#1d1d1f] dark:text-[#f5f5f7]">
               Ștergi categoria „{categoryToDelete?.name}”?
             </AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-[#6e6e73] dark:text-[#98989d]">
               Categoria va fi eliminată din meniul locației.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-full">Anulează</AlertDialogCancel>
+            <AlertDialogCancel className="apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7]">Anulează</AlertDialogCancel>
             <AlertDialogAction
               onClick={() =>
                 categoryToDelete && deleteMut.mutate({ id: categoryToDelete.id })
               }
-              className="rounded-full bg-red-600 hover:bg-red-700 text-white"
+              className="rounded-full bg-[#ff3b30] hover:bg-[#d70015] text-white"
             >
               Șterge categoria
             </AlertDialogAction>
@@ -669,13 +679,13 @@ function ItemsTab({ locationId }: { locationId: number }) {
 
   return (
     <div>
-      <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-wrap gap-4 justify-between items-center bg-slate-50 dark:bg-slate-800/50">
-        <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-          Produse Meniu
+      <div className="px-4 sm:px-5 py-3.5 border-b border-black/[0.05] dark:border-white/[0.07] flex flex-wrap gap-3 justify-between items-center bg-[#fafafa] dark:bg-white/[0.025]">
+        <h2 className="text-[15px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7]">
+          Produse meniu
         </h2>
-        <div className="flex gap-3 w-full sm:w-auto">
+        <div className="flex gap-2.5 w-full sm:w-auto items-center">
           <div className="relative flex-1 sm:w-64">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 z-10" />
+            <Search className="w-3.5 h-3.5 text-[#8e8e93] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               value={search}
               onChange={e => {
@@ -683,17 +693,19 @@ function ItemsTab({ locationId }: { locationId: number }) {
                 setPage(1);
               }}
               placeholder="Caută produs..."
-              className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white focus:border-blue-500 focus:outline-none shadow-sm rounded-full"
+              style={{ paddingLeft: 34 }}
+              className="apple-pill-control rounded-full w-full h-[34px] pr-3 text-[13px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none focus:bg-white dark:focus:bg-[#2c2c2e]"
             />
           </div>
           <button
+            type="button"
             onClick={() => setShowForm(!showForm)}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm whitespace-nowrap"
+            className={`${showForm ? "apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7]" : "apple-btn-prominent text-white"} inline-flex items-center gap-1.5 px-4 h-[34px] text-xs font-semibold whitespace-nowrap cursor-pointer`}
           >
             {showForm ? (
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5" />
             ) : (
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3.5 h-3.5" />
             )}
             {showForm ? "Anulează" : "Produs nou"}
           </button>
@@ -701,20 +713,20 @@ function ItemsTab({ locationId }: { locationId: number }) {
       </div>
 
       {showForm && (
-        <div className="p-5 bg-blue-50/50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
+        <div className="p-5 bg-[#f5f5f7]/60 dark:bg-white/[0.02] border-b border-black/[0.05] dark:border-white/[0.07]">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="md:col-span-2">
-              <label className="block text-slate-600 dark:text-slate-400 text-sm font-semibold mb-1">
+              <label className="block text-[#6e6e73] dark:text-[#98989d] text-[12.5px] font-medium mb-1">
                 Nume *
               </label>
               <input
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 focus:outline-none shadow-sm"
+                className="apple-input w-full h-9 px-3 text-sm"
               />
             </div>
             <div>
-              <label className="block text-slate-600 dark:text-slate-400 text-sm font-semibold mb-1">
+              <label className="block text-[#6e6e73] dark:text-[#98989d] text-[12.5px] font-medium mb-1">
                 Categorie *
               </label>
               <select
@@ -722,7 +734,7 @@ function ItemsTab({ locationId }: { locationId: number }) {
                 onChange={e =>
                   setForm(f => ({ ...f, categoryId: Number(e.target.value) }))
                 }
-                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-blue-500 focus:outline-none shadow-sm"
+                className="apple-input w-full h-9 px-3 text-sm cursor-pointer"
               >
                 <option value={0}>— Selectează —</option>
                 {categories.map(c => (
@@ -733,7 +745,7 @@ function ItemsTab({ locationId }: { locationId: number }) {
               </select>
             </div>
             <div>
-              <label className="block text-slate-600 dark:text-slate-400 text-sm font-semibold mb-1">
+              <label className="block text-[#6e6e73] dark:text-[#98989d] text-[12.5px] font-medium mb-1">
                 Preț cu TVA (RON) *
               </label>
               <input
@@ -743,11 +755,11 @@ function ItemsTab({ locationId }: { locationId: number }) {
                 onChange={e =>
                   setForm(f => ({ ...f, price: Number(e.target.value) }))
                 }
-                className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white font-bold focus:border-blue-500 focus:outline-none shadow-sm"
+                className="apple-input w-full h-9 px-3 text-sm font-semibold tabular-nums"
               />
             </div>
-            <div className="md:col-span-4 grid grid-cols-3 gap-4 border-t border-slate-200 dark:border-slate-700 pt-4 mt-2">
-              <label className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-medium text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-lg transition-colors">
+            <div className="md:col-span-4 grid grid-cols-1 sm:grid-cols-3 gap-3 border-t border-black/[0.06] dark:border-white/[0.08] pt-4 mt-1">
+              <label className="flex items-center gap-2 text-[#1d1d1f] dark:text-[#ebebf5] font-medium text-xs cursor-pointer hover:bg-black/[0.04] dark:hover:bg-white/[0.05] p-2 rounded-xl transition-colors">
                 <input
                   type="checkbox"
                   checked={form.isAvailableDineIn}
@@ -757,11 +769,11 @@ function ItemsTab({ locationId }: { locationId: number }) {
                       isAvailableDineIn: e.target.checked,
                     }))
                   }
-                  className="rounded text-blue-500 focus:ring-blue-500"
+                  className="rounded"
                 />
-                Disponibil La Masă
+                Disponibil la masă
               </label>
-              <label className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-medium text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-lg transition-colors">
+              <label className="flex items-center gap-2 text-[#1d1d1f] dark:text-[#ebebf5] font-medium text-xs cursor-pointer hover:bg-black/[0.04] dark:hover:bg-white/[0.05] p-2 rounded-xl transition-colors">
                 <input
                   type="checkbox"
                   checked={form.isAvailableTakeaway}
@@ -771,11 +783,11 @@ function ItemsTab({ locationId }: { locationId: number }) {
                       isAvailableTakeaway: e.target.checked,
                     }))
                   }
-                  className="rounded text-blue-500 focus:ring-blue-500"
+                  className="rounded"
                 />
-                Disponibil Ridicare
+                Disponibil ridicare
               </label>
-              <label className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-medium text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 p-2 rounded-lg transition-colors">
+              <label className="flex items-center gap-2 text-[#1d1d1f] dark:text-[#ebebf5] font-medium text-xs cursor-pointer hover:bg-black/[0.04] dark:hover:bg-white/[0.05] p-2 rounded-xl transition-colors">
                 <input
                   type="checkbox"
                   checked={form.isAvailableDelivery}
@@ -785,13 +797,14 @@ function ItemsTab({ locationId }: { locationId: number }) {
                       isAvailableDelivery: e.target.checked,
                     }))
                   }
-                  className="rounded text-blue-500 focus:ring-blue-500"
+                  className="rounded"
                 />
-                Disponibil Delivery
+                Disponibil delivery
               </label>
             </div>
-            <div className="md:col-span-4 flex justify-end mt-2">
+            <div className="md:col-span-4 flex justify-end mt-1">
               <button
+                type="button"
                 onClick={() =>
                   createMut.mutate({
                     locationId,
@@ -805,7 +818,7 @@ function ItemsTab({ locationId }: { locationId: number }) {
                 disabled={
                   createMut.isPending || !form.name.trim() || !form.categoryId
                 }
-                className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-2.5 rounded-lg text-sm font-bold transition-colors shadow-sm"
+                className="apple-btn-prominent inline-flex items-center justify-center gap-1.5 disabled:opacity-50 text-white px-5 h-9 text-xs font-semibold cursor-pointer"
               >
                 {createMut.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -821,113 +834,116 @@ function ItemsTab({ locationId }: { locationId: number }) {
 
       {isLoading ? (
         <div className="p-8 flex justify-center">
-          <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+          <Loader2 className="w-6 h-6 text-primary animate-spin" />
         </div>
       ) : (
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
-            <tr className="text-slate-600 dark:text-slate-400 text-left font-semibold">
-              <th className="px-3 py-3 w-12 text-center text-xs uppercase tracking-wider">
-                Nr.
-              </th>
-              <th className="px-4 py-3 text-xs uppercase tracking-wider">
-                Produs
-              </th>
-              <th className="px-4 py-3 text-xs uppercase tracking-wider">
-                Categorie
-              </th>
-              <th className="px-4 py-3 text-xs uppercase tracking-wider">
-                Preț
-              </th>
-              <th className="px-4 py-3 text-xs uppercase tracking-wider">
-                Canale Disponibile
-              </th>
-              <th className="px-4 py-3 text-xs uppercase tracking-wider text-right">
-                Acțiuni
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {paginated.length === 0 && (
-              <tr>
-                <td
-                  colSpan={6}
-                  className="p-8 text-center text-slate-500 dark:text-slate-400"
-                >
-                  Nu am găsit produse.
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+              <tr className="text-[#6e6e73] dark:text-[#98989d] text-left font-medium text-[12px]">
+                <th className="px-3 py-3 w-12 text-center font-medium">
+                  Nr.
+                </th>
+                <th className="px-4 py-3 font-medium">
+                  Produs
+                </th>
+                <th className="px-4 py-3 font-medium">
+                  Categorie
+                </th>
+                <th className="px-4 py-3 font-medium">
+                  Preț
+                </th>
+                <th className="px-4 py-3 font-medium">
+                  Canale disponibile
+                </th>
+                <th className="px-4 py-3 font-medium text-right">
+                  Acțiuni
+                </th>
               </tr>
-            )}
-            {paginated.map((item, idx) => (
-              <tr
-                key={item.id}
-                className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-              >
-                <td className="px-3 py-3 text-center text-slate-400 dark:text-slate-500 font-medium">
-                  {(safePage - 1) * rowsPerPage + idx + 1}
-                </td>
-                <td className="px-4 py-3 font-bold text-slate-900 dark:text-white text-base">
-                  {item.name}
-                </td>
-                <td className="px-4 py-3 text-slate-600 dark:text-slate-300 font-medium">
-                  {categories.find(c => c.id === item.categoryId)?.name || "—"}
-                </td>
-                <td className="px-4 py-3 font-black text-blue-600 dark:text-blue-400 text-base">
-                  {formatCurrency(Number(item.price), "RON")}
-                </td>
-                <td className="px-4 py-3 text-xs">
-                  <div className="flex gap-1.5">
-                    {item.isAvailableDineIn && (
-                      <span className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-1 rounded font-bold border border-slate-200 dark:border-slate-700 shadow-sm">
-                        Masă
-                      </span>
-                    )}
-                    {item.isAvailableTakeaway && (
-                      <span className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-1 rounded font-bold border border-slate-200 dark:border-slate-700 shadow-sm">
-                        Pick-up
-                      </span>
-                    )}
-                    {item.isAvailableDelivery && (
-                      <span className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-1 rounded font-bold border border-slate-200 dark:border-slate-700 shadow-sm">
-                        Deliv
-                      </span>
-                    )}
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <button
-                    onClick={() => setItemToDelete(item)}
-                    className="p-2 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+            </thead>
+            <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06] tabular-nums">
+              {paginated.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="p-8 text-center text-[#6e6e73] dark:text-[#98989d] text-[13px]"
                   >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                    Nu am găsit produse.
+                  </td>
+                </tr>
+              )}
+              {paginated.map((item, idx) => (
+                <tr
+                  key={item.id}
+                  className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors"
+                >
+                  <td className="px-3 py-3 text-center text-[#8e8e93] text-xs font-medium">
+                    {(safePage - 1) * rowsPerPage + idx + 1}
+                  </td>
+                  <td className="px-4 py-3 font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] text-[13.5px]">
+                    {item.name}
+                  </td>
+                  <td className="px-4 py-3 text-[#6e6e73] dark:text-[#98989d] font-medium text-[13px]">
+                    {categories.find(c => c.id === item.categoryId)?.name || "—"}
+                  </td>
+                  <td className="px-4 py-3 font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] text-[13.5px]">
+                    {formatCurrency(Number(item.price), "RON")}
+                  </td>
+                  <td className="px-4 py-3 text-xs">
+                    <div className="flex gap-1.5 flex-wrap">
+                      {item.isAvailableDineIn && (
+                        <span className="bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#ebebf5] px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-black/[0.06] dark:border-white/[0.08]">
+                          Masă
+                        </span>
+                      )}
+                      {item.isAvailableTakeaway && (
+                        <span className="bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#ebebf5] px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-black/[0.06] dark:border-white/[0.08]">
+                          Pick-up
+                        </span>
+                      )}
+                      {item.isAvailableDelivery && (
+                        <span className="bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#ebebf5] px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-black/[0.06] dark:border-white/[0.08]">
+                          Delivery
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      type="button"
+                      onClick={() => setItemToDelete(item)}
+                      className="apple-btn-glass w-8 h-8 inline-flex items-center justify-center text-[#ff3b30] dark:text-[#ff453a] hover:bg-[#ff3b30]/10 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       <AlertDialog
         open={!!itemToDelete}
         onOpenChange={open => !open && setItemToDelete(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.10]">
           <AlertDialogHeader>
-            <AlertDialogTitle>
+            <AlertDialogTitle className="text-[#1d1d1f] dark:text-[#f5f5f7]">
               Ștergi produsul „{itemToDelete?.name}”?
             </AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-[#6e6e73] dark:text-[#98989d]">
               Produsul va fi eliminat din lista de produse și prețuri a locației.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-full">Anulează</AlertDialogCancel>
+            <AlertDialogCancel className="apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7]">Anulează</AlertDialogCancel>
             <AlertDialogAction
               onClick={() =>
                 itemToDelete && deleteMut.mutate({ id: itemToDelete.id })
               }
-              className="rounded-full bg-red-600 hover:bg-red-700 text-white"
+              className="rounded-full bg-[#ff3b30] hover:bg-[#d70015] text-white"
             >
               Șterge produsul
             </AlertDialogAction>
@@ -936,30 +952,32 @@ function ItemsTab({ locationId }: { locationId: number }) {
       </AlertDialog>
 
       {/* Footer paginare */}
-      <div className="px-5 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/80 dark:bg-slate-900/80">
-        <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">
+      <div className="px-4 sm:px-5 py-3 border-t border-black/[0.05] dark:border-white/[0.07] flex items-center justify-between flex-wrap gap-2 bg-[#fafafa] dark:bg-white/[0.02] text-xs text-[#6e6e73] dark:text-[#98989d] tabular-nums">
+        <span>
           Total:{" "}
-          <strong className="text-slate-900 dark:text-white">
+          <strong className="text-[#1d1d1f] dark:text-[#f5f5f7]">
             {filtered.length}
           </strong>{" "}
           produse
         </span>
-        <div className="flex items-center gap-3">
-          <span className="text-slate-500 dark:text-slate-400 text-sm font-medium">
+        <div className="flex items-center gap-2">
+          <span>
             Pagina {safePage} din {totalPages}
           </span>
           <div className="flex gap-1">
             <button
+              type="button"
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={safePage === 1}
-              className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              className="apple-btn-glass w-7 h-7 flex items-center justify-center text-[#1d1d1f] dark:text-[#f5f5f7] disabled:opacity-40 cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
+              type="button"
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={safePage === totalPages}
-              className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              className="apple-btn-glass w-7 h-7 flex items-center justify-center text-[#1d1d1f] dark:text-[#f5f5f7] disabled:opacity-40 cursor-pointer"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -985,22 +1003,22 @@ function RecipesTab({ locationId }: { locationId: number }) {
   const selectedItem = items.find(i => i.id === selectedItemId);
 
   return (
-    <div className="flex flex-col md:flex-row h-[700px] divide-y md:divide-y-0 md:divide-x divide-slate-200 dark:divide-slate-800">
+    <div className="flex flex-col md:flex-row h-[700px] divide-y md:divide-y-0 md:divide-x divide-black/[0.06] dark:divide-white/[0.08]">
       {/* Sidebar - Lista Produse */}
-      <div className="w-full md:w-1/3 flex flex-col bg-slate-50/50 dark:bg-slate-900/50">
-        <div className="p-4 border-b border-slate-200 dark:border-slate-800">
-          <h3 className="font-bold text-slate-900 dark:text-white mb-2">
-            Alege Produsul
+      <div className="w-full md:w-1/3 flex flex-col bg-[#fafafa] dark:bg-white/[0.02]">
+        <div className="p-4 border-b border-black/[0.05] dark:border-white/[0.07]">
+          <h3 className="font-bold text-[#1d1d1f] dark:text-[#f5f5f7] text-[14.5px] mb-1">
+            Alege produsul
           </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-xs text-[#6e6e73] dark:text-[#98989d]">
             Selectează un produs pentru a-i construi rețeta și a calcula Food
             Cost-ul.
           </p>
         </div>
-        <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-2 space-y-1">
           {loadingItems ? (
             <div className="p-4 flex justify-center">
-              <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+              <Loader2 className="w-5 h-5 animate-spin text-primary" />
             </div>
           ) : (
             items.map(item => {
@@ -1008,8 +1026,13 @@ function RecipesTab({ locationId }: { locationId: number }) {
               return (
                 <button
                   key={item.id}
+                  type="button"
                   onClick={() => setSelectedItemId(item.id)}
-                  className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-all flex justify-between items-center ${selectedItemId === item.id ? "bg-blue-100 dark:bg-blue-600/20 text-blue-800 dark:text-blue-300 font-bold shadow-sm border border-blue-200 dark:border-blue-500/30" : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-transparent"}`}
+                  className={`w-full text-left px-3 py-2.5 rounded-xl text-[13px] transition-all flex justify-between items-center cursor-pointer ${
+                    selectedItemId === item.id
+                      ? "bg-primary/12 text-primary font-semibold border border-primary/25"
+                      : "text-[#1d1d1f] dark:text-[#ebebf5] hover:bg-black/[0.04] dark:hover:bg-white/[0.05] border border-transparent"
+                  }`}
                 >
                   <div className="truncate">
                     <span>{cat?.icon}</span> {item.name}
@@ -1020,7 +1043,7 @@ function RecipesTab({ locationId }: { locationId: number }) {
                     </div>
                   ) : (
                     <div title="Nu are rețetă">
-                      <AlertCircle className="w-4 h-4 text-slate-300 dark:text-slate-600 flex-shrink-0" />
+                      <AlertCircle className="w-4 h-4 text-[#8e8e93] flex-shrink-0" />
                     </div>
                   )}
                 </button>
@@ -1031,14 +1054,14 @@ function RecipesTab({ locationId }: { locationId: number }) {
       </div>
 
       {/* Main Content - Editor Rețetă */}
-      <div className="w-full md:w-2/3 flex flex-col bg-white dark:bg-slate-900">
+      <div className="w-full md:w-2/3 flex flex-col bg-white dark:bg-[#1c1c1e]">
         {!selectedItemId || !selectedItem ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 p-8 text-center">
-            <ChefHat className="w-16 h-16 mb-4 opacity-20" />
-            <p className="text-lg font-bold text-slate-900 dark:text-white">
+          <div className="flex-1 flex flex-col items-center justify-center text-[#6e6e73] dark:text-[#98989d] p-8 text-center">
+            <ChefHat className="w-14 h-14 mb-4 opacity-20" />
+            <p className="text-base font-bold text-[#1d1d1f] dark:text-[#f5f5f7]">
               Niciun produs selectat
             </p>
-            <p className="text-sm mt-1">
+            <p className="text-[13px] mt-1">
               Alege un produs din lista din stânga pentru a-i edita
               ingredientele.
             </p>
@@ -1140,46 +1163,62 @@ function RecipeBuilder({
   if (isLoading)
     return (
       <div className="p-8 flex justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
       </div>
     );
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex justify-between items-start">
+      <div className="p-4 border-b border-black/[0.05] dark:border-white/[0.07] bg-[#fafafa] dark:bg-white/[0.025] flex justify-between items-start gap-3 flex-wrap">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <h2 className="text-[17px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-2">
             Rețetar: {item.name}
           </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-xs text-[#6e6e73] dark:text-[#98989d] mt-1 tabular-nums">
             Preț vânzare (TVA {vatRate}% inclus):{" "}
-            <strong className="text-blue-600 dark:text-blue-400">
+            <strong className="text-[#1d1d1f] dark:text-[#f5f5f7]">
               {formatCurrency(price, "RON")}
             </strong>
           </p>
         </div>
         <div
-          className={`px-4 py-2 rounded-xl border text-right shadow-sm ${isGoodFc ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20" : isWarnFc ? "bg-yellow-50 border-yellow-200 dark:bg-yellow-500/10 dark:border-yellow-500/20" : isBadFc ? "bg-red-50 border-red-200 dark:bg-red-500/10 dark:border-red-500/20" : "bg-white border-slate-200 dark:bg-slate-800 dark:border-slate-700"}`}
+          className={`px-3.5 py-2 rounded-xl border text-right tabular-nums ${
+            isGoodFc
+              ? "bg-emerald-500/10 border-emerald-500/20"
+              : isWarnFc
+                ? "bg-amber-500/12 border-amber-500/20"
+                : isBadFc
+                  ? "bg-[#ff3b30]/10 border-[#ff3b30]/20"
+                  : "bg-[#f2f2f7] dark:bg-[#2c2c2e] border-black/[0.06] dark:border-white/[0.08]"
+          }`}
         >
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Food Cost (Net)
+          <p className="text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+            Food cost (net)
           </p>
-          <div className="flex items-baseline gap-2 justify-end mt-0.5">
+          <div className="flex items-baseline gap-1.5 justify-end mt-0.5">
             <span
-              className={`text-xl font-black ${isGoodFc ? "text-emerald-600 dark:text-emerald-400" : isWarnFc ? "text-yellow-600 dark:text-yellow-400" : isBadFc ? "text-red-600 dark:text-red-400" : "text-slate-900 dark:text-white"}`}
+              className={`text-lg font-bold ${
+                isGoodFc
+                  ? "text-emerald-700 dark:text-emerald-300"
+                  : isWarnFc
+                    ? "text-amber-700 dark:text-amber-300"
+                    : isBadFc
+                      ? "text-[#d70015] dark:text-[#ff6961]"
+                      : "text-[#1d1d1f] dark:text-[#f5f5f7]"
+              }`}
             >
               {foodCostPct.toFixed(1)}%
             </span>
-            <span className="text-sm font-semibold text-slate-500">
+            <span className="text-xs font-medium text-[#6e6e73] dark:text-[#98989d]">
               ({formatCurrency(totalCost, "RON")})
             </span>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-        <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 rounded-lg p-3 mb-4 flex gap-3 text-sm text-blue-800 dark:text-blue-300 shadow-sm">
-          <BookOpen className="w-5 h-5 flex-shrink-0" />
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="bg-[#0071e3]/[0.07] dark:bg-[#0a84ff]/[0.12] border border-[#0071e3]/20 rounded-xl p-3 mb-4 flex gap-3 text-[12.5px] text-[#1d1d1f] dark:text-[#ebebf5]">
+          <BookOpen className="w-4 h-4 flex-shrink-0 mt-0.5 text-[#0071e3] dark:text-[#64d2ff]" />
           <p>
             Leagă ingredientele de <strong>Stocul ERP (NIR-uri)</strong>{" "}
             selectând produsul din listă, sau tastează manual un nume pentru o
@@ -1189,22 +1228,22 @@ function RecipeBuilder({
         </div>
 
         <table className="w-full text-sm">
-          <thead className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold text-left">
+          <thead className="bg-[#fafafa] dark:bg-white/[0.025] text-[#6e6e73] dark:text-[#98989d] font-medium text-[12px] text-left border-b border-black/[0.05] dark:border-white/[0.07]">
             <tr>
-              <th className="px-3 py-2 rounded-tl-lg">
-                Ingredient / Produs Stoc ERP
+              <th className="px-3 py-2.5 font-medium">
+                Ingredient / produs stoc ERP
               </th>
-              <th className="px-3 py-2">Cantitate</th>
-              <th className="px-3 py-2">UM</th>
-              <th className="px-3 py-2">Cost Unitar</th>
-              <th className="px-3 py-2 text-right">Cost Total</th>
-              <th className="px-3 py-2 rounded-tr-lg"></th>
+              <th className="px-3 py-2.5 font-medium">Cantitate</th>
+              <th className="px-3 py-2.5 font-medium">UM</th>
+              <th className="px-3 py-2.5 font-medium">Cost unitar</th>
+              <th className="px-3 py-2.5 font-medium text-right">Cost total</th>
+              <th className="px-3 py-2.5"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+          <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06] tabular-nums">
             {lines.length === 0 && (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-slate-500">
+                <td colSpan={6} className="py-8 text-center text-[#6e6e73] dark:text-[#98989d] text-[13px]">
                   Niciun ingredient adăugat.
                 </td>
               </tr>
@@ -1212,7 +1251,7 @@ function RecipeBuilder({
             {lines.map((l, idx) => (
               <tr
                 key={idx}
-                className="hover:bg-slate-50 dark:hover:bg-slate-800/30"
+                className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035]"
               >
                 <td className="px-2 py-2">
                   <div className="flex flex-col gap-1.5">
@@ -1225,7 +1264,7 @@ function RecipeBuilder({
                           e.target.value ? Number(e.target.value) : null
                         )
                       }
-                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-1.5 text-xs text-slate-900 dark:text-white"
+                      className="w-full bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.08] dark:border-white/[0.10] rounded-lg p-1.5 text-xs text-[#1d1d1f] dark:text-[#f5f5f7]"
                     >
                       <option value="">-- Materie Primă (Stoc HoReCa) --</option>
                       {horecaIngredients.map(p => (
@@ -1241,7 +1280,7 @@ function RecipeBuilder({
                         onChange={e =>
                           updateLine(idx, "ingredientName", e.target.value)
                         }
-                        className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded p-1.5 text-xs text-slate-900 dark:text-white"
+                        className="w-full bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.08] dark:border-white/[0.10] rounded-lg p-1.5 text-xs text-[#1d1d1f] dark:text-[#f5f5f7]"
                       />
                     )}
                   </div>
@@ -1254,14 +1293,14 @@ function RecipeBuilder({
                     onChange={e =>
                       updateLine(idx, "quantity", Number(e.target.value))
                     }
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-1.5 text-sm font-bold text-center text-slate-900 dark:text-white focus:border-blue-500"
+                    className="w-full bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.08] dark:border-white/[0.10] rounded-lg p-1.5 text-sm font-semibold text-center text-[#1d1d1f] dark:text-[#f5f5f7]"
                   />
                 </td>
                 <td className="px-2 py-2">
                   <select
                     value={l.unit}
                     onChange={e => updateLine(idx, "unit", e.target.value)}
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-1.5 text-sm text-slate-900 dark:text-white"
+                    className="w-full bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.08] dark:border-white/[0.10] rounded-lg p-1.5 text-sm text-[#1d1d1f] dark:text-[#f5f5f7]"
                   >
                     <option value="g">Grame (g)</option>
                     <option value="kg">Kilo (kg)</option>
@@ -1278,10 +1317,10 @@ function RecipeBuilder({
                     onChange={e =>
                       updateLine(idx, "unitCost", Number(e.target.value))
                     }
-                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded p-1.5 text-sm text-slate-900 dark:text-white"
+                    className="w-full bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.08] dark:border-white/[0.10] rounded-lg p-1.5 text-sm text-[#1d1d1f] dark:text-[#f5f5f7]"
                   />
                 </td>
-                <td className="px-2 py-2 text-right font-bold text-slate-700 dark:text-slate-300">
+                <td className="px-2 py-2 text-right font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                   {formatCurrency(
                     Number(l.quantity) * Number(l.unitCost || 0),
                     "RON"
@@ -1289,8 +1328,9 @@ function RecipeBuilder({
                 </td>
                 <td className="px-2 py-2 text-right">
                   <button
+                    type="button"
                     onClick={() => removeLine(idx)}
-                    className="text-slate-400 hover:text-red-500 p-1.5 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors"
+                    className="text-[#8e8e93] hover:text-[#ff3b30] p-1.5 hover:bg-[#ff3b30]/10 rounded-full transition-colors cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -1301,31 +1341,34 @@ function RecipeBuilder({
         </table>
 
         <button
+          type="button"
           onClick={addLine}
-          className="mt-4 flex items-center gap-2 text-blue-600 dark:text-blue-400 font-bold text-sm bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 px-4 py-2 rounded-lg transition-colors border border-blue-200 dark:border-blue-500/30 border-dashed w-full justify-center"
+          className="mt-4 flex items-center gap-2 text-primary font-semibold text-xs bg-primary/10 hover:bg-primary/15 px-4 py-2.5 rounded-xl transition-colors border border-primary/25 border-dashed w-full justify-center cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Adaugă ingredient
         </button>
       </div>
 
-      <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-end gap-3">
+      <div className="p-4 border-t border-black/[0.05] dark:border-white/[0.07] bg-[#fafafa] dark:bg-white/[0.02] flex justify-end gap-2.5">
         <button
+          type="button"
           onClick={() => setShowDiscardConfirm(true)}
-          className="px-4 py-2 rounded-lg text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+          className="apple-btn-glass px-4 h-9 text-xs font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
         >
           Anulează
         </button>
         <button
+          type="button"
           onClick={handleSave}
           disabled={upsertMut.isPending}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-2.5 rounded-lg text-sm font-bold transition-colors shadow-sm"
+          className="apple-btn-prominent inline-flex items-center gap-1.5 disabled:opacity-50 text-white px-5 h-9 text-xs font-semibold cursor-pointer"
         >
           {upsertMut.isPending ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
             <Check className="w-4 h-4" />
           )}{" "}
-          Salvează Rețeta
+          Salvează rețeta
         </button>
       </div>
 
@@ -1333,21 +1376,21 @@ function RecipeBuilder({
         open={showDiscardConfirm}
         onOpenChange={setShowDiscardConfirm}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.10]">
           <AlertDialogHeader>
-            <AlertDialogTitle>Anulezi modificările nesalvate?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-[#1d1d1f] dark:text-[#f5f5f7]">Anulezi modificările nesalvate?</AlertDialogTitle>
+            <AlertDialogDescription className="text-[#6e6e73] dark:text-[#98989d]">
               Modificările neaplicate la rețeta produsului <strong>{item.name}</strong> vor fi revenite la ultima versiune salvată.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-full">Păstrează</AlertDialogCancel>
+            <AlertDialogCancel className="apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7]">Păstrează</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 setLines(recipeLines || []);
                 setShowDiscardConfirm(false);
               }}
-              className="rounded-full bg-red-600 hover:bg-red-700 text-white"
+              className="rounded-full bg-[#ff3b30] hover:bg-[#d70015] text-white"
             >
               Anulează modificările
             </AlertDialogAction>

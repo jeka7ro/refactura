@@ -226,35 +226,33 @@ export default function HorecaLocations() {
   const isPending = createMut.isPending || updateMut.isPending;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-w-full overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-orange-100 dark:bg-orange-500/20 rounded-lg">
-            <MapPin className="w-6 h-6 text-orange-600 dark:text-orange-400" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-              Locații HORECA
-            </h1>
-            <p className="text-slate-500 dark:text-slate-400 text-sm">
-              {locations.length} locații configurate
-              {usesBridge && (
-                <span className="text-primary font-semibold">
-                  {" "}
-                  (Smart Kiosk API)
-                </span>
-              )}
-            </p>
-          </div>
+      <div className="flex items-center justify-between gap-3 flex-wrap px-0.5">
+        <div>
+          <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
+            Locații HORECA
+          </h1>
+          <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5 tabular-nums">
+            <strong className="text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold">
+              {locations.length}
+            </strong>{" "}
+            locații configurate
+            {usesBridge && (
+              <span className="text-primary font-semibold ml-1.5">
+                (Smart Kiosk API)
+              </span>
+            )}
+          </p>
         </div>
         {!showForm && (
           <button
+            type="button"
             onClick={() => {
               resetForm();
               setShowForm(true);
             }}
-            className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            className="apple-btn-prominent inline-flex items-center gap-1.5 text-white px-4 h-9 text-[13px] font-semibold cursor-pointer"
           >
             <Plus className="w-4 h-4" /> Locație nouă
           </button>
@@ -263,8 +261,8 @@ export default function HorecaLocations() {
 
       {/* Form */}
       {showForm && (
-        <div className="bg-white dark:bg-slate-900 shadow-sm border border-slate-200 dark:border-slate-800 rounded-lg p-6">
-          <h2 className="text-slate-900 dark:text-white font-semibold mb-4">
+        <div className="apple-surface p-5 sm:p-6">
+          <h2 className="text-[#1d1d1f] dark:text-[#f5f5f7] font-bold text-[16px] mb-4">
             {editId ? "Editează locație" : "Locație nouă"}
           </h2>
           <form
@@ -272,7 +270,7 @@ export default function HorecaLocations() {
             className="grid grid-cols-1 md:grid-cols-2 gap-4"
           >
             <div className="md:col-span-2">
-              <label className="block text-slate-600 dark:text-slate-400 text-sm font-medium mb-1">
+              <label className="block text-[#6e6e73] dark:text-[#98989d] text-[12.5px] font-medium mb-1">
                 Nume locație *
               </label>
               <input
@@ -280,11 +278,11 @@ export default function HorecaLocations() {
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 placeholder="ex: Restaurant Central"
-                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-orange-500 dark:focus:border-orange-500"
+                className="apple-input w-full h-10 px-3.5"
               />
             </div>
             <div>
-              <label className="block text-slate-600 dark:text-slate-400 text-sm font-medium mb-1">
+              <label className="block text-[#6e6e73] dark:text-[#98989d] text-[12.5px] font-medium mb-1">
                 Tip locație
               </label>
               <select
@@ -292,7 +290,7 @@ export default function HorecaLocations() {
                 onChange={e =>
                   setForm(f => ({ ...f, type: e.target.value as any }))
                 }
-                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-orange-500 dark:focus:border-orange-500"
+                className="apple-input w-full h-10 px-3.5 cursor-pointer"
               >
                 {LOCATION_TYPES.map(t => (
                   <option key={t.value} value={t.value}>
@@ -302,7 +300,7 @@ export default function HorecaLocations() {
               </select>
             </div>
             <div>
-              <label className="block text-slate-600 dark:text-slate-400 text-sm font-medium mb-1">
+              <label className="block text-[#6e6e73] dark:text-[#98989d] text-[12.5px] font-medium mb-1">
                 Telefon
               </label>
               <input
@@ -310,11 +308,11 @@ export default function HorecaLocations() {
                 value={form.phone}
                 onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
                 placeholder="0722 000 000"
-                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-orange-500 dark:focus:border-orange-500"
+                className="apple-input w-full h-10 px-3.5 tabular-nums"
               />
             </div>
             <div>
-              <label className="block text-slate-600 dark:text-slate-400 text-sm font-medium mb-1">
+              <label className="block text-[#6e6e73] dark:text-[#98989d] text-[12.5px] font-medium mb-1">
                 Adresă
               </label>
               <input
@@ -324,11 +322,11 @@ export default function HorecaLocations() {
                   setForm(f => ({ ...f, address: e.target.value }))
                 }
                 placeholder="Str. Exemplu nr. 1"
-                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-orange-500 dark:focus:border-orange-500"
+                className="apple-input w-full h-10 px-3.5"
               />
             </div>
             <div>
-              <label className="block text-slate-600 dark:text-slate-400 text-sm font-medium mb-1">
+              <label className="block text-[#6e6e73] dark:text-[#98989d] text-[12.5px] font-medium mb-1">
                 Oraș
               </label>
               <input
@@ -336,12 +334,12 @@ export default function HorecaLocations() {
                 value={form.city}
                 onChange={e => setForm(f => ({ ...f, city: e.target.value }))}
                 placeholder="București"
-                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-orange-500 dark:focus:border-orange-500"
+                className="apple-input w-full h-10 px-3.5"
               />
             </div>
             <div>
-              <label className="block text-slate-600 dark:text-slate-400 text-sm font-medium mb-1">
-                TVA Mâncare / Băuturi nealcoolice (%)
+              <label className="block text-[#6e6e73] dark:text-[#98989d] text-[12.5px] font-medium mb-1">
+                TVA mâncare / băuturi nealcoolice (%)
               </label>
               <input
                 type="number"
@@ -352,12 +350,12 @@ export default function HorecaLocations() {
                     defaultVatFood: Number(e.target.value),
                   }))
                 }
-                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-orange-500 dark:focus:border-orange-500"
+                className="apple-input w-full h-10 px-3.5 tabular-nums"
               />
             </div>
             <div>
-              <label className="block text-slate-600 dark:text-slate-400 text-sm font-medium mb-1">
-                TVA Alcool (%)
+              <label className="block text-[#6e6e73] dark:text-[#98989d] text-[12.5px] font-medium mb-1">
+                TVA alcool (%)
               </label>
               <input
                 type="number"
@@ -368,21 +366,21 @@ export default function HorecaLocations() {
                     defaultVatAlcohol: Number(e.target.value),
                   }))
                 }
-                className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-lg px-3 py-2 focus:outline-none focus:border-orange-500 dark:focus:border-orange-500"
+                className="apple-input w-full h-10 px-3.5 tabular-nums"
               />
             </div>
-            <div className="md:col-span-2 flex gap-3 justify-end pt-2">
+            <div className="md:col-span-2 flex gap-2.5 justify-end pt-2">
               <button
                 type="button"
                 onClick={resetForm}
-                className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                className="apple-btn-glass inline-flex items-center gap-1.5 text-[#1d1d1f] dark:text-[#f5f5f7] px-4 h-9 text-[13px] font-medium cursor-pointer"
               >
                 <X className="w-4 h-4" /> Anulează
               </button>
               <button
                 type="submit"
                 disabled={isPending}
-                className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                className="apple-btn-prominent inline-flex items-center gap-1.5 disabled:opacity-50 text-white px-4 h-9 text-[13px] font-semibold cursor-pointer"
               >
                 {isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -396,72 +394,80 @@ export default function HorecaLocations() {
         </div>
       )}
 
-      {/* Search bar */}
-      <div className="relative">
-        <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 z-10" />
-        <input
-          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm text-slate-900 dark:text-white rounded-full focus:outline-none focus:border-orange-500 dark:focus:border-orange-500 transition-colors"
-          style={{
-            paddingLeft: 36,
-            paddingRight: search ? 90 : 16,
-            paddingTop: 10,
-            paddingBottom: 10,
-            fontSize: 14,
-          }}
-          placeholder="Caută după nume, oraș, tip..."
-          value={search}
-          onChange={e => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
-        />
-        {search && (
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 bg-orange-500 text-white rounded-full px-2.5 py-0.5 text-xs font-bold whitespace-nowrap shadow-sm">
-            {filtered.length} / {locations.length}
+      {/* Search bar inside apple-surface */}
+      <div className="apple-surface px-3 py-2.5">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="w-3.5 h-3.5 text-[#8e8e93] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              style={{
+                paddingLeft: 34,
+                paddingRight: search ? 84 : 16,
+              }}
+              className="apple-pill-control rounded-full w-full h-[34px] text-[13px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none focus:bg-white dark:focus:bg-[#2c2c2e]"
+              placeholder="Caută după nume, oraș, tip..."
+              value={search}
+              onChange={e => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+            />
+            {search && (
+              <>
+                <span className="absolute right-8 top-1/2 -translate-y-1/2 bg-black/[0.07] dark:bg-white/[0.14] text-[#1d1d1f] dark:text-white rounded-full px-2 py-0.5 text-[10.5px] font-semibold tabular-nums">
+                  {filtered.length}/{locations.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center hover:bg-black/[0.07] dark:hover:bg-white/[0.12] cursor-pointer"
+                >
+                  <X className="w-3 h-3 text-[#6e6e73] dark:text-[#98989d]" />
+                </button>
+              </>
+            )}
           </div>
-        )}
+          <span className="text-[12px] text-[#6e6e73] dark:text-[#98989d] px-2 tabular-nums">
+            Total:{" "}
+            <strong className="text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold">
+              {filtered.length}
+            </strong>{" "}
+            înregistrări
+          </span>
+        </div>
       </div>
 
       {/* Tabel */}
       {effectiveLoading ? (
         <div className="flex justify-center py-12">
-          <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
+          <Loader2 className="w-7 h-7 text-primary animate-spin" />
         </div>
       ) : (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-lg overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
-            <span className="text-slate-500 dark:text-slate-400 text-sm">
-              Total:{" "}
-              <strong className="text-slate-900 dark:text-white font-bold">
-                {filtered.length}
-              </strong>{" "}
-              înregistrări
-            </span>
-          </div>
+        <div className="apple-surface overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-800/50">
-                <tr className="text-slate-600 dark:text-slate-400 text-left text-xs uppercase tracking-wider">
-                  <th className="px-4 py-3 font-semibold text-center w-12">
+              <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+                <tr className="text-[#6e6e73] dark:text-[#98989d] text-left text-[12px] font-medium">
+                  <th className="px-4 py-3 font-medium text-center w-12">
                     Nr.
                   </th>
-                  <th className="px-4 py-3 font-semibold">Locație</th>
-                  <th className="px-4 py-3 font-semibold">Tip</th>
-                  <th className="px-4 py-3 font-semibold">Adresă / Oraș</th>
-                  <th className="px-4 py-3 font-semibold">Branduri</th>
-                  <th className="px-4 py-3 font-semibold">Telefon</th>
-                  <th className="px-4 py-3 font-semibold">TVA</th>
-                  <th className="px-4 py-3 font-semibold text-right">
+                  <th className="px-4 py-3 font-medium">Locație</th>
+                  <th className="px-4 py-3 font-medium">Tip</th>
+                  <th className="px-4 py-3 font-medium">Adresă / Oraș</th>
+                  <th className="px-4 py-3 font-medium">Branduri</th>
+                  <th className="px-4 py-3 font-medium">Telefon</th>
+                  <th className="px-4 py-3 font-medium">TVA</th>
+                  <th className="px-4 py-3 font-medium text-right">
                     Acțiuni
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06] tabular-nums">
                 {paginated.length === 0 ? (
                   <tr>
                     <td
                       colSpan={8}
-                      className="text-center text-slate-500 dark:text-slate-400 py-12"
+                      className="text-center text-[#6e6e73] dark:text-[#98989d] text-[13px] py-12"
                     >
                       {search
                         ? "Niciun rezultat pentru căutarea efectuată"
@@ -472,14 +478,14 @@ export default function HorecaLocations() {
                   paginated.map((loc: any, idx: number) => (
                     <tr
                       key={loc.id}
-                      className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
+                      className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors group"
                     >
-                      <td className="px-4 py-3 text-center text-slate-500 dark:text-slate-400 text-xs font-medium">
+                      <td className="px-4 py-3 text-center text-[#8e8e93] text-[12px] font-medium">
                         {(safePage - 1) * rowsPerPage + idx + 1}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
-                          <span className="text-muted-foreground bg-secondary w-8 h-8 rounded-lg flex items-center justify-center shadow-sm">
+                          <span className="text-[#6e6e73] dark:text-[#98989d] bg-[#f2f2f7] dark:bg-[#2c2c2e] w-8 h-8 rounded-[9px] flex items-center justify-center shrink-0">
                             {(() => {
                               const IconComp =
                                 TYPE_ICONS[loc.type || "restaurant"] ||
@@ -487,35 +493,35 @@ export default function HorecaLocations() {
                               return <IconComp className="w-4 h-4" />;
                             })()}
                           </span>
-                          <span className="text-foreground font-semibold">
+                          <span className="text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold text-[13.5px]">
                             {loc.name}
                           </span>
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="px-2.5 py-1 bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 rounded-md text-xs font-medium capitalize border border-orange-200 dark:border-transparent">
+                        <span className="px-2.5 py-0.5 bg-amber-500/12 dark:bg-amber-500/18 text-amber-700 dark:text-amber-300 rounded-full text-[11px] font-medium capitalize border border-amber-500/20">
                           {LOCATION_TYPES.find(t => t.value === loc.type)
                             ?.label || loc.type}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground">
+                      <td className="px-4 py-3 text-[#6e6e73] dark:text-[#98989d] text-[13px]">
                         {[loc.address, loc.city].filter(Boolean).join(", ") ||
                           "—"}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-2 items-center">
+                        <div className="flex flex-wrap gap-1.5 items-center">
                           {((loc as any).brands || []).map((b: string) =>
                             BRAND_LOGOS[b] ? (
                               <img
                                 key={b}
                                 src={BRAND_LOGOS[b]}
                                 alt={b}
-                                className="h-6 object-contain rounded-md bg-secondary/30 px-1 py-0.5 border border-border"
+                                className="h-6 object-contain rounded-md bg-[#f2f2f7] dark:bg-[#2c2c2e] px-1 py-0.5 border border-black/[0.06] dark:border-white/[0.08]"
                               />
                             ) : (
                               <span
                                 key={b}
-                                className="px-2 py-0.5 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 text-[10px] font-semibold rounded-md border border-blue-200 dark:border-blue-500/20"
+                                className="px-2 py-0.5 bg-[#0071e3]/10 dark:bg-[#0a84ff]/18 text-[#0071e3] dark:text-[#64d2ff] text-[10.5px] font-medium rounded-full border border-[#0071e3]/20"
                               >
                                 {b}
                               </span>
@@ -523,38 +529,42 @@ export default function HorecaLocations() {
                           )}
                           {(!(loc as any).brands ||
                             (loc as any).brands.length === 0) && (
-                            <span className="text-muted-foreground text-xs">
+                            <span className="text-[#8e8e93] text-xs">
                               —
                             </span>
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-slate-600 dark:text-slate-300 font-medium">
+                      <td className="px-4 py-3 text-[#1d1d1f] dark:text-[#ebebf5] text-[13px] font-medium">
                         {loc.phone || "—"}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex flex-col gap-1 text-[11px] font-semibold">
-                          <span className="bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-500/20 w-fit">
+                        <div className="flex flex-col gap-1 text-[11px] font-medium">
+                          <span className="bg-[#0071e3]/10 dark:bg-[#0a84ff]/18 text-[#0071e3] dark:text-[#64d2ff] px-2 py-0.5 rounded-full border border-[#0071e3]/20 w-fit leading-none">
                             {loc.defaultVatFood}% alimente
                           </span>
-                          <span className="bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 px-2 py-0.5 rounded border border-red-200 dark:border-red-500/20 w-fit">
+                          <span className="bg-amber-500/12 dark:bg-amber-500/18 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/20 w-fit leading-none">
                             {loc.defaultVatAlcohol}% alcool
                           </span>
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-end gap-1.5">
                           <button
+                            type="button"
                             onClick={() => handleEdit(loc)}
-                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:text-blue-400 dark:hover:bg-blue-500/10 rounded-lg transition-colors"
+                            className="apple-btn-glass w-8 h-8 flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white cursor-pointer"
+                            title="Editează locație"
                           >
-                            <Pencil className="w-4 h-4" />
+                            <Pencil className="w-3.5 h-3.5" />
                           </button>
                           <button
+                            type="button"
                             onClick={() => setLocationToDelete(loc)}
-                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                            className="apple-btn-glass w-8 h-8 flex items-center justify-center text-[#ff3b30] dark:text-[#ff453a] hover:bg-[#ff3b30]/10 cursor-pointer"
+                            title="Dezactivează locație"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>
@@ -566,19 +576,18 @@ export default function HorecaLocations() {
           </div>
 
           {/* Footer paginare */}
-          <div style={{ padding: '12px 20px', borderTop: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc' }} className="dark:border-slate-800 dark:bg-slate-900/50">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                <span style={{ whiteSpace: 'nowrap' }} className="relative inline-block">
-                  Afișează&nbsp;
+          <div className="px-4 sm:px-5 py-3 border-t border-black/[0.05] dark:border-white/[0.07] flex items-center justify-between flex-wrap gap-2 bg-[#fafafa] dark:bg-white/[0.02] text-xs text-[#6e6e73] dark:text-[#98989d] tabular-nums">
+            <div className="flex items-center gap-4">
+              <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                <span>Afișează</span>
+                <div className="relative inline-block">
                   <select
                     value={rowsPerPage}
                     onChange={e => {
                       setRowsPerPage(Number(e.target.value));
                       setPage(1);
                     }}
-                    style={{ background: 'transparent', padding: '2px 24px 2px 12px' }}
-                    className="dark:border-slate-700 dark:bg-slate-800 dark:text-white appearance-none cursor-pointer focus:outline-none border border-slate-300 rounded-full"
+                    className="apple-pill-control appearance-none pl-3 pr-7 h-7 text-xs text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
                   >
                     <option value={10}>10</option>
                     <option value={15}>15</option>
@@ -586,36 +595,38 @@ export default function HorecaLocations() {
                     <option value={50}>50</option>
                     <option value={9999}>Toți</option>
                   </select>
-                  <ChevronDown className="w-3 h-3 text-slate-500 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </span>
-              </div>
-              <span className="text-sm text-slate-600 dark:text-slate-400 hidden sm:inline">
+                  <ChevronDown className="w-3 h-3 text-[#6e6e73] dark:text-[#98989d] absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </span>
+              <span className="hidden sm:inline">
                 Total înregistrări:{" "}
-                <strong className="text-slate-900 dark:text-white">
+                <strong className="text-[#1d1d1f] dark:text-[#f5f5f7]">
                   {filtered.length}
                 </strong>
               </span>
             </div>
-            <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
+            <div className="flex items-center gap-2">
               <span>
                 Pagina{" "}
-                <strong className="text-slate-900 dark:text-white">
+                <strong className="text-[#1d1d1f] dark:text-[#f5f5f7]">
                   {safePage}
                 </strong>{" "}
                 din {totalPages}
               </span>
               <div className="flex items-center gap-1">
                 <button
+                  type="button"
                   onClick={() => setPage(p => Math.max(1, p - 1))}
                   disabled={safePage === 1}
-                  className="p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-800 disabled:opacity-40 disabled:hover:bg-transparent transition-colors text-slate-900 dark:text-white"
+                  className="apple-btn-glass w-7 h-7 flex items-center justify-center disabled:opacity-40 text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <button
+                  type="button"
                   onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                   disabled={safePage === totalPages}
-                  className="p-1.5 rounded-md hover:bg-slate-200 dark:hover:bg-slate-800 disabled:opacity-40 disabled:hover:bg-transparent transition-colors text-slate-900 dark:text-white"
+                  className="apple-btn-glass w-7 h-7 flex items-center justify-center disabled:opacity-40 text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -629,22 +640,22 @@ export default function HorecaLocations() {
         open={!!locationToDelete}
         onOpenChange={open => !open && setLocationToDelete(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.10]">
           <AlertDialogHeader>
-            <AlertDialogTitle>
+            <AlertDialogTitle className="text-[#1d1d1f] dark:text-[#f5f5f7]">
               Dezactivezi locația „{locationToDelete?.name}”?
             </AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="text-[#6e6e73] dark:text-[#98989d]">
               Locația nu va mai apărea ca activă pentru preluarea comenzilor noi.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-full">Anulează</AlertDialogCancel>
+            <AlertDialogCancel className="apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7]">Anulează</AlertDialogCancel>
             <AlertDialogAction
               onClick={() =>
                 locationToDelete && deleteMut.mutate({ id: locationToDelete.id })
               }
-              className="rounded-full bg-red-600 hover:bg-red-700 text-white"
+              className="rounded-full bg-[#ff3b30] hover:bg-[#d70015] text-white"
             >
               Dezactivează
             </AlertDialogAction>

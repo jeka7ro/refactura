@@ -178,8 +178,8 @@ function SpvConfigForm({
   const cleanCode = String(tenantCui || "").replace(/^RO/i, "").trim();
   const isPf = entityType === "pf" || /^\d{13}$/.test(cleanCode);
   return (
-    <div className="pt-3 border-t border-slate-100 dark:border-slate-700 space-y-3">
-      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+    <div className="pt-3 border-t border-black/[0.06] dark:border-white/[0.08] space-y-3">
+      <p className="text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
         Configurare SPV ANAF
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -195,9 +195,9 @@ function SpvConfigForm({
                   : `RO${cleanCode}`
                 : "—"
             }
-            className="h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 w-full cursor-default tabular-nums"
+            className="h-9 px-3 text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] w-full cursor-default tabular-nums outline-none"
           />
-          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-medium">
+          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-[#8e8e93] font-medium">
             {isPf ? "CNP" : "CIF"}
           </span>
         </div>
@@ -210,9 +210,9 @@ function SpvConfigForm({
             placeholder={
               hasActiveToken ? undefined : "Token lipsă — reconectare necesară"
             }
-            className="h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 w-full cursor-default placeholder:text-red-400"
+            className="h-9 px-3 text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] w-full cursor-default placeholder:text-rose-500 outline-none"
           />
-          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-medium">
+          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-[#8e8e93] font-medium">
             Access Token
           </span>
         </div>
@@ -225,16 +225,16 @@ function SpvConfigForm({
             placeholder={
               serverConfigured ? undefined : "Neconfigurat pe server"
             }
-            className="h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 w-full cursor-default placeholder:text-amber-500"
+            className="h-9 px-3 text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] w-full cursor-default placeholder:text-amber-500 outline-none"
           />
-          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-medium">
+          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-[#8e8e93] font-medium">
             Client ID/Secret
           </span>
         </div>
       </div>
       <div className="flex items-center gap-3 flex-wrap">
         <span
-          className={`flex items-center gap-1 text-xs font-medium ${hasActiveToken ? "text-emerald-600" : "text-red-500"}`}
+          className={`flex items-center gap-1 text-xs font-medium ${hasActiveToken ? "text-emerald-600 dark:text-emerald-400" : "text-rose-500"}`}
         >
           {hasActiveToken ? (
             <Check className="w-3.5 h-3.5" />
@@ -255,30 +255,30 @@ function SpvConfigForm({
           href="https://www.anaf.ro/anaf/internet/RO/spv"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1 text-xs text-slate-500 hover:text-blue-600 transition-colors ml-auto"
+          className="flex items-center gap-1 text-xs text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7] transition-colors ml-auto"
         >
           <ExternalLink className="w-3 h-3" /> ANAF Developer Portal
         </a>
       </div>
       {!tenantCui && (
-        <div className="p-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-950 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-200 flex items-center justify-between gap-3 text-xs">
+        <div className="p-3 rounded-xl border border-amber-500/25 bg-amber-500/10 text-amber-900 dark:text-amber-200 flex items-center justify-between gap-3 text-xs">
           <div className="flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
             <span>
               Completează și salvează mai întâi CNP-ul / CUI-ul profilului în pagina Setări înainte de autorizarea cu tokenul USB ANAF.
             </span>
           </div>
           <Link
             href="/setari"
-            className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold whitespace-nowrap shrink-0 transition-colors"
+            className="apple-btn-prominent px-3 py-1.5 text-xs font-semibold whitespace-nowrap shrink-0"
           >
             Mergi la Setări
           </Link>
         </div>
       )}
-      <p className="text-[11px] text-slate-400 dark:text-slate-500">
-        Conexiunea SPV se face prin OAuth ANAF. Tokenul se reînnoiește automat.
-        {" "}{isPf ? "CNP-ul" : "CIF-ul"} este preluat din profilul activ.
+      <p className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d]">
+        Conexiunea SPV se face prin OAuth ANAF. Tokenul se reînnoiește automat.{" "}
+        {isPf ? "CNP-ul" : "CIF-ul"} este preluat din profilul activ.
       </p>
     </div>
   );
@@ -299,8 +299,8 @@ function OblioConfigForm({
   const [showSecret, setShowSecret] = useState(false);
 
   return (
-    <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 space-y-3">
-      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+    <div className="mt-3 pt-3 border-t border-black/[0.06] dark:border-white/[0.08] space-y-3">
+      <p className="text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
         Configurare Oblio
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -309,7 +309,7 @@ function OblioConfigForm({
           value={email}
           onChange={e => setEmail(e.target.value)}
           placeholder="Email cont Oblio"
-          className="h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="h-9 px-3 text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none"
         />
         <div className="relative">
           <input
@@ -317,12 +317,12 @@ function OblioConfigForm({
             value={apiSecret}
             onChange={e => setApiSecret(e.target.value)}
             placeholder="API Secret"
-            className="w-full h-9 px-3 pr-9 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="w-full h-9 px-3 pr-9 text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none"
           />
           <button
             type="button"
             onClick={() => setShowSecret(s => !s)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7]"
           >
             {showSecret ? (
               <EyeOff className="w-3.5 h-3.5" />
@@ -336,11 +336,12 @@ function OblioConfigForm({
           value={cif}
           onChange={e => setCif(e.target.value)}
           placeholder="CIF / CUI firmă"
-          className="h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="h-9 px-3 text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none tabular-nums"
         />
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <button
+          type="button"
           onClick={() => {
             if (!email || !apiSecret || !cif) {
               toast.error("Completează toate câmpurile");
@@ -349,7 +350,7 @@ function OblioConfigForm({
             onSave({ email, apiSecret, cif: cif.replace(/^RO/i, "") });
           }}
           disabled={saving}
-          className="flex items-center gap-1.5 px-4 h-8 rounded-full bg-[var(--color-primary)] hover:opacity-90 text-white text-xs font-bold transition-all disabled:opacity-60"
+          className="apple-btn-prominent inline-flex items-center gap-1.5 px-4 h-8 text-[12.5px] font-semibold disabled:opacity-60 cursor-pointer"
         >
           {saving ? (
             <Loader2 className="w-3 h-3 animate-spin" />
@@ -362,7 +363,7 @@ function OblioConfigForm({
           href="https://www.oblio.eu/account/settings"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors"
+          className="flex items-center gap-1 text-xs text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7] transition-colors"
         >
           <ExternalLink className="w-3 h-3" /> Oblio → Date Cont
         </a>
@@ -384,8 +385,8 @@ function SmartBillConfigForm({
   const [showToken, setShowToken] = useState(false);
 
   return (
-    <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 space-y-3">
-      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+    <div className="mt-3 pt-3 border-t border-black/[0.06] dark:border-white/[0.08] space-y-3">
+      <p className="text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
         Configurare SmartBill
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -394,7 +395,7 @@ function SmartBillConfigForm({
           value={email}
           onChange={e => setEmail(e.target.value)}
           placeholder="Email cont SmartBill"
-          className="h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="h-9 px-3 text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none"
         />
         <div className="relative">
           <input
@@ -402,12 +403,12 @@ function SmartBillConfigForm({
             value={token}
             onChange={e => setToken(e.target.value)}
             placeholder="API Token"
-            className="w-full h-9 px-3 pr-9 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="w-full h-9 px-3 pr-9 text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none"
           />
           <button
             type="button"
             onClick={() => setShowToken(s => !s)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7]"
           >
             {showToken ? (
               <EyeOff className="w-3.5 h-3.5" />
@@ -421,11 +422,12 @@ function SmartBillConfigForm({
           value={cif}
           onChange={e => setCif(e.target.value)}
           placeholder="CIF / CUI firmă"
-          className="h-9 px-3 text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="h-9 px-3 text-[13px] rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none tabular-nums"
         />
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <button
+          type="button"
           onClick={() => {
             if (!email || !token || !cif) {
               toast.error("Completează toate câmpurile");
@@ -434,7 +436,7 @@ function SmartBillConfigForm({
             onSave({ email, token, cif: cif.replace(/^RO/i, "") });
           }}
           disabled={saving}
-          className="flex items-center gap-1.5 px-4 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all disabled:opacity-60"
+          className="apple-btn-prominent inline-flex items-center gap-1.5 px-4 h-8 text-[12.5px] font-semibold disabled:opacity-60 cursor-pointer"
         >
           {saving ? (
             <Loader2 className="w-3 h-3 animate-spin" />
@@ -447,7 +449,7 @@ function SmartBillConfigForm({
           href="https://cloud.smartbill.ro/core/configurare/"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1 text-xs text-slate-500 hover:text-blue-600 transition-colors"
+          className="flex items-center gap-1 text-xs text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7] transition-colors"
         >
           <ExternalLink className="w-3 h-3" /> SmartBill → Setări API
         </a>
@@ -782,7 +784,7 @@ export default function Integrations() {
   };
 
   return (
-    <div className="p-3 sm:p-5 max-w-full space-y-3">
+    <div className="p-3 sm:p-5 max-w-full space-y-4 overflow-x-hidden">
       <input
         type="file"
         id="spv-file-input"
@@ -792,51 +794,55 @@ export default function Integrations() {
         onChange={handleSpvXml}
       />
 
-      {/* Header — identic cu Facturi */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="min-w-0">
+          <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
             Integrări
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
             Conectează platformele tale de facturare
           </p>
         </div>
         <button
+          type="button"
           onClick={() => setShowAI(v => !v)}
-          className="flex items-center gap-1.5 px-3.5 h-8 rounded-full bg-violet-600 hover:bg-violet-700 text-white text-xs font-medium transition-all"
+          className="apple-btn-glass inline-flex items-center gap-1.5 px-4 h-9 text-[12.5px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
         >
           <Bot className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Asistent AI Setup</span>
+          <span>Asistent AI Setup</span>
         </button>
       </div>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           {
-            label: "TOTAL INTEGRĂRI",
+            label: "Total integrări",
             value: PROVIDERS.length,
-            color: "text-slate-700 dark:text-slate-200",
+            icon: <Plug className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#0a84ff]" />,
+            iconBg: "bg-[#f2f4f7] dark:bg-[#2c2c2e]",
           },
           {
-            label: "ACTIVE",
+            label: "Active",
             value: (dbIntegrations as any[]).filter(
               (i: any) => i.status === "active"
             ).length,
-            color: "text-emerald-600 dark:text-emerald-400",
+            icon: <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />,
+            iconBg: "bg-[#eefbf3] dark:bg-emerald-500/18",
           },
           {
-            label: "NECONECTATE",
+            label: "Neconectate",
             value:
               PROVIDERS.length -
               (dbIntegrations as any[]).filter(
                 (i: any) => i.status === "active"
               ).length,
-            color: "text-slate-500 dark:text-slate-400",
+            icon: <Zap className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />,
+            iconBg: "bg-[#fff6eb] dark:bg-amber-500/18",
           },
           {
-            label: "ULTIMA SYNC",
+            label: "Ultima sincronizare",
             value: (() => {
               const last = (dbIntegrations as any[])
                 .filter((i: any) => i.lastSyncAt)
@@ -849,19 +855,27 @@ export default function Integrations() {
                 ? new Date(last.lastSyncAt).toLocaleDateString("ro-RO")
                 : "—";
             })(),
-            color: "text-blue-600 dark:text-blue-400",
+            icon: <RefreshCw className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d]" />,
+            iconBg: "bg-[#f2f4f7] dark:bg-[#2c2c2e]",
             small: true,
           },
         ].map(s => (
           <div
             key={s.label}
-            className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] px-3.5 py-2.5 shadow-2xs"
+            className="apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5"
           >
-            <p className="text-[10px] font-semibold text-[#636366] dark:text-[#98989d] uppercase tracking-wide mb-0.5">
-              {s.label}
-            </p>
+            <div className="flex items-center justify-between gap-2 w-full">
+              <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+                {s.label}
+              </span>
+              <span className={`w-7 h-7 rounded-[8px] ${s.iconBg} flex items-center justify-center shrink-0`}>
+                {s.icon}
+              </span>
+            </div>
             <p
-              className={`${(s as any).small ? "text-sm" : "text-lg"} font-bold tabular-nums leading-tight ${s.color}`}
+              className={`${
+                (s as any).small ? "text-[18px] sm:text-[22px]" : "text-[24px] sm:text-[26px]"
+              } font-bold tabular-nums tracking-[-0.028em] leading-none text-[#1d1d1f] dark:text-[#f5f5f7] truncate`}
             >
               {s.value}
             </p>
@@ -871,35 +885,43 @@ export default function Integrations() {
 
       {/* AI Assistant Panel */}
       {showAI && (
-        <div className="bg-white dark:bg-slate-900 rounded-[22px] border border-violet-200 dark:border-violet-800 shadow-lg overflow-hidden">
-          <div className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-violet-600 to-blue-600">
-            <Bot className="w-4 h-4 text-white" />
-            <span className="text-sm font-bold text-white">
+        <div className="apple-surface overflow-hidden">
+          <div className="flex items-center gap-2.5 px-4 py-3 border-b border-black/[0.06] dark:border-white/[0.08]">
+            <span className="w-7 h-7 rounded-[8px] bg-[#f2f4f7] dark:bg-[#2c2c2e] flex items-center justify-center shrink-0">
+              <Bot className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#0a84ff]" />
+            </span>
+            <span className="text-[14px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
               Asistent AI — Configurare integrări
             </span>
             <button
+              type="button"
               onClick={() => setShowAI(false)}
-              className="ml-auto text-white/70 hover:text-white"
+              className="ml-auto w-7 h-7 rounded-full inline-flex items-center justify-center text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7] hover:bg-black/[0.05] dark:hover:bg-white/[0.08] cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
-          <div className="h-52 overflow-y-auto p-4 space-y-3 bg-slate-50 dark:bg-slate-800">
+          <div className="h-52 overflow-y-auto p-4 space-y-3 bg-[#f5f5f7] dark:bg-[#141416]">
             {messages.map((m, i) => (
               <div
                 key={i}
                 className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 {m.role === "ai" && (
-                  <div className="w-6 h-6 rounded-full bg-violet-600 flex items-center justify-center flex-shrink-0 mt-1 mr-2">
-                    <Bot className="w-3 h-3 text-white" />
+                  <div className="w-6 h-6 rounded-full bg-[#e5e5ea] dark:bg-[#2c2c2e] flex items-center justify-center shrink-0 mt-1 mr-2">
+                    <Bot className="w-3 h-3 text-[#1d1d1f] dark:text-[#f5f5f7]" />
                   </div>
                 )}
                 <div
-                  className={`max-w-[80%] rounded-lg px-3 py-2 text-sm whitespace-pre-line ${
+                  style={
+                    m.role === "user"
+                      ? { backgroundColor: "var(--tenant-theme-color, #0071e3)" }
+                      : undefined
+                  }
+                  className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-[13px] whitespace-pre-line ${
                     m.role === "ai"
-                      ? "bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 rounded-tl-sm"
-                      : "bg-violet-600 text-white rounded-tr-sm"
+                      ? "bg-white dark:bg-[#2c2c2e] border border-black/[0.06] dark:border-white/[0.08] text-[#1d1d1f] dark:text-[#f5f5f7] rounded-tl-sm"
+                      : "text-white rounded-tr-sm"
                   }`}
                 >
                   {m.text.replace(/\*\*(.*?)\*\*/g, "$1")}
@@ -908,7 +930,7 @@ export default function Integrations() {
             ))}
             <div ref={aiEndRef} />
           </div>
-          <div className="p-3 border-t border-slate-100 dark:border-slate-700 flex gap-2">
+          <div className="p-3 border-t border-black/[0.06] dark:border-white/[0.08] flex gap-2">
             <input
               value={aiInput}
               onChange={e => setAiInput(e.target.value)}
@@ -919,12 +941,13 @@ export default function Integrations() {
                   : "Scrie răspunsul tău..."
               }
               disabled={step === "done"}
-              className="flex-1 h-9 px-3 text-sm rounded-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-400 disabled:opacity-50"
+              className="flex-1 h-9 px-3.5 text-[13px] rounded-full border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none disabled:opacity-50"
             />
             <button
+              type="button"
               onClick={handleAISend}
               disabled={!aiInput.trim() || step === "done"}
-              className="w-9 h-9 rounded-full bg-violet-600 hover:bg-violet-700 text-white flex items-center justify-center transition-colors disabled:opacity-50"
+              className="apple-btn-prominent w-9 h-9 flex items-center justify-center disabled:opacity-50 cursor-pointer"
             >
               <Send className="w-3.5 h-3.5" />
             </button>
@@ -934,18 +957,18 @@ export default function Integrations() {
 
       {/* Eroare OAuth SPV ANAF */}
       {spvAuthError && (
-        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-[22px] p-4 text-xs text-red-950 dark:text-red-100 flex items-start justify-between gap-3">
+        <div className="apple-surface border-rose-500/30 p-4 text-[12.5px] text-[#1d1d1f] dark:text-[#f5f5f7] flex items-start justify-between gap-3">
           <div className="flex items-start gap-2.5">
-            <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+            <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
             <div className="space-y-1.5">
-              <p className="font-bold">
+              <p className="font-semibold text-rose-700 dark:text-rose-300">
                 Autorizarea ANAF SPV a fost respinsă ({spvAuthError.code}
                 {spvAuthError.desc ? ` — ${spvAuthError.desc}` : ""})
               </p>
-              <p className="leading-relaxed opacity-90">
+              <p className="leading-relaxed text-[#6e6e73] dark:text-[#98989d]">
                 Serverul ANAF nu a primit certificatul digital din browser sau a folosit o sesiune TLS memorată fără certificat.
               </p>
-              <ul className="list-disc pl-4 space-y-0.5 opacity-90">
+              <ul className="list-disc pl-4 space-y-0.5 text-[#6e6e73] dark:text-[#98989d]">
                 <li>
                   Verifică în <strong>Setări</strong> că firma are salvat CUI-ul real (și că tokenul USB este asociat în SPV ANAF pentru acest CUI).
                 </li>
@@ -961,7 +984,7 @@ export default function Integrations() {
           <button
             type="button"
             onClick={() => setSpvAuthError(null)}
-            className="w-7 h-7 rounded-full inline-flex items-center justify-center text-red-600 hover:bg-red-100 dark:hover:bg-red-900/40 shrink-0 cursor-pointer"
+            className="w-7 h-7 rounded-full inline-flex items-center justify-center text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 shrink-0 cursor-pointer"
             title="Închide mesajul"
           >
             <X className="w-4 h-4" />
@@ -970,325 +993,298 @@ export default function Integrations() {
       )}
 
       {/* Integrations Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-              <th className="text-left px-4 py-2.5 font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide text-[10px] w-10">
-                NR.
-              </th>
-              <th className="text-left px-3 py-2.5 font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide text-[10px]">
-                PLATFORMĂ
-              </th>
-              <th className="text-left px-3 py-2.5 font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide text-[10px]">
-                DESCRIERE
-              </th>
-              <th className="text-left px-3 py-2.5 font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide text-[10px]">
-                STATUS
-              </th>
-              <th className="text-left px-3 py-2.5 font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide text-[10px]">
-                ULTIMA SYNC
-              </th>
-              <th className="text-left px-3 py-2.5 font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide text-[10px]">
-                FACTURI
-              </th>
-              <th className="text-right px-4 py-2.5 font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide text-[10px]">
-                ACȚIUNI
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {PROVIDERS.map((provider, idx) => {
-              const db =
-                (dbIntegrations as any[]).find(
-                  (i: any) => i.provider === provider.id
-                ) ?? getDbIntegration(provider.id);
-              const isActive = db?.status === "active";
-              const isConfiguring = configuringId === provider.id;
-              let parsedMeta: any = {};
-              try {
-                parsedMeta = db?.apiSecret ? JSON.parse(db.apiSecret) : {};
-              } catch {}
+      <div className="apple-surface overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+              <tr>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap w-12">
+                  Nr.
+                </th>
+                <th className="text-left px-3 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                  Platformă
+                </th>
+                <th className="text-left px-3 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                  Descriere
+                </th>
+                <th className="text-left px-3 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                  Status
+                </th>
+                <th className="text-left px-3 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                  Ultima sincronizare
+                </th>
+                <th className="text-left px-3 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                  Facturi
+                </th>
+                <th className="text-right px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                  Acțiuni
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
+              {PROVIDERS.map((provider, idx) => {
+                const db =
+                  (dbIntegrations as any[]).find(
+                    (i: any) => i.provider === provider.id
+                  ) ?? getDbIntegration(provider.id);
+                const isActive = db?.status === "active";
+                const isConfiguring = configuringId === provider.id;
+                let parsedMeta: any = {};
+                try {
+                  parsedMeta = db?.apiSecret ? JSON.parse(db.apiSecret) : {};
+                } catch {}
 
-              return (
-                <>
-                  <tr
-                    key={provider.id}
-                    className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
-                  >
-                    {/* Nr */}
-                    <td className="px-4 py-3 tabular-nums text-slate-400 dark:text-slate-500 text-[11px]">
-                      {idx + 1}
-                    </td>
+                return (
+                  <>
+                    <tr
+                      key={provider.id}
+                      className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors"
+                    >
+                      {/* Nr */}
+                      <td className="px-4 py-3.5 tabular-nums text-[#8e8e93] text-[12px] font-medium">
+                        {idx + 1}
+                      </td>
 
-                    {/* Platformă */}
-                    <td className="px-3 py-3">
-                      <div className="flex items-center gap-2.5">
-                        <div
-                          className={`rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 ${
-                            (provider as any).logoUrl
-                              ? "w-16 h-9 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-white/95"
-                              : "w-9 h-9"
-                          }`}
-                          style={
-                            (provider as any).logoBg || !(provider as any).logoUrl
-                              ? {
-                                  backgroundColor:
-                                    (provider as any).logoBg || provider.logoColor,
-                                }
-                              : undefined
-                          }
-                        >
-                          {(provider as any).logoUrl ? (
-                            <img
-                              src={(provider as any).logoUrl}
-                              alt={provider.name}
-                              className="w-full h-full object-contain p-1"
-                              onError={e => {
-                                (e.target as HTMLImageElement).style.display =
-                                  "none";
-                              }}
-                            />
-                          ) : (
-                            <span className="text-white font-bold text-xs">
-                              {(provider as any).logoText ||
-                                provider.name.slice(0, 2)}
-                            </span>
-                          )}
-                        </div>
-                        <span className="font-semibold text-slate-900 dark:text-white text-xs">
-                          {provider.name}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* Descriere */}
-                    <td className="px-3 py-3 text-slate-500 dark:text-slate-400 max-w-[200px] truncate">
-                      {provider.description}
-                    </td>
-
-                    {/* Status — Toggle */}
-                    <td className="px-3 py-3">
-                      {provider.comingSoon ? (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-700">
-                          În curând
-                        </span>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            if (isActive) {
-                              setDeleteProviderId(provider.id);
-                            } else {
-                              // connect
-                              if (provider.id === "spv") {
-                                if (!getSpvOAuthUrl.data?.tenantCui) {
-                                  setConfiguringId("spv");
-                                  toast.error(
-                                    "Completează mai întâi CUI-ul firmei în pagina Setări înainte de conectarea SPV."
-                                  );
-                                  return;
-                                }
-                                if (getSpvOAuthUrl.data?.url) {
-                                  window.location.href = getSpvOAuthUrl.data.url;
-                                } else {
-                                  toast.error("Eroare generare link OAuth ANAF. Verificați logurile serverului.");
-                                }
-                              } else {
-                                setConfiguringId(
-                                  isConfiguring ? null : provider.id
-                                );
-                              }
-                            }
-                          }}
-                          disabled={
-                            disconnectOblioMutation.isPending ||
-                            disconnectSpvMutation.isPending ||
-                            upsertMutation.isPending
-                          }
-                          title={isActive ? "Dezactivează" : "Activează"}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-60 ${
-                            isActive ? "" : "bg-slate-300 dark:bg-slate-600"
-                          }`}
-                          style={
-                            isActive
-                              ? { backgroundColor: "var(--color-primary)" }
-                              : undefined
-                          }
-                        >
-                          <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-200 ${
-                              isActive ? "translate-x-[22px]" : "translate-x-[2px]"
+                      {/* Platformă */}
+                      <td className="px-3 py-3.5">
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className={`rounded-xl flex items-center justify-center overflow-hidden shrink-0 ${
+                              (provider as any).logoUrl
+                                ? "w-16 h-9 border border-black/[0.08] dark:border-white/[0.10] bg-white"
+                                : "w-9 h-9"
                             }`}
-                          />
-                        </button>
-                      )}
-                    </td>
+                            style={
+                              (provider as any).logoBg || !(provider as any).logoUrl
+                                ? {
+                                    backgroundColor:
+                                      (provider as any).logoBg || provider.logoColor,
+                                  }
+                                : undefined
+                            }
+                          >
+                            {(provider as any).logoUrl ? (
+                              <img
+                                src={(provider as any).logoUrl}
+                                alt={provider.name}
+                                className="w-full h-full object-contain p-1"
+                                onError={e => {
+                                  (e.target as HTMLImageElement).style.display =
+                                    "none";
+                                }}
+                              />
+                            ) : (
+                              <span className="text-white font-bold text-xs">
+                                {(provider as any).logoText ||
+                                  provider.name.slice(0, 2)}
+                              </span>
+                            )}
+                          </div>
+                          <span className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] text-[13.5px] whitespace-nowrap">
+                            {provider.name}
+                          </span>
+                        </div>
+                      </td>
 
-                    {/* Ultima sync */}
-                    <td className="px-3 py-3 tabular-nums text-slate-500 dark:text-slate-400 text-[11px]">
-                      {db?.lastSyncAt
-                        ? new Date(db.lastSyncAt).toLocaleString("ro-RO", {
-                            dateStyle: "short",
-                            timeStyle: "short",
-                          })
-                        : "—"}
-                    </td>
+                      {/* Descriere */}
+                      <td className="px-3 py-3.5 text-[12.5px] text-[#6e6e73] dark:text-[#98989d] max-w-[240px] truncate">
+                        {provider.description}
+                      </td>
 
-                    {/* Facturi importate */}
-                    <td className="px-3 py-3 tabular-nums font-bold text-slate-700 dark:text-slate-300 text-[11px]">
-                      {(db?.syncCount || 0) > 0 ? db?.syncCount : "—"}
-                    </td>
-
-                    {/* Acțiuni */}
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="flex items-center gap-1.5 justify-end flex-nowrap">
-                        {/* SPV */}
-                        {provider.id === "spv" && !provider.comingSoon && (
-                          <>
-                            {isActive &&
-                              (() => {
-                                const spvConfigured = !!(
-                                  getSpvOAuthUrl.data?.serverConfigured &&
-                                  getSpvOAuthUrl.data?.tenantCui
-                                );
-                                return (
-                                  <>
-                                    <Select
-                                      defaultValue="60"
-                                      onValueChange={v =>
-                                        ((window as any).__spvZile = v)
-                                      }
-                                      disabled={!spvConfigured}
-                                    >
-                                      <SelectTrigger className="h-8 w-24 text-[11px] rounded-full border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 disabled:opacity-50">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="7">
-                                          7 zile
-                                        </SelectItem>
-                                        <SelectItem value="30">
-                                          30 zile
-                                        </SelectItem>
-                                        <SelectItem value="60">
-                                          60 zile
-                                        </SelectItem>
-                                        <SelectItem value="90">
-                                          90 zile
-                                        </SelectItem>
-                                        <SelectItem value="180">
-                                          6 luni
-                                        </SelectItem>
-                                        <SelectItem value="365">
-                                          1 an
-                                        </SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                    <button
-                                      onClick={() => {
-                                        if (!spvConfigured) {
-                                          toast.error(
-                                            "Configurați mai întâi SPV — CIF, Client ID și Client Secret"
-                                          );
-                                          setConfiguringId(provider.id);
-                                          return;
-                                        }
-                                        const zile = parseInt(
-                                          (window as any).__spvZile || "60"
-                                        );
-                                        syncSpvMutation.mutate({ zile });
-                                      }}
-                                      disabled={syncSpvMutation.isPending}
-                                      className="flex items-center gap-1 px-3 h-8 rounded-full bg-[var(--color-primary)] hover:opacity-90 text-white text-[11px] font-semibold transition-all disabled:opacity-60"
-                                      title={
-                                        !spvConfigured
-                                          ? "Configurați mai întâi SPV"
-                                          : "Sincronizează"
-                                      }
-                                    >
-                                      {syncSpvMutation.isPending ? (
-                                        <Loader2 className="w-3 h-3 animate-spin" />
-                                      ) : (
-                                        <RefreshCw className="w-3 h-3" />
-                                      )}
-                                      Sync
-                                    </button>
-                                  </>
-                                );
-                              })()}
-
-                            <button
-                              onClick={() =>
-                                setConfiguringId(
-                                  isConfiguring ? null : provider.id
-                                )
+                      {/* Status — Toggle */}
+                      <td className="px-3 py-3.5">
+                        {provider.comingSoon ? (
+                          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/12 text-amber-700 dark:bg-amber-500/18 dark:text-amber-300">
+                            În curând
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isActive) {
+                                setDeleteProviderId(provider.id);
+                              } else {
+                                if (provider.id === "spv") {
+                                  if (!getSpvOAuthUrl.data?.tenantCui) {
+                                    setConfiguringId("spv");
+                                    toast.error(
+                                      "Completează mai întâi CUI-ul firmei în pagina Setări înainte de conectarea SPV."
+                                    );
+                                    return;
+                                  }
+                                  if (getSpvOAuthUrl.data?.url) {
+                                    window.location.href = getSpvOAuthUrl.data.url;
+                                  } else {
+                                    toast.error("Eroare generare link OAuth ANAF. Verificați logurile serverului.");
+                                  }
+                                } else {
+                                  setConfiguringId(
+                                    isConfiguring ? null : provider.id
+                                  );
+                                }
                               }
-                              className="flex items-center gap-1 px-3 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-semibold transition-colors"
-                            >
-                              <Settings className="w-3 h-3" />
-                              {isConfiguring ? "Închide" : "Configurare"}
-                            </button>
-                            <button
-                              onClick={() =>
-                                document
-                                  .getElementById("spv-file-input")
-                                  ?.click()
-                              }
-                              disabled={importSpvMutation.isPending}
-                              className="flex items-center gap-1 px-3 h-8 rounded-full bg-slate-600 hover:bg-slate-700 text-white text-[11px] font-semibold transition-all"
-                            >
-                              {importSpvMutation.isPending ? (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                              ) : (
-                                <Upload className="w-3 h-3" />
-                              )}
-                              Import ZIP/XML
-                            </button>
-                          </>
+                            }}
+                            disabled={
+                              disconnectOblioMutation.isPending ||
+                              disconnectSpvMutation.isPending ||
+                              upsertMutation.isPending
+                            }
+                            title={isActive ? "Dezactivează" : "Activează"}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none disabled:opacity-60 cursor-pointer ${
+                              isActive ? "" : "bg-black/[0.12] dark:bg-white/[0.16]"
+                            }`}
+                            style={
+                              isActive
+                                ? { backgroundColor: "var(--tenant-theme-color, var(--color-primary))" }
+                                : undefined
+                            }
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-xs transition-transform duration-200 ${
+                                isActive ? "translate-x-[22px]" : "translate-x-[2px]"
+                              }`}
+                            />
+                          </button>
                         )}
+                      </td>
 
-                        {/* Oblio */}
-                        {provider.id === "oblio" && !provider.comingSoon && (
-                          <>
-                            {isActive && (
+                      {/* Ultima sync */}
+                      <td className="px-3 py-3.5 tabular-nums text-[#6e6e73] dark:text-[#98989d] text-[12.5px] whitespace-nowrap">
+                        {db?.lastSyncAt
+                          ? new Date(db.lastSyncAt).toLocaleString("ro-RO", {
+                              dateStyle: "short",
+                              timeStyle: "short",
+                            })
+                          : "—"}
+                      </td>
+
+                      {/* Facturi importate */}
+                      <td className="px-3 py-3.5 tabular-nums font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] text-[13px]">
+                        {(db?.syncCount || 0) > 0 ? db?.syncCount : "—"}
+                      </td>
+
+                      {/* Acțiuni */}
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5 justify-end flex-nowrap">
+                          {/* SPV */}
+                          {provider.id === "spv" && !provider.comingSoon && (
+                            <>
+                              {isActive &&
+                                (() => {
+                                  const spvConfigured = !!(
+                                    getSpvOAuthUrl.data?.serverConfigured &&
+                                    getSpvOAuthUrl.data?.tenantCui
+                                  );
+                                  return (
+                                    <>
+                                      <Select
+                                        defaultValue="60"
+                                        onValueChange={v =>
+                                          ((window as any).__spvZile = v)
+                                        }
+                                        disabled={!spvConfigured}
+                                      >
+                                        <SelectTrigger className="apple-pill-control !h-8 w-24 text-[12px] border-0 shadow-none disabled:opacity-50">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="7">
+                                            7 zile
+                                          </SelectItem>
+                                          <SelectItem value="30">
+                                            30 zile
+                                          </SelectItem>
+                                          <SelectItem value="60">
+                                            60 zile
+                                          </SelectItem>
+                                          <SelectItem value="90">
+                                            90 zile
+                                          </SelectItem>
+                                          <SelectItem value="180">
+                                            6 luni
+                                          </SelectItem>
+                                          <SelectItem value="365">
+                                            1 an
+                                          </SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (!spvConfigured) {
+                                            toast.error(
+                                              "Configurați mai întâi SPV — CIF, Client ID și Client Secret"
+                                            );
+                                            setConfiguringId(provider.id);
+                                            return;
+                                          }
+                                          const zile = parseInt(
+                                            (window as any).__spvZile || "60"
+                                          );
+                                          syncSpvMutation.mutate({ zile });
+                                        }}
+                                        disabled={syncSpvMutation.isPending}
+                                        className="apple-btn-prominent inline-flex items-center gap-1 px-3 h-8 text-[12px] font-semibold disabled:opacity-60 cursor-pointer"
+                                        title={
+                                          !spvConfigured
+                                            ? "Configurați mai întâi SPV"
+                                            : "Sincronizează"
+                                        }
+                                      >
+                                        {syncSpvMutation.isPending ? (
+                                          <Loader2 className="w-3 h-3 animate-spin" />
+                                        ) : (
+                                          <RefreshCw className="w-3 h-3" />
+                                        )}
+                                        Sync
+                                      </button>
+                                    </>
+                                  );
+                                })()}
+
                               <button
-                                onClick={handleSyncOblio}
-                                disabled={syncing === "oblio"}
-                                className="flex items-center gap-1 px-3 h-8 rounded-full bg-[var(--color-primary)] hover:opacity-90 text-white text-[11px] font-semibold transition-all disabled:opacity-60"
+                                type="button"
+                                onClick={() =>
+                                  setConfiguringId(
+                                    isConfiguring ? null : provider.id
+                                  )
+                                }
+                                className="apple-btn-glass inline-flex items-center gap-1 px-3 h-8 text-[#1d1d1f] dark:text-[#f5f5f7] text-[12px] font-medium cursor-pointer"
                               >
-                                {syncing === "oblio" ? (
+                                <Settings className="w-3 h-3" />
+                                {isConfiguring ? "Închide" : "Configurare"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  document
+                                    .getElementById("spv-file-input")
+                                    ?.click()
+                                }
+                                disabled={importSpvMutation.isPending}
+                                className="apple-btn-glass inline-flex items-center gap-1 px-3 h-8 text-[#1d1d1f] dark:text-[#f5f5f7] text-[12px] font-medium cursor-pointer disabled:opacity-60"
+                              >
+                                {importSpvMutation.isPending ? (
                                   <Loader2 className="w-3 h-3 animate-spin" />
                                 ) : (
-                                  <RefreshCw className="w-3 h-3" />
+                                  <Upload className="w-3 h-3" />
                                 )}
-                                Sync
+                                Import ZIP/XML
                               </button>
-                            )}
-                            <button
-                              onClick={() =>
-                                setConfiguringId(
-                                  isConfiguring ? null : provider.id
-                                )
-                              }
-                              className="flex items-center gap-1 px-3 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-semibold transition-colors"
-                            >
-                              <Settings className="w-3 h-3" />
-                              {isConfiguring ? "Închide" : "Configurare"}
-                            </button>
-                          </>
-                        )}
+                            </>
+                          )}
 
-                        {/* SmartBill */}
-                        {provider.id === "smartbill" &&
-                          !provider.comingSoon && (
+                          {/* Oblio */}
+                          {provider.id === "oblio" && !provider.comingSoon && (
                             <>
                               {isActive && (
                                 <button
-                                  onClick={handleSyncSmartBill}
-                                  disabled={syncing === "smartbill"}
-                                  className="flex items-center gap-1 px-3 h-8 rounded-full bg-[var(--color-primary)] hover:opacity-90 text-white text-[11px] font-semibold transition-all disabled:opacity-60"
+                                  type="button"
+                                  onClick={handleSyncOblio}
+                                  disabled={syncing === "oblio"}
+                                  className="apple-btn-prominent inline-flex items-center gap-1 px-3 h-8 text-[12px] font-semibold disabled:opacity-60 cursor-pointer"
                                 >
-                                  {syncing === "smartbill" ? (
+                                  {syncing === "oblio" ? (
                                     <Loader2 className="w-3 h-3 animate-spin" />
                                   ) : (
                                     <RefreshCw className="w-3 h-3" />
@@ -1297,12 +1293,13 @@ export default function Integrations() {
                                 </button>
                               )}
                               <button
+                                type="button"
                                 onClick={() =>
                                   setConfiguringId(
                                     isConfiguring ? null : provider.id
                                   )
                                 }
-                                className="flex items-center gap-1 px-3 h-8 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-[11px] font-semibold transition-colors"
+                                className="apple-btn-glass inline-flex items-center gap-1 px-3 h-8 text-[#1d1d1f] dark:text-[#f5f5f7] text-[12px] font-medium cursor-pointer"
                               >
                                 <Settings className="w-3 h-3" />
                                 {isConfiguring ? "Închide" : "Configurare"}
@@ -1310,93 +1307,129 @@ export default function Integrations() {
                             </>
                           )}
 
-                        {/* SAGA */}
-                        {provider.id === "saga" && (
-                          <button
-                            onClick={() => {
-                              const d = new Date();
-                              const month = d.getMonth() + 1;
-                              const year = d.getFullYear();
-                              exportSagaMutation.mutate({ month, year });
-                            }}
-                            disabled={exportSagaMutation.isPending}
-                            className="flex items-center gap-1 px-3 h-8 rounded-full bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-semibold transition-colors disabled:opacity-60"
-                          >
-                            <Download className="w-3 h-3" />
-                            {exportSagaMutation.isPending ? "Generare..." : "Descarcă XML"}
-                          </button>
-                        )}
+                          {/* SmartBill */}
+                          {provider.id === "smartbill" &&
+                            !provider.comingSoon && (
+                              <>
+                                {isActive && (
+                                  <button
+                                    type="button"
+                                    onClick={handleSyncSmartBill}
+                                    disabled={syncing === "smartbill"}
+                                    className="apple-btn-prominent inline-flex items-center gap-1 px-3 h-8 text-[12px] font-semibold disabled:opacity-60 cursor-pointer"
+                                  >
+                                    {syncing === "smartbill" ? (
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                      <RefreshCw className="w-3 h-3" />
+                                    )}
+                                    Sync
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setConfiguringId(
+                                      isConfiguring ? null : provider.id
+                                    )
+                                  }
+                                  className="apple-btn-glass inline-flex items-center gap-1 px-3 h-8 text-[#1d1d1f] dark:text-[#f5f5f7] text-[12px] font-medium cursor-pointer"
+                                >
+                                  <Settings className="w-3 h-3" />
+                                  {isConfiguring ? "Închide" : "Configurare"}
+                                </button>
+                              </>
+                            )}
 
-                        {provider.comingSoon && (
-                          <span className="text-[11px] text-slate-400">—</span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
+                          {/* SAGA */}
+                          {provider.id === "saga" && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const d = new Date();
+                                const month = d.getMonth() + 1;
+                                const year = d.getFullYear();
+                                exportSagaMutation.mutate({ month, year });
+                              }}
+                              disabled={exportSagaMutation.isPending}
+                              className="apple-btn-prominent inline-flex items-center gap-1 px-3 h-8 text-[12px] font-semibold disabled:opacity-60 cursor-pointer"
+                            >
+                              <Download className="w-3 h-3" />
+                              {exportSagaMutation.isPending ? "Generare..." : "Descarcă XML"}
+                            </button>
+                          )}
 
-                  {/* Config form row */}
-                  {isConfiguring && (
-                    <tr
-                      key={`${provider.id}-cfg`}
-                      className="border-b border-slate-100 dark:border-slate-700/60 bg-slate-50/80 dark:bg-slate-800/80"
-                    >
-                      <td />
-                      <td colSpan={6} className="px-4 py-3">
-                        {provider.id === "spv" && (
-                          <SpvConfigForm
-                            key={db?.id ?? "spv-new"}
-                            tenantCui={getSpvOAuthUrl.data?.tenantCui}
-                            entityType={(getSpvOAuthUrl.data as any)?.entityType}
-                            serverConfigured={
-                              getSpvOAuthUrl.data?.serverConfigured
-                            }
-                            hasActiveToken={!!db?.apiKey}
-                            tokenExpiresAt={
-                              db?.tokenExpiresAt
-                                ? String(db.tokenExpiresAt)
-                                : null
-                            }
-                          />
-                        )}
-                        {provider.id === "oblio" && (
-                          <OblioConfigForm
-                            key={db?.id ?? "oblio-new"}
-                            initialData={parsedMeta}
-                            onSave={saveOblioConfig}
-                            saving={upsertMutation.isPending}
-                          />
-                        )}
-                        {provider.id === "smartbill" && (
-                          <SmartBillConfigForm
-                            key={db?.id ?? "sb-new"}
-                            onSave={saveSmartBillConfig}
-                            saving={upsertMutation.isPending}
-                          />
-                        )}
+                          {provider.comingSoon && (
+                            <span className="text-[12px] text-[#8e8e93]">—</span>
+                          )}
+                        </div>
                       </td>
                     </tr>
-                  )}
-                </>
-              );
-            })}
-          </tbody>
-          <tfoot>
-            <tr className="border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
-              <td
-                colSpan={7}
-                className="px-4 py-2 text-[11px] text-slate-400 dark:text-slate-500"
-              >
-                Total înregistrări:{" "}
-                <strong className="text-slate-600 dark:text-slate-300">
-                  {PROVIDERS.length}
-                </strong>
-                <span className="ml-4">
-                  În curând: WinMentor, Ciel, QuickBooks
-                </span>
-              </td>
-            </tr>
-          </tfoot>
-        </table>
+
+                    {/* Config form row */}
+                    {isConfiguring && (
+                      <tr
+                        key={`${provider.id}-cfg`}
+                        className="bg-[#fafafa] dark:bg-white/[0.02]"
+                      >
+                        <td />
+                        <td colSpan={6} className="px-4 py-3.5">
+                          {provider.id === "spv" && (
+                            <SpvConfigForm
+                              key={db?.id ?? "spv-new"}
+                              tenantCui={getSpvOAuthUrl.data?.tenantCui}
+                              entityType={(getSpvOAuthUrl.data as any)?.entityType}
+                              serverConfigured={
+                                getSpvOAuthUrl.data?.serverConfigured
+                              }
+                              hasActiveToken={!!db?.apiKey}
+                              tokenExpiresAt={
+                                db?.tokenExpiresAt
+                                  ? String(db.tokenExpiresAt)
+                                  : null
+                              }
+                            />
+                          )}
+                          {provider.id === "oblio" && (
+                            <OblioConfigForm
+                              key={db?.id ?? "oblio-new"}
+                              initialData={parsedMeta}
+                              onSave={saveOblioConfig}
+                              saving={upsertMutation.isPending}
+                            />
+                          )}
+                          {provider.id === "smartbill" && (
+                            <SmartBillConfigForm
+                              key={db?.id ?? "sb-new"}
+                              onSave={saveSmartBillConfig}
+                              saving={upsertMutation.isPending}
+                            />
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr className="border-t border-black/[0.05] dark:border-white/[0.07] bg-[#fafafa] dark:bg-white/[0.02]">
+                <td
+                  colSpan={7}
+                  className="px-4 py-2.5 text-[12px] text-[#6e6e73] dark:text-[#98989d]"
+                >
+                  Total înregistrări:{" "}
+                  <strong className="text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums">
+                    {PROVIDERS.length}
+                  </strong>
+                  <span className="ml-4">
+                    În curând: WinMentor, Ciel, QuickBooks
+                  </span>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
       </div>
 
       {/* Disconnect Confirmation Dialog */}
@@ -1404,10 +1437,12 @@ export default function Integrations() {
         open={!!deleteProviderId}
         onOpenChange={o => !o && setDeleteProviderId(null)}
       >
-        <AlertDialogContent className="rounded-[22px]">
+        <AlertDialogContent className="bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.10] rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Dezactivează integrarea?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-[#1d1d1f] dark:text-[#f5f5f7]">
+              Dezactivează integrarea?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-[#6e6e73] dark:text-[#98989d]">
               Această acțiune va deconecta integrarea{" "}
               <strong>
                 {deleteProviderId === "oblio"
@@ -1421,7 +1456,9 @@ export default function Integrations() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-full">Anulează</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-full apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7]">
+              Anulează
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (deleteProviderId === "oblio") {

@@ -133,8 +133,9 @@ interface NirLineForm {
 }
 
 const INPUT_CLS =
-  "w-full h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500";
-const LABEL_CLS = "block text-[10px] font-bold uppercase text-slate-400 mb-0.5";
+  "apple-input w-full h-9 px-3 text-[13px] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none";
+const LABEL_CLS =
+  "block text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1";
 
 const CHEVRON_SVG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`;
 const SELECT_STYLE: React.CSSProperties = {
@@ -1308,83 +1309,86 @@ export default function NIRCreate() {
   );
 
   return (
-    <div className="p-3 sm:p-5 space-y-5 max-w-full">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-3">
+    <div className="p-3 sm:p-5 space-y-5 max-w-full overflow-x-hidden">
+      {/* Header — Apple macOS Window Title & Actions */}
+      <div className="flex items-center justify-between gap-3 flex-wrap px-0.5">
+        <div className="flex items-center gap-3 min-w-0">
           <button
+            type="button"
             onClick={() => window.history.back()}
             aria-label="Înapoi"
-            className="flex items-center justify-center w-9 h-9 rounded-full border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
+            className="apple-btn-glass flex items-center justify-center w-9 h-9 rounded-full text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white transition-all cursor-pointer shrink-0"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 flex-wrap">
-              <ClipboardCheck className="w-5 h-5" style={{ color: "var(--tenant-theme-color, #16a34a)" }} />
-              {isEdit ? nirNumber : (nirNumber ? `NIR Nou — ${nirNumber}` : "NIR Nou")}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight tabular-nums">
+                {isEdit ? nirNumber : nirNumber ? `NIR Nou — ${nirNumber}` : "NIR Nou"}
+              </h1>
               {isCreditNote && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 ml-1">
-                  STORNO
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#ff3b30]/12 text-[#ff3b30] dark:bg-[#ff453a]/18 dark:text-[#ff6961]">
+                  Storno
                 </span>
               )}
               {spvIndex && (
                 <span
-                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs tabular-nums font-semibold bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 ml-1"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] tabular-nums font-medium bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300"
                   title={`Index încărcare ANAF SPV: ${spvIndex}`}
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
-                  Index SPV: {spvIndex}
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Index SPV: {spvIndex}</span>
                 </span>
               )}
               {currency && currency !== "RON" && currency !== "LEI" && (
                 <span
-                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs tabular-nums font-semibold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 ml-1"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] tabular-nums font-medium bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#ebebf5]"
                   title={`Factură în valută (${currency}) la cursul de ${parseFloat(exchangeRate || "1").toFixed(4)} RON`}
                 >
                   Valută: {currency} (Curs: {parseFloat(exchangeRate || "1").toFixed(4)})
                 </span>
               )}
-            </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Notă de Intrare-Recepție — OMFP 2634/2015
+            </div>
+            <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
+              Notă de Intrare-Recepție · OMFP 2634/2015
             </p>
           </div>
         </div>
+
         <div className="flex items-center gap-2 flex-wrap">
           {linkedInvoiceId && (
             <button
               type="button"
               onClick={() => setInvoicePdfOpen(true)}
               title="Vezi factura furnizorului (PDF) direct în aplicație"
-              className="flex items-center gap-1.5 px-3.5 h-8 rounded-full bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-xs font-bold border border-amber-200 dark:border-amber-800 transition-colors"
+              className="apple-btn-glass flex items-center gap-1.5 px-3.5 h-9 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-semibold transition-all cursor-pointer"
             >
-              <FileText className="w-3.5 h-3.5" />
-              Factură
+              <FileText className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+              <span>Factură</span>
             </button>
           )}
           <button
             type="button"
             onClick={() => setPreviewOpen(true)}
             title="Vezi documentul NIR direct în aplicație, fără descărcare"
-            className="flex items-center gap-1.5 px-3.5 h-8 rounded-full bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-xs font-bold border border-indigo-200 dark:border-indigo-800 transition-colors"
+            className="apple-btn-glass flex items-center gap-1.5 px-3.5 h-9 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-semibold transition-all cursor-pointer"
           >
-            <Eye className="w-3.5 h-3.5" />
-            Previzualizare
+            <Eye className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#0a84ff] shrink-0" />
+            <span>Previzualizare</span>
           </button>
           <button
             type="button"
             onClick={handleOpenSagaSimulator}
             disabled={simulateNirImportMut.isPending}
             title="Simulează și verifică cum va apărea acest NIR la importul în SAGA C (Intrări)"
-            className="flex items-center gap-1.5 px-3.5 h-8 rounded-full bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/40 dark:hover:bg-sky-950/60 text-sky-800 dark:text-sky-300 text-xs font-bold border border-sky-200 dark:border-sky-800 transition-colors disabled:opacity-50"
+            className="apple-btn-glass flex items-center gap-1.5 px-3.5 h-9 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-semibold transition-all disabled:opacity-50 cursor-pointer"
           >
             {simulateNirImportMut.isPending ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
             ) : (
-              <Sparkles className="w-3.5 h-3.5 text-sky-600" />
+              <Sparkles className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#0a84ff] shrink-0" />
             )}
-            Simulează SAGA
+            <span>Simulează SAGA</span>
           </button>
           {isEdit && (
             <>
@@ -1393,74 +1397,65 @@ export default function NIRCreate() {
                 onClick={handleSaveSagaXml}
                 disabled={exportNirMut.isPending}
                 title="Salvează fișier XML pentru SAGA C (alege calea de salvare)"
-                style={{
-                  backgroundColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 10%, transparent)",
-                  borderColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 25%, transparent)",
-                  color: "var(--tenant-theme-color, #16a34a)",
-                }}
-                className="flex items-center gap-1.5 px-3.5 h-8 rounded-full text-xs font-bold border transition-colors hover:brightness-95 disabled:opacity-50"
+                className="apple-btn-glass flex items-center gap-1.5 px-3.5 h-9 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-semibold transition-all disabled:opacity-50 cursor-pointer"
               >
                 {exportNirMut.isPending ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
                 ) : (
-                  <FileCode className="w-3.5 h-3.5" />
+                  <FileCode className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 )}
-                SAGA XML
+                <span>SAGA XML</span>
               </button>
               <button
                 type="button"
                 onClick={handleSavePdfNir}
                 disabled={isSavingPdf}
                 title="Salvează PDF NIR (alege calea de salvare)"
-                className="flex items-center gap-1.5 px-3.5 h-8 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold border border-slate-200 dark:border-slate-700 transition-colors disabled:opacity-50"
+                className="apple-btn-glass flex items-center gap-1.5 px-3.5 h-9 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-semibold transition-all disabled:opacity-50 cursor-pointer"
               >
                 {isSavingPdf ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
                 ) : (
-                  <FileDown className="w-3.5 h-3.5" />
+                  <FileDown className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
                 )}
-                PDF NIR
+                <span>PDF NIR</span>
               </button>
             </>
           )}
           {status !== "finalizat" && isEdit && (
             <button
+              type="button"
               onClick={() => finalizeNir.mutate({ id: nirId! })}
               disabled={finalizeNir.isPending}
-              style={{
-                backgroundColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 10%, transparent)",
-                borderColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 25%, transparent)",
-                color: "var(--tenant-theme-color, #16a34a)",
-              }}
-              className="flex items-center gap-1.5 px-3.5 h-8 rounded-full text-xs font-bold border transition-colors hover:brightness-95"
+              className="apple-btn-glass flex items-center gap-1.5 px-3.5 h-9 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-semibold transition-all disabled:opacity-50 cursor-pointer"
             >
               {finalizeNir.isPending ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
               ) : (
-                <CheckCircle className="w-3.5 h-3.5" />
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
               )}
-              Finalizează
+              <span>Finalizează</span>
             </button>
           )}
           <button
+            type="button"
             onClick={handleSave}
             disabled={createNir.isPending || updateNir.isPending}
-            style={{ backgroundColor: "var(--tenant-theme-color, #16a34a)" }}
-            className="flex items-center gap-1.5 px-4 h-8 rounded-full text-white text-xs font-bold transition-all shadow-sm hover:brightness-90 active:brightness-75 disabled:opacity-60"
+            className="apple-btn-prominent flex items-center justify-center gap-1.5 px-4 h-9 rounded-full text-white text-[12.5px] font-semibold transition-all disabled:opacity-60 cursor-pointer"
           >
             {createNir.isPending || updateNir.isPending ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
             ) : (
-              <Save className="w-3.5 h-3.5" />
+              <Save className="w-3.5 h-3.5 shrink-0" />
             )}
-            {isEdit ? "Salvează" : "Creează NIR"}
+            <span>{isEdit ? "Salvează" : "Creează NIR"}</span>
           </button>
         </div>
       </div>
 
       {/* ─── SECȚIUNEA 1: Date NIR ─── */}
-      <div className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3">
+      <div className="apple-surface p-4 sm:p-5">
+        <p className="text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] mb-3.5">
           I. Date NIR
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-3 items-end">
@@ -1470,7 +1465,7 @@ export default function NIRCreate() {
               type="text"
               value={nirNumber}
               onChange={e => setNirNumber(e.target.value)}
-              className="w-full h-8 px-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800 text-sm tabular-nums font-bold text-slate-900 dark:text-white shadow-xs focus:outline-none focus:ring-2 focus:ring-teal-500"
+              className="apple-input w-full h-9 px-3 text-[13px] tabular-nums font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
               placeholder="ex: NIR-2026-0001"
             />
           </div>
@@ -1480,15 +1475,15 @@ export default function NIRCreate() {
               type="date"
               value={receiptDate}
               onChange={e => setReceiptDate(e.target.value)}
-              className={INPUT_CLS}
+              className={`${INPUT_CLS} tabular-nums`}
             />
           </div>
           <div className="md:col-span-2">
-            <label className={LABEL_CLS}>Nr. Factură furnizor</label>
+            <label className={LABEL_CLS}>Nr. factură furnizor</label>
             <input
               value={invoiceNumber}
               onChange={e => setInvoiceNumber(e.target.value)}
-              className={INPUT_CLS}
+              className={`${INPUT_CLS} tabular-nums`}
               placeholder="Nr. factură"
             />
           </div>
@@ -1502,30 +1497,38 @@ export default function NIRCreate() {
             />
           </div>
           <div className="md:col-span-2">
-            <label className={LABEL_CLS}>ID Încărcare SPV</label>
+            <label className={LABEL_CLS}>ID încărcare SPV</label>
             <input
               type="text"
               value={spvIndex}
               onChange={e => setSpvIndex(e.target.value)}
-              className="w-full h-8 px-2.5 rounded-lg border border-teal-200 dark:border-teal-800 bg-teal-50/50 dark:bg-teal-950/30 text-xs tabular-nums font-bold text-teal-800 dark:text-teal-300 shadow-xs focus:outline-none focus:ring-2 focus:ring-teal-500"
+              className="apple-input w-full h-9 px-3 text-[12.5px] tabular-nums font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
               placeholder="Index ANAF SPV"
               title="Identificatorul de încărcare din Spațiul Privat Virtual ANAF"
             />
           </div>
-          <div className="md:col-span-2 flex items-center gap-2 h-8">
-            <label className="text-[10px] font-bold uppercase text-slate-400 whitespace-nowrap">Afișare Conturi</label>
+          <div className="md:col-span-2 flex items-center gap-2.5 h-9">
+            <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+              Afișare conturi
+            </label>
             <button
               type="button"
               onClick={() => setShowAccounting(v => !v)}
               style={showAccounting ? { backgroundColor: "var(--tenant-theme-color, #16a34a)" } : {}}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${showAccounting ? '' : 'bg-slate-300 dark:bg-slate-600'}`}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer shrink-0 ${
+                showAccounting ? "" : "bg-[#e5e5ea] dark:bg-[#3a3a3c]"
+              }`}
             >
-              <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform ${showAccounting ? 'translate-x-6' : 'translate-x-1'}`} />
+              <span
+                className={`inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform ${
+                  showAccounting ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
             </button>
           </div>
           {showAccounting && (
             <div className="md:col-span-4">
-              <label className={LABEL_CLS}>Tip / Cont (General)</label>
+              <label className={LABEL_CLS}>Tip / Cont (general)</label>
               <PlanConturiCombobox
                 displayMode="name"
                 value={accountingAccount}
@@ -1555,68 +1558,67 @@ export default function NIRCreate() {
           )}
           <div className="md:col-span-1">
             <label className={LABEL_CLS}>U/M</label>
-            <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-              <select
-                value={
-                  lines.length > 0 && !lines.every(l => l.unit === generalUnit)
-                    ? ""
-                    : generalUnit
-                }
-                onChange={e => {
-                  const u = e.target.value;
-                  if (!u) return;
-                  setGeneralUnit(u);
-                  setLines(prev => prev.map(l => ({ ...l, unit: u })));
-                }}
-                style={SELECT_STYLE}
-                className="w-full h-8 px-2.5 pr-7 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none border-none"
-              >
-                <option value="" disabled>
-                  Mixt
-                </option>
-                <option value="buc">buc</option>
-                <option value="kg">kg</option>
-                <option value="l">l</option>
-                <option value="m">m</option>
-                <option value="mp">mp</option>
-                <option value="mc">mc</option>
-                <option value="set">set</option>
-                <option value="cutie">cutie</option>
-                <option value="rolă">rolă</option>
-                <option value="oră">oră</option>
-                <option value="pachet">pachet</option>
-                <option value="per">per</option>
-                <option value="sac">sac</option>
-              </select>
-            </div>
+            <select
+              value={
+                lines.length > 0 && !lines.every(l => l.unit === generalUnit)
+                  ? ""
+                  : generalUnit
+              }
+              onChange={e => {
+                const u = e.target.value;
+                if (!u) return;
+                setGeneralUnit(u);
+                setLines(prev => prev.map(l => ({ ...l, unit: u })));
+              }}
+              style={SELECT_STYLE}
+              className="apple-input w-full h-9 px-2.5 pr-7 text-[13px] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
+            >
+              <option value="" disabled>
+                Mixt
+              </option>
+              <option value="buc">buc</option>
+              <option value="kg">kg</option>
+              <option value="l">l</option>
+              <option value="m">m</option>
+              <option value="mp">mp</option>
+              <option value="mc">mc</option>
+              <option value="set">set</option>
+              <option value="cutie">cutie</option>
+              <option value="rolă">rolă</option>
+              <option value="oră">oră</option>
+              <option value="pachet">pachet</option>
+              <option value="per">per</option>
+              <option value="sac">sac</option>
+            </select>
           </div>
-          <div className="md:col-span-1 min-w-[64px]">
+          <div className="md:col-span-1 min-w-[68px]">
             <label className={LABEL_CLS}>TVA %</label>
-            <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-              <select
-                value={generalVat}
-                onChange={e => {
-                  const v = e.target.value;
-                  setGeneralVat(v);
-                  setLines(prev => prev.map(l => ({ ...l, vatRate: v })));
-                }}
-                style={SELECT_STYLE}
-                className="w-full h-8 pl-2 pr-5 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none border-none"
-              >
-                <option value="21">21</option>
-                <option value="11">11</option>
-                <option value="19">19</option>
-                <option value="9">9</option>
-                <option value="5">5</option>
-                <option value="0">0</option>
-              </select>
-            </div>
+            <select
+              value={generalVat}
+              onChange={e => {
+                const v = e.target.value;
+                setGeneralVat(v);
+                setLines(prev => prev.map(l => ({ ...l, vatRate: v })));
+              }}
+              style={SELECT_STYLE}
+              className="apple-input w-full h-9 pl-2.5 pr-6 text-[13px] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none tabular-nums"
+            >
+              <option value="21">21</option>
+              <option value="11">11</option>
+              <option value="19">19</option>
+              <option value="9">9</option>
+              <option value="5">5</option>
+              <option value="0">0</option>
+            </select>
           </div>
 
           {verifyRows.length > 0 && (
-            <div className="md:col-span-6 flex flex-wrap items-center gap-1.5 min-h-8">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400" title="Verificare NIR față de factura furnizorului">
-                Factură:
+            <div className="md:col-span-6 flex flex-wrap items-center gap-1.5 min-h-9">
+              <span
+                className="text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d]"
+                title="Verificare NIR față de factura furnizorului"
+              >
+                Verificare factură:
               </span>
               {verifyRows.map(r => (
                 <span
@@ -1626,10 +1628,10 @@ export default function NIRCreate() {
                       ? `${r.label}: NIR și factură sunt identice${roundingAdjusted ? " (aliniat la factură — rotunjire)" : ""}`
                       : `${r.label}: NIR ${r.nir.toFixed(2)} ≠ factură ${r.inv.toFixed(2)} (diferență ${(r.nir - r.inv).toFixed(2)})`
                   }
-                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg border text-[11px] font-semibold whitespace-nowrap ${
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap ${
                     r.ok
-                      ? "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300"
-                      : "bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-950/30 dark:border-rose-800 dark:text-rose-300"
+                      ? "bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300"
+                      : "bg-[#ff3b30]/12 text-[#ff3b30] dark:bg-[#ff453a]/18 dark:text-[#ff6961]"
                   }`}
                 >
                   {r.ok ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
@@ -1650,9 +1652,9 @@ export default function NIRCreate() {
       </div>
 
       {/* ─── SECȚIUNEA 2: Furnizor ─── */}
-      <div className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3">
-          II. Date Furnizor
+      <div className="apple-surface p-4 sm:p-5">
+        <p className="text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] mb-3.5">
+          II. Date furnizor
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="md:col-span-1">
@@ -1664,11 +1666,11 @@ export default function NIRCreate() {
             />
           </div>
           <div>
-            <label className={LABEL_CLS}>CUI / CIF Furnizor</label>
+            <label className={LABEL_CLS}>CUI / CIF furnizor</label>
             <input
               value={supplierCUI}
               onChange={e => setSupplierCUI(e.target.value)}
-              className={INPUT_CLS}
+              className={`${INPUT_CLS} tabular-nums`}
             />
           </div>
           <div>
@@ -1684,61 +1686,80 @@ export default function NIRCreate() {
       </div>
 
       {/* ─── SECȚIUNEA 3: Tabel produse ─── */}
-      <div className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-          <div className="flex items-center gap-3">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+      <div className="apple-surface overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-black/[0.05] dark:border-white/[0.07] bg-[#fafafa] dark:bg-white/[0.025] gap-2 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap">
+            <p className="text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
               III. Produse / Servicii recepționate
             </p>
             <Link
               href="/saga-sync"
               target="_blank"
-              className="text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+              className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white hover:underline flex items-center gap-1 transition-colors"
             >
               <RefreshCw className="w-3 h-3" />
-              Sincronizează articole noi din SAGA
+              <span>Sincronizează articole noi din SAGA</span>
             </Link>
           </div>
           <button
+            type="button"
             onClick={addLine}
-            style={{
-              backgroundColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 10%, transparent)",
-              borderColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 25%, transparent)",
-              color: "var(--tenant-theme-color, #16a34a)",
-            }}
-            className="flex items-center gap-1 px-3.5 h-7 rounded-full text-xs font-bold border transition-colors hover:brightness-95"
+            className="apple-btn-glass flex items-center gap-1.5 px-3.5 h-8 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] text-[12px] font-semibold transition-all cursor-pointer"
           >
-            <Plus className="w-3 h-3" /> Adaugă linie
+            <Plus className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#0a84ff]" />
+            <span>Adaugă linie</span>
           </button>
         </div>
         <div className="overflow-x-auto pb-4">
           <table className="w-full text-xs min-w-[980px]">
-            <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-800">
-                <th className="pl-3 pr-1 py-2 text-left text-[10px] font-bold uppercase text-slate-400 w-[32px]">Nr.</th>
-                <th className="px-1 py-2 text-left text-[10px] font-bold uppercase text-slate-400 min-w-[150px]">Denumire produs/serviciu</th>
-                <th className="px-1 py-2 text-left text-[10px] font-bold uppercase text-slate-400 min-w-[135px] w-[150px]">Articol (Stoc)</th>
-                {showAccounting && <th className="px-1 py-2 text-left text-[10px] font-bold uppercase text-slate-400 min-w-[120px] w-[130px]">Tip</th>}
-                <th className="px-1 py-2 text-center text-[10px] font-bold uppercase text-slate-400 w-[52px]">U/M</th>
-                <th className="px-1 py-2 text-center text-[10px] font-bold uppercase text-slate-400 w-[62px]">Cant. doc.</th>
-                <th
-                  style={{ backgroundColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 8%, transparent)" }}
-                  className="px-1 py-2 text-center text-[10px] font-bold uppercase text-slate-400 w-[66px]"
-                >
+            <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+              <tr>
+                <th className="pl-3 pr-1 py-2.5 text-left text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] w-[34px]">
+                  Nr.
+                </th>
+                <th className="px-1.5 py-2.5 text-left text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] min-w-[150px]">
+                  Denumire produs / serviciu
+                </th>
+                <th className="px-1.5 py-2.5 text-left text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] min-w-[135px] w-[150px]">
+                  Articol (Stoc)
+                </th>
+                {showAccounting && (
+                  <th className="px-1.5 py-2.5 text-left text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] min-w-[120px] w-[130px]">
+                    Tip
+                  </th>
+                )}
+                <th className="px-1.5 py-2.5 text-center text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] w-[52px]">
+                  U/M
+                </th>
+                <th className="px-1.5 py-2.5 text-center text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] w-[62px]">
+                  Cant. doc.
+                </th>
+                <th className="px-1.5 py-2.5 text-center text-[11.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] w-[66px]">
                   Cant. recept.
                 </th>
-                <th className="px-1 py-2 text-right text-[10px] font-bold uppercase text-slate-400 w-[84px]">Preț unit.</th>
-                <th className="px-1 py-2 text-center text-[10px] font-bold uppercase text-slate-400 w-[50px]">TVA %</th>
-                <th className="px-1 py-2 text-right text-[10px] font-bold uppercase text-slate-400 w-[96px]">Valoare</th>
-                <th className="px-1 py-2 text-left text-[10px] font-bold uppercase text-slate-400 min-w-[80px] w-[100px]">Obs.</th>
-                <th className="pr-2 pl-1 py-2 w-[34px]"></th>
+                <th className="px-1.5 py-2.5 text-right text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] w-[84px]">
+                  Preț unit.
+                </th>
+                <th className="px-1.5 py-2.5 text-center text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] w-[50px]">
+                  TVA %
+                </th>
+                <th className="px-1.5 py-2.5 text-right text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] w-[96px]">
+                  Valoare
+                </th>
+                <th className="px-1.5 py-2.5 text-left text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] min-w-[80px] w-[100px]">
+                  Obs.
+                </th>
+                <th className="pr-2 pl-1 py-2.5 w-[36px]"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
               {lines.length === 0 ? (
                 <tr>
-                  <td colSpan={showAccounting ? 12 : 11} className="py-6 text-center text-xs text-slate-400">
-                    Nicio linie. Apasă Adaugă linie.
+                  <td
+                    colSpan={showAccounting ? 12 : 11}
+                    className="py-8 text-center text-[13px] text-[#6e6e73] dark:text-[#98989d]"
+                  >
+                    Nicio linie. Apasă „Adaugă linie”.
                   </td>
                 </tr>
               ) : (
@@ -1749,18 +1770,22 @@ export default function NIRCreate() {
                   return (
                     <tr
                       key={idx}
-                      className={`hover:bg-slate-50/50 dark:hover:bg-slate-800/20 ${diff ? "bg-amber-50/40 dark:bg-amber-900/10" : ""}`}
+                      className={`hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors ${
+                        diff ? "bg-amber-500/[0.06] dark:bg-amber-500/[0.1]" : ""
+                      }`}
                     >
-                      <td className="pl-3 pr-1 py-1.5 text-slate-400 font-semibold">{idx + 1}</td>
-                      <td className="px-1 py-1.5 min-w-[150px]">
+                      <td className="pl-3 pr-1 py-2 text-[#8e8e93] font-medium tabular-nums">
+                        {idx + 1}
+                      </td>
+                      <td className="px-1 py-2 min-w-[150px]">
                         <input
                           value={line.description}
                           onChange={e => updateLine(idx, "description", e.target.value)}
-                          className="w-full h-7 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-teal-500 text-xs"
+                          className="apple-input w-full h-8 px-2.5 text-xs text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
                           placeholder="Denumire produs sau serviciu..."
                         />
                       </td>
-                      <td className="px-1 py-1.5 min-w-[135px]">
+                      <td className="px-1 py-2 min-w-[135px]">
                         <div className="min-w-[130px]">
                           <ArticleCombobox
                             value={line.articleSearchText ?? ""}
@@ -1793,24 +1818,24 @@ export default function NIRCreate() {
                           />
                           {line.matchType === "words_and_price" ? (
                             <div
-                              className="mt-0.5 text-[10px] text-indigo-700 dark:text-indigo-300 flex items-center gap-1 truncate max-w-[150px]"
+                              className="mt-0.5 text-[10.5px] text-[#6e6e73] dark:text-[#98989d] flex items-center gap-1 truncate max-w-[150px]"
                               title={`Asociat inteligent cu "${line.matchedSagaName || ""}" pe baza cuvintelor (${(line.matchedWords || []).join(", ")}) și a prețului identic`}
                             >
-                              <Sparkles className="w-2.5 h-2.5 shrink-0 text-indigo-600" />
+                              <Sparkles className="w-2.5 h-2.5 shrink-0 text-[#0071e3] dark:text-[#0a84ff]" />
                               <span className="truncate">
-                                Asociat (2+ cuv &amp; preț): <strong>{line.matchedSagaName}</strong>
+                                Asociat: <strong className="text-[#1d1d1f] dark:text-[#f5f5f7]">{line.matchedSagaName}</strong>
                               </span>
                             </div>
                           ) : isAppGeneratedArticleCode(line.articleSearchText) ? (
                             <div
-                              className="mt-0.5 text-[10px] text-violet-700 dark:text-violet-300 font-medium truncate"
+                              className="mt-0.5 text-[10.5px] text-[#6e6e73] dark:text-[#98989d] font-medium truncate tabular-nums"
                               title="Cod 088xxxxx generat automat de aplicație pentru articol nou (nu se suprapune cu SAGA 000xxxxx)"
                             >
-                              Cod nou aplicație ({line.articleSearchText})
+                              Cod nou ({line.articleSearchText})
                             </div>
                           ) : line.articleSearchText && /^000\d+$/.test(line.articleSearchText.trim()) ? (
                             <div
-                              className="mt-0.5 text-[10px] text-sky-700 dark:text-sky-300 font-medium truncate"
+                              className="mt-0.5 text-[10.5px] text-emerald-700 dark:text-emerald-300 font-medium truncate tabular-nums"
                               title={line.matchedSagaName || "Articol existent în SAGA C"}
                             >
                               Articol SAGA ({line.articleSearchText})
@@ -1819,7 +1844,7 @@ export default function NIRCreate() {
                         </div>
                       </td>
                       {showAccounting && (
-                        <td className="px-1 py-1.5 min-w-[120px] w-[130px]">
+                        <td className="px-1 py-2 min-w-[120px] w-[130px]">
                           <div className="min-w-[115px]">
                             <PlanConturiCombobox
                               size="sm"
@@ -1838,74 +1863,72 @@ export default function NIRCreate() {
                           </div>
                         </td>
                       )}
-                      <td className="px-1 py-1.5 w-[52px]">
+                      <td className="px-1 py-2 w-[52px]">
                         <input
                           value={line.unit}
                           onChange={e => updateLine(idx, "unit", e.target.value)}
-                          className="w-full h-7 px-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-center focus:outline-none focus:ring-1 focus:ring-teal-500 text-xs"
+                          className="apple-input w-full h-8 px-1 text-center outline-none text-xs text-[#1d1d1f] dark:text-[#f5f5f7]"
                         />
                       </td>
-                      <td className="px-1 py-1.5 w-[62px]">
+                      <td className="px-1 py-2 w-[62px]">
                         <input
                           type="number"
                           value={line.cantitateComanda}
                           onChange={e => updateLine(idx, "cantitateComanda", e.target.value)}
-                          className="w-full h-7 px-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 focus:outline-none text-xs text-center tabular-nums"
+                          className="apple-input w-full h-8 px-1 text-[#6e6e73] dark:text-[#98989d] outline-none text-xs text-center tabular-nums"
                         />
                       </td>
-                      <td
-                        style={{ backgroundColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 6%, transparent)" }}
-                        className="px-1 py-1.5 w-[66px]"
-                      >
+                      <td className="px-1 py-2 w-[66px]">
                         <input
                           type="number"
                           value={line.cantitateReceptionata}
                           onChange={e => updateLine(idx, "cantitateReceptionata", e.target.value)}
-                          style={!diff ? {
-                            borderColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 30%, transparent)",
-                            color: "var(--tenant-theme-color, #16a34a)",
-                          } : {}}
-                          className={`w-full h-7 px-1 rounded-lg border focus:outline-none focus:ring-1 focus:ring-primary text-xs text-center font-bold tabular-nums ${diff ? "border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40" : "bg-white dark:bg-slate-800"}`}
+                          className={`w-full h-8 px-1 rounded-[10px] border outline-none text-xs text-center font-bold tabular-nums ${
+                            diff
+                              ? "border-amber-500/40 text-amber-700 dark:text-amber-300 bg-amber-500/12"
+                              : "apple-input text-[#1d1d1f] dark:text-[#f5f5f7]"
+                          }`}
                         />
                       </td>
-                      <td className="px-1 py-1.5 w-[84px]">
+                      <td className="px-1 py-2 w-[84px]">
                         <input
                           type="number"
                           value={line.unitPrice}
                           onChange={e => updateLine(idx, "unitPrice", e.target.value)}
-                          className="w-full h-7 px-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary text-xs text-right tabular-nums"
+                          className="apple-input w-full h-8 px-1.5 text-[#1d1d1f] dark:text-[#f5f5f7] outline-none text-xs text-right tabular-nums"
                         />
                       </td>
-                      <td className="px-1 py-1.5 w-[52px]">
+                      <td className="px-1 py-2 w-[52px]">
                         <input
                           type="number"
                           value={line.vatRate === "" || line.vatRate == null ? "21" : line.vatRate}
                           onChange={e => updateLine(idx, "vatRate", e.target.value)}
-                          className="w-full h-7 px-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 focus:outline-none text-xs text-center tabular-nums"
+                          className="apple-input w-full h-8 px-1 text-[#6e6e73] dark:text-[#98989d] outline-none text-xs text-center tabular-nums"
                         />
                       </td>
-                      <td className="px-1 py-1.5 w-[96px]">
+                      <td className="px-1 py-2 w-[96px]">
                         <input
                           type="number"
                           step="0.01"
                           value={line.total}
                           onChange={e => updateLine(idx, "total", e.target.value)}
-                          className="w-full h-7 px-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-primary text-xs text-right font-bold tabular-nums text-slate-700 dark:text-slate-300"
+                          className="apple-input w-full h-8 px-1.5 outline-none text-xs text-right font-bold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]"
                         />
                       </td>
-                      <td className="px-1 py-1.5 min-w-[80px]">
+                      <td className="px-1 py-2 min-w-[80px]">
                         <input
                           value={line.observations}
                           onChange={e => updateLine(idx, "observations", e.target.value)}
                           placeholder="obs..."
-                          className="w-full h-7 px-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary text-xs"
+                          className="apple-input w-full h-8 px-2 text-[#1d1d1f] dark:text-[#f5f5f7] outline-none text-xs"
                         />
                       </td>
-                      <td className="pr-2 pl-1 py-1.5 w-[34px]">
+                      <td className="pr-2 pl-1 py-2 w-[36px]">
                         <button
+                          type="button"
                           onClick={() => removeLine(idx)}
                           aria-label="Șterge linie"
-                          className="flex items-center justify-center w-7 h-7 rounded-full bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/60 text-red-500 dark:text-red-400 border border-red-200 dark:border-red-800/70 transition-colors"
+                          className="apple-btn-destructive-soft flex items-center justify-center w-7 h-7 rounded-full cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -1915,57 +1938,58 @@ export default function NIRCreate() {
                 })
               )}
             </tbody>
-            <tfoot>
-              <tr className="border-t-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
-                <td colSpan={showAccounting ? 9 : 8} className="px-3 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 text-right">
-                  TOTAL FĂRĂ TVA{currency && currency !== "RON" && currency !== "LEI" ? ` (${currency})` : ""}:
+            <tfoot className="bg-[#fafafa]/85 dark:bg-white/[0.025] border-t border-black/[0.06] dark:border-white/[0.08]">
+              <tr>
+                <td
+                  colSpan={showAccounting ? 9 : 8}
+                  className="px-3 py-2 text-xs font-medium text-[#6e6e73] dark:text-[#98989d] text-right"
+                >
+                  Total fără TVA{currency && currency !== "RON" && currency !== "LEI" ? ` (${currency})` : ""}:
                 </td>
-                <td className="px-1 py-2 text-right text-sm font-bold tabular-nums text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                <td className="px-1.5 py-2 text-right text-[13.5px] font-semibold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7] whitespace-nowrap">
                   {totalFaraTva.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </td>
                 <td colSpan={2}></td>
               </tr>
-              <tr className="bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700/50">
-                <td colSpan={showAccounting ? 9 : 8} className="px-3 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-400 text-right">
-                  TOTAL TVA{currency && currency !== "RON" && currency !== "LEI" ? ` (${currency})` : ""}:
+              <tr className="border-t border-black/[0.045] dark:border-white/[0.06]">
+                <td
+                  colSpan={showAccounting ? 9 : 8}
+                  className="px-3 py-1.5 text-xs font-medium text-[#6e6e73] dark:text-[#98989d] text-right"
+                >
+                  Total TVA{currency && currency !== "RON" && currency !== "LEI" ? ` (${currency})` : ""}:
                 </td>
-                <td className="px-1 py-1.5 text-right text-sm font-bold tabular-nums text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                <td className="px-1.5 py-1.5 text-right text-[13.5px] font-semibold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7] whitespace-nowrap">
                   {totalTva.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </td>
                 <td colSpan={2}></td>
               </tr>
-              <tr
-                style={{
-                  backgroundColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 8%, transparent)",
-                  borderColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 20%, transparent)",
-                }}
-                className="border-t"
-              >
+              <tr className="border-t border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7]/60 dark:bg-white/[0.03]">
                 <td
                   colSpan={showAccounting ? 9 : 8}
-                  style={{ color: "var(--tenant-theme-color, #16a34a)" }}
-                  className="px-3 py-2 text-xs font-black text-right"
+                  className="px-3 py-2.5 text-[12.5px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] text-right"
                 >
-                  {isCreditNote ? "TOTAL CU TVA (STORNO)" : "TOTAL CU TVA"}{currency && currency !== "RON" && currency !== "LEI" ? ` (${currency})` : ""}:
+                  {isCreditNote ? "Total cu TVA (Storno)" : "Total cu TVA"}
+                  {currency && currency !== "RON" && currency !== "LEI" ? ` (${currency})` : ""}:
                 </td>
-                <td
-                  style={{ color: "var(--tenant-theme-color, #16a34a)" }}
-                  className="px-1 py-2 text-right text-[15px] font-black tabular-nums whitespace-nowrap"
-                >
+                <td className="px-1.5 py-2.5 text-right text-[15px] font-bold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7] whitespace-nowrap">
                   {totalCuTva.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </td>
                 <td colSpan={2}></td>
               </tr>
               {currency && currency !== "RON" && currency !== "LEI" && (
-                <tr className="bg-blue-50/70 dark:bg-blue-950/40 border-t border-blue-200 dark:border-blue-800/60">
+                <tr className="border-t border-black/[0.045] dark:border-white/[0.06]">
                   <td
                     colSpan={showAccounting ? 9 : 8}
-                    className="px-3 py-1.5 text-xs font-bold text-blue-700 dark:text-blue-300 text-right tabular-nums"
+                    className="px-3 py-2 text-xs font-medium text-[#6e6e73] dark:text-[#98989d] text-right tabular-nums"
                   >
                     Echivalent RON (curs {parseFloat(exchangeRate || "1").toFixed(4)}):
                   </td>
-                  <td className="px-1 py-1.5 text-right text-xs font-black tabular-nums text-blue-800 dark:text-blue-200 whitespace-nowrap">
-                    {(totalCuTva * (parseFloat(exchangeRate) || 1)).toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} RON
+                  <td className="px-1.5 py-2 text-right text-[13px] font-bold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7] whitespace-nowrap">
+                    {(totalCuTva * (parseFloat(exchangeRate) || 1)).toLocaleString("ro-RO", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}{" "}
+                    RON
                   </td>
                   <td colSpan={2}></td>
                 </tr>
@@ -1977,47 +2001,45 @@ export default function NIRCreate() {
 
       {/* ─── SECȚIUNEA 4: Diferențe (auto-show) ─── */}
       {hasDifferences && (
-        <div className="bg-amber-50 dark:bg-amber-900/20 rounded-[22px] border border-amber-200 dark:border-amber-700 p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <AlertTriangle className="w-4 h-4 text-amber-600" />
-            <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700">
+        <div className="apple-surface p-4 sm:p-5 border-amber-500/30">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+            <p className="text-[13px] font-semibold text-amber-700 dark:text-amber-300">
               IV. Constatări diferențe cantitative
             </p>
           </div>
-          <p className="text-xs text-amber-700 mb-2">
+          <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mb-3">
             Există diferențe între cantitățile din documente și cele efectiv
             recepționate. Conform legislației, NIR-ul se întocmește în 3
             exemplare.
           </p>
           <div>
-            <label className="text-xs text-amber-700 mb-1 block font-medium">
-              Detalii constatări diferențe
-            </label>
+            <label className={LABEL_CLS}>Detalii constatări diferențe</label>
             <textarea
               value={differenceNotes}
               onChange={e => setDifferenceNotes(e.target.value)}
               rows={3}
               placeholder="Descrieți motivele diferențelor constatate"
-              className="w-full px-3 py-2 rounded-lg border border-amber-300 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+              className="apple-input w-full px-3.5 py-2.5 text-[13.5px] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none resize-none"
             />
           </div>
         </div>
       )}
 
       {/* ─── SECȚIUNEA 5: Comisia de recepție ─── */}
-      <div className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
+      <div className="apple-surface p-4 sm:p-5">
         <button
           type="button"
           onClick={() => setCommissionOpen(o => !o)}
           aria-expanded={commissionOpen}
-          className="w-full flex items-center justify-between gap-3 text-left"
+          className="w-full flex items-center justify-between gap-3 text-left cursor-pointer"
         >
           <span className="min-w-0">
-            <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <span className="block text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
               {hasDifferences ? "V." : "IV."} Comisia de recepție
             </span>
             {!commissionOpen && (
-              <span className="block text-xs text-slate-500 dark:text-slate-400 truncate mt-1">
+              <span className="block text-[12px] text-[#6e6e73] dark:text-[#98989d] truncate mt-0.5">
                 {[
                   [member1Name, member1Function],
                   [member2Name, member2Function],
@@ -2030,79 +2052,81 @@ export default function NIRCreate() {
             )}
           </span>
           <ChevronDown
-            className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${commissionOpen ? "rotate-180" : ""}`}
+            className={`w-4 h-4 text-[#8e8e93] shrink-0 transition-transform ${
+              commissionOpen ? "rotate-180" : ""
+            }`}
           />
         </button>
 
         {commissionOpen && (
-        <>
-        <p className="text-xs text-slate-400 mt-3 mb-3">
-          Completați numele și funcția membrilor comisiei de recepție.
-        </p>
+          <>
+            <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d] mt-3 mb-3.5">
+              Completați numele și funcția membrilor comisiei de recepție.
+            </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[
-            {
-              name: member1Name,
-              setName: setMember1Name,
-              func: member1Function,
-              setFunc: setMember1Function,
-              label: "Membru 1",
-            },
-            {
-              name: member2Name,
-              setName: setMember2Name,
-              func: member2Function,
-              setFunc: setMember2Function,
-              label: "Membru 2",
-            },
-            {
-              name: member3Name,
-              setName: setMember3Name,
-              func: member3Function,
-              setFunc: setMember3Function,
-              label: "Membru 3",
-            },
-          ].map((m, i) => (
-            <div
-              key={i}
-              className="border border-slate-100 dark:border-slate-800 rounded-lg p-3 space-y-2"
-            >
-              <p className="text-[10px] font-bold uppercase text-slate-400">
-                {m.label}
-              </p>
-              <div>
-                <label className={LABEL_CLS}>Nume și Prenume</label>
-                <input
-                  value={m.name}
-                  onChange={e => m.setName(e.target.value)}
-                  className={INPUT_CLS}
-                  placeholder="Ion Popescu"
-                />
-              </div>
-              <div>
-                <label className={LABEL_CLS}>Funcția</label>
-                <input
-                  value={m.func}
-                  onChange={e => m.setFunc(e.target.value)}
-                  className={INPUT_CLS}
-                  placeholder="Funcție"
-                />
-              </div>
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-                <label className="text-[10px] text-slate-400">Semnătură</label>
-                <div className="h-8 border-b-2 border-slate-300 dark:border-slate-600 mt-1 w-full"></div>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[
+                {
+                  name: member1Name,
+                  setName: setMember1Name,
+                  func: member1Function,
+                  setFunc: setMember1Function,
+                  label: "Membru 1",
+                },
+                {
+                  name: member2Name,
+                  setName: setMember2Name,
+                  func: member2Function,
+                  setFunc: setMember2Function,
+                  label: "Membru 2",
+                },
+                {
+                  name: member3Name,
+                  setName: setMember3Name,
+                  func: member3Function,
+                  setFunc: setMember3Function,
+                  label: "Membru 3",
+                },
+              ].map((m, i) => (
+                <div
+                  key={i}
+                  className="bg-[#f2f2f7] dark:bg-[#2c2c2e] rounded-2xl p-3.5 space-y-2.5"
+                >
+                  <p className="text-[12px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                    {m.label}
+                  </p>
+                  <div>
+                    <label className={LABEL_CLS}>Nume și prenume</label>
+                    <input
+                      value={m.name}
+                      onChange={e => m.setName(e.target.value)}
+                      className="apple-input w-full h-9 px-3 text-[13px] bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
+                      placeholder="Ion Popescu"
+                    />
+                  </div>
+                  <div>
+                    <label className={LABEL_CLS}>Funcția</label>
+                    <input
+                      value={m.func}
+                      onChange={e => m.setFunc(e.target.value)}
+                      className="apple-input w-full h-9 px-3 text-[13px] bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
+                      placeholder="Funcție"
+                    />
+                  </div>
+                  <div className="pt-2 border-t border-black/[0.06] dark:border-white/[0.08]">
+                    <label className="text-[11px] text-[#8e8e93]">Semnătură</label>
+                    <div className="h-7 border-b border-black/20 dark:border-white/20 mt-1 w-full" />
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        </>
+          </>
         )}
       </div>
 
       {/* ─── SECȚIUNEA 6: Observații ─── */}
-      <div className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-        <label className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-2">
+      <div className="apple-surface p-4 sm:p-5">
+        <label className="text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] block mb-2">
           Observații generale
         </label>
         <textarea
@@ -2110,53 +2134,51 @@ export default function NIRCreate() {
           onChange={e => setNotes(e.target.value)}
           rows={2}
           placeholder="Observații privind recepția mărfurilor..."
-          className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
+          className="apple-input w-full px-3.5 py-2.5 text-[13.5px] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none resize-none"
         />
       </div>
 
       {/* Footer */}
       <div className="flex justify-between items-center gap-3 pb-4 flex-wrap">
-        <div className="text-xs text-slate-400">
+        <div className="text-xs text-[#6e6e73] dark:text-[#98989d]">
           {hasDifferences && (
-            <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400 font-medium">
+            <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-medium">
               <AlertTriangle className="w-3.5 h-3.5" />
-              Diferențe detectate — 3 exemplare obligatorii
+              <span>Diferențe detectate — 3 exemplare obligatorii</span>
             </span>
           )}
         </div>
-        <div className="flex gap-3">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <button
+            type="button"
             onClick={() => window.history.back()}
-            className="px-4 h-9 rounded-full border border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            className="apple-btn-glass px-4 h-9 rounded-full text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
           >
             Anulează
           </button>
           {isEdit && status !== "finalizat" && (
             <button
+              type="button"
               onClick={() => finalizeNir.mutate({ id: nirId! })}
               disabled={finalizeNir.isPending}
-              style={{
-                backgroundColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 12%, transparent)",
-                borderColor: "color-mix(in srgb, var(--tenant-theme-color, #16a34a) 30%, transparent)",
-                color: "var(--tenant-theme-color, #16a34a)",
-              }}
-              className="flex items-center gap-1.5 px-4 h-9 rounded-full border text-sm font-bold transition-all hover:brightness-95"
+              className="apple-btn-glass flex items-center gap-1.5 px-4 h-9 rounded-full text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
             >
-              <CheckCircle className="w-4 h-4" /> Finalizează NIR
+              <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span>Finalizează NIR</span>
             </button>
           )}
           <button
+            type="button"
             onClick={handleSave}
             disabled={createNir.isPending || updateNir.isPending}
-            style={{ backgroundColor: "var(--tenant-theme-color, #16a34a)" }}
-            className="flex items-center gap-1.5 px-5 h-9 rounded-full text-white text-sm font-bold transition-all shadow-sm hover:brightness-90 active:brightness-75 disabled:opacity-60"
+            className="apple-btn-prominent flex items-center justify-center gap-1.5 px-5 h-9 rounded-full text-white text-[12.5px] font-semibold transition-all disabled:opacity-60 cursor-pointer"
           >
             {createNir.isPending || updateNir.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <Save className="w-4 h-4" />
             )}
-            {isEdit ? "Salvează modificările" : "Creează NIR"}
+            <span>{isEdit ? "Salvează modificările" : "Creează NIR"}</span>
           </button>
         </div>
       </div>

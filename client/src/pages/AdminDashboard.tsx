@@ -77,172 +77,172 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="p-3 sm:p-5 max-w-full space-y-6">
-      <div className="w-full">
+    <div className="min-h-screen apple-canvas p-3 sm:p-5 max-w-full space-y-4">
+      <div className="w-full space-y-4">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
-            Panou Administrare
-          </h1>
-          <p className="text-slate-600 dark:text-slate-400">
-            Gestionează clienții și abonamentele active
-          </p>
+        <div className="flex items-center justify-between gap-4 flex-wrap px-0.5">
+          <div>
+            <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
+              Panou Administrare
+            </h1>
+            <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
+              Gestionează clienții și abonamentele active
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setLocation("/clienti")}
+            className="apple-btn-prominent flex items-center justify-center gap-1.5 h-9 px-4 rounded-full text-white text-[13px] font-semibold transition-all shrink-0 cursor-pointer"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Adaugă Client</span>
+          </button>
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="p-6 rounded-[22px] bg-white/96 dark:bg-[#1c1c1e] border-black/[0.06] dark:border-white/[0.09]">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">
-                  Clienți Activi
-                </p>
-                <p className="text-3xl font-bold tabular-nums text-slate-900 dark:text-white">
-                  {activeClients}
-                </p>
-              </div>
-              <Users className="h-12 w-12 text-blue-600 opacity-20" />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 tabular-nums">
+          <div className="apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+                Clienți activi
+              </span>
+              <span className="w-7 h-7 rounded-[8px] bg-emerald-500/10 dark:bg-emerald-500/18 flex items-center justify-center shrink-0">
+                <Users className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              </span>
             </div>
-          </Card>
+            <span className="text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none">
+              {activeClients}
+            </span>
+          </div>
 
-          <Card className="p-6 rounded-[22px] bg-white/96 dark:bg-[#1c1c1e] border-black/[0.06] dark:border-white/[0.09]">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">
-                  Venit Lunar Estimat
-                </p>
-                <p className="text-3xl font-bold tabular-nums text-slate-900 dark:text-white">
-                  {totalRevenue.toLocaleString("ro-RO", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}{" "}
-                  EUR
-                </p>
-              </div>
-              <CreditCard className="h-12 w-12 text-green-600 opacity-20" />
+          <div className="apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+                Venit lunar estimat
+              </span>
+              <span className="w-7 h-7 rounded-[8px] bg-blue-500/10 dark:bg-blue-500/18 flex items-center justify-center shrink-0">
+                <CreditCard className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              </span>
             </div>
-          </Card>
+            <span className="text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none">
+              {totalRevenue.toLocaleString("ro-RO", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}{" "}
+              EUR
+            </span>
+          </div>
 
-          <Card className="p-6 rounded-[22px] bg-white/96 dark:bg-[#1c1c1e] border-black/[0.06] dark:border-white/[0.09]">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">
-                  Total Clienți
-                </p>
-                <p className="text-3xl font-bold tabular-nums text-slate-900 dark:text-white">
-                  {tenants.length}
-                </p>
-              </div>
-              <TrendingUp className="h-12 w-12 text-purple-600 opacity-20" />
+          <div className="apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+                Total clienți
+              </span>
+              <span className="w-7 h-7 rounded-[8px] bg-amber-500/10 dark:bg-amber-500/18 flex items-center justify-center shrink-0">
+                <TrendingUp className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+              </span>
             </div>
-          </Card>
+            <span className="text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none">
+              {tenants.length}
+            </span>
+          </div>
         </div>
 
-        {/* Clients Management */}
-        <Card className="p-6 rounded-[22px] bg-white/96 dark:bg-[#1c1c1e] border-black/[0.06] dark:border-white/[0.09]">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-              Clienți
-            </h2>
-            <Button
-              onClick={() => setLocation("/clienti")}
-              className="rounded-full bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Adaugă Client
-            </Button>
+        {/* Unified Search Toolbar */}
+        <div className="apple-surface px-3 py-2.5 flex items-center justify-between gap-3">
+          <div className="relative w-full sm:max-w-[320px]">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#8e8e93] pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Caută clienți..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              style={{ paddingLeft: 34, paddingRight: 14 }}
+              className="apple-pill-control rounded-full w-full h-[34px] outline-none text-[13px] text-[#1d1d1f] dark:text-white placeholder:text-[#8e8e93] focus:bg-white dark:focus:bg-[#2c2c2e]"
+            />
           </div>
+          <span className="text-[12px] text-[#6e6e73] dark:text-[#98989d] tabular-nums shrink-0">
+            {filteredClients.length} înregistrări
+          </span>
+        </div>
 
-          {/* Search */}
-          <div className="mb-6">
-            <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                type="text"
-                placeholder="Caută clienți..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="pl-10 rounded-full"
-              />
-            </div>
-          </div>
-
-          {/* Clients Table */}
+        {/* Clients Table */}
+        <div className="apple-surface overflow-hidden">
           {isLoading ? (
-            <div className="flex items-center justify-center py-12 text-slate-400">
+            <div className="flex items-center justify-center py-12 text-[#6e6e73] dark:text-[#98989d] text-[13px]">
               <Loader2 className="h-5 w-5 animate-spin mr-2" />
               Se încarcă clienții...
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-200 dark:border-slate-800">
-                    <th className="text-left py-3 px-4 font-semibold text-slate-700 dark:text-slate-300">
+              <table className="w-full text-[13px]">
+                <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+                  <tr>
+                    <th className="text-left py-3 px-4 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
                       Client
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-slate-700 dark:text-slate-300">
+                    <th className="text-left py-3 px-4 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
                       Abonament
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-slate-700 dark:text-slate-300">
+                    <th className="text-left py-3 px-4 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
                       Status
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-slate-700 dark:text-slate-300">
-                      Tarif Lunar
+                    <th className="text-left py-3 px-4 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                      Tarif lunar
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-slate-700 dark:text-slate-300">
-                      Centre de Cost
+                    <th className="text-left py-3 px-4 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                      Centre de cost
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-slate-700 dark:text-slate-300">
+                    <th className="text-left py-3 px-4 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
                       Expiră la
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-slate-700 dark:text-slate-300">
+                    <th className="text-right py-3 px-4 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
                       Acțiuni
                     </th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
                   {filteredClients.map((client: any) => (
                     <tr
                       key={client.id}
-                      className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                      className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors"
                     >
-                      <td className="py-4 px-4">
+                      <td className="py-3.5 px-4">
                         <div>
-                          <p className="font-medium text-slate-900 dark:text-white">
+                          <p className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                             {client.name}
                           </p>
-                          <p className="text-sm text-slate-500 dark:text-slate-400">
+                          <p className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d]">
                             {client.email || "—"}
                           </p>
                         </div>
                       </td>
-                      <td className="py-4 px-4">
+                      <td className="py-3.5 px-4">
                         <Badge variant="outline" className="rounded-full tabular-nums">
                           {client.subscriptionPlanId
                             ? `Plan #${client.subscriptionPlanId}`
                             : "Standard"}
                         </Badge>
                       </td>
-                      <td className="py-4 px-4">
+                      <td className="py-3.5 px-4">
                         <div className="flex items-center gap-2">
                           {getStatusIcon(client.subscriptionStatus || "active")}
                           {getStatusBadge(client.subscriptionStatus || "active")}
                         </div>
                       </td>
-                      <td className="py-4 px-4 font-medium tabular-nums text-slate-900 dark:text-white">
+                      <td className="py-3.5 px-4 font-medium tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">
                         {(client.subscriptionPlanId ? 99 : 29).toLocaleString(
                           "ro-RO",
                           { minimumFractionDigits: 2, maximumFractionDigits: 2 }
                         )}{" "}
                         EUR
                       </td>
-                      <td className="py-4 px-4 text-slate-600 dark:text-slate-400">
+                      <td className="py-3.5 px-4 text-[#6e6e73] dark:text-[#98989d]">
                         —
                       </td>
-                      <td className="py-4 px-4">
-                        <div className="flex items-center gap-1.5 tabular-nums text-slate-600 dark:text-slate-400">
-                          <Clock className="h-4 w-4" />
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-1.5 tabular-nums text-[#6e6e73] dark:text-[#98989d]">
+                          <Clock className="h-3.5 w-3.5" />
                           {client.subscriptionEndDate
                             ? new Date(
                                 client.subscriptionEndDate
@@ -250,13 +250,14 @@ export default function AdminDashboard() {
                             : "Nedeterminat"}
                         </div>
                       </td>
-                      <td className="py-4 px-4">
+                      <td className="py-3.5 px-4 text-right">
                         <button
+                          type="button"
                           onClick={() => setLocation("/super-admin")}
                           title="Configurează companie și module"
-                          className="w-8 h-8 inline-flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
+                          className="w-8 h-8 apple-btn-glass inline-flex items-center justify-center rounded-full transition-colors cursor-pointer"
                         >
-                          <MoreVertical className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                          <MoreVertical className="h-4 w-4 text-[#6e6e73] dark:text-[#98989d]" />
                         </button>
                       </td>
                     </tr>
@@ -267,13 +268,13 @@ export default function AdminDashboard() {
           )}
 
           {!isLoading && filteredClients.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-slate-500 dark:text-slate-400">
+            <div className="text-center py-10">
+              <p className="text-[#6e6e73] dark:text-[#98989d] text-[13px]">
                 Niciun client găsit
               </p>
             </div>
           )}
-        </Card>
+        </div>
       </div>
     </div>
   );

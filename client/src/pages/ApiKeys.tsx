@@ -77,21 +77,21 @@ export default function ApiKeysPage() {
   const baseUrl = window.location.origin;
 
   return (
-    <div className="p-3 sm:p-5 max-w-full space-y-6">
+    <div className="p-3 sm:p-5 max-w-full space-y-4 overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
-            <Key className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-          </div>
-          <div>
-            <h1 className="text-base font-bold text-slate-900 dark:text-white">API Keys</h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Conectează aplicații externe la datele tale</p>
-          </div>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="min-w-0">
+          <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
+            API Keys
+          </h1>
+          <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
+            Conectează aplicații externe la datele tale
+          </p>
         </div>
         <button
+          type="button"
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 h-9 px-4 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors"
+          className="apple-btn-prominent inline-flex items-center gap-1.5 h-9 px-4 text-[13px] font-semibold cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Generează Key
         </button>
@@ -99,47 +99,82 @@ export default function ApiKeysPage() {
 
       {/* New Key Created Banner */}
       {newKey && (
-        <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-[22px] p-4 space-y-3">
+        <div className="apple-surface p-4 space-y-3 border-emerald-500/30">
           <div className="flex items-center gap-2">
             <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">API Key generat cu succes!</p>
+            <p className="text-[13.5px] font-semibold text-emerald-700 dark:text-emerald-300">
+              API Key generat cu succes!
+            </p>
           </div>
-          <div className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-700 rounded-xl px-3 py-2">
-            <code className="flex-1 font-sans tabular-nums text-xs text-slate-700 dark:text-slate-300 break-all">{newKey}</code>
-            <button onClick={() => copyToClipboard(newKey, setCopiedKey)}
-              className="shrink-0 w-8 h-8 rounded-full hover:bg-emerald-100 dark:hover:bg-emerald-900/40 flex items-center justify-center transition-colors">
-              {copiedKey ? <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />}
+          <div className="flex items-center gap-2 bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.06] dark:border-white/[0.08] rounded-xl px-3 py-2">
+            <code className="flex-1 font-sans tabular-nums text-[12.5px] text-[#1d1d1f] dark:text-[#f5f5f7] break-all">
+              {newKey}
+            </code>
+            <button
+              type="button"
+              onClick={() => copyToClipboard(newKey, setCopiedKey)}
+              className="apple-btn-glass shrink-0 w-8 h-8 flex items-center justify-center cursor-pointer"
+            >
+              {copiedKey ? (
+                <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              ) : (
+                <Copy className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d]" />
+              )}
             </button>
           </div>
-          <div className="flex items-start gap-2 text-xs text-amber-700 dark:text-amber-400">
+          <div className="flex items-start gap-2 text-[12px] text-amber-700 dark:text-amber-300">
             <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-            <span>Copiază-l acum! Nu îl vei mai putea vedea după ce închizi această secțiune.</span>
+            <span>
+              Copiază-l acum! Nu îl vei mai putea vedea după ce închizi această secțiune.
+            </span>
           </div>
-          <button onClick={() => setNewKey(null)} className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 underline">OK, am copiat</button>
+          <button
+            type="button"
+            onClick={() => setNewKey(null)}
+            className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7] underline cursor-pointer"
+          >
+            OK, am copiat
+          </button>
         </div>
       )}
 
       {/* Create Form */}
       {showCreate && (
-        <div className="bg-white/96 dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] rounded-[22px] p-4 space-y-3 shadow-xs">
-          <p className="text-sm font-semibold text-slate-900 dark:text-white">Nume API Key</p>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Ex: „App Contabilitate”, „Dashboard Extern”</p>
-          <div className="flex gap-2">
+        <div className="apple-surface p-4 space-y-3">
+          <div>
+            <p className="text-[14px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+              Nume API Key
+            </p>
+            <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
+              Ex: „App Contabilitate”, „Dashboard Extern”
+            </p>
+          </div>
+          <div className="flex flex-wrap sm:flex-nowrap gap-2">
             <input
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleCreate()}
               placeholder="Denumire aplicație externă..."
-              className="flex-1 h-9 px-3.5 rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="flex-1 min-w-0 h-9 px-3.5 rounded-full border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] text-[13px] outline-none"
               autoFocus
             />
-            <button onClick={handleCreate} disabled={creating || !newName.trim()}
-              className="h-9 px-4 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium transition-colors">
+            <button
+              type="button"
+              onClick={handleCreate}
+              disabled={creating || !newName.trim()}
+              className="apple-btn-prominent h-9 px-4 text-[13px] font-semibold disabled:opacity-50 cursor-pointer"
+            >
               {creating ? "..." : "Generează"}
             </button>
-            <button onClick={() => { setShowCreate(false); setNewName(""); }}
-              className="h-9 px-4 rounded-full apple-btn-glass border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm transition-colors">
+            <button
+              type="button"
+              onClick={() => {
+                setShowCreate(false);
+                setNewName("");
+              }}
+              className="apple-btn-glass h-9 px-4 text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
+            >
               Anulează
             </button>
           </div>
@@ -147,79 +182,120 @@ export default function ApiKeysPage() {
       )}
 
       {/* Keys Table */}
-      <div className="bg-white/96 dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] overflow-hidden shadow-xs">
-        <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Chei Active</h2>
+      <div className="apple-surface overflow-hidden">
+        <div className="px-4 py-3 border-b border-black/[0.05] dark:border-white/[0.07]">
+          <h2 className="text-[14px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+            Chei active
+          </h2>
         </div>
         {isLoading ? (
-          <div className="py-10 text-center text-slate-400 text-sm">Se încarcă...</div>
+          <div className="py-10 text-center text-[#6e6e73] dark:text-[#98989d] text-[13px]">
+            Se încarcă...
+          </div>
         ) : keys.length === 0 ? (
-          <div className="py-10 text-center text-slate-400 text-sm">
+          <div className="py-10 text-center text-[#6e6e73] dark:text-[#98989d] text-[13px]">
             <Key className="w-8 h-8 mx-auto mb-2 opacity-30" />
             <p>Nicio cheie API. Generează prima ta cheie.</p>
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 dark:bg-slate-900/50">
-              <tr>
-                {["Nume", "Prefix Key", "Status", "Ultima Utilizare", "Creat", "Acțiuni"].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {(keys as any[]).map((k) => (
-                <tr key={k.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
-                  <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{k.name}</td>
-                  <td className="px-4 py-3">
-                    <code className="font-sans tabular-nums text-xs bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-600 dark:text-slate-300">
-                      {k.keyPrefix}…
-                    </code>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${k.isActive ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800" : "bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"}`}>
-                      {k.isActive ? "Activ" : "Revocat"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-xs tabular-nums text-slate-500 dark:text-slate-400">
-                    {k.lastUsedAt ? new Date(k.lastUsedAt).toLocaleString("ro-RO") : "Nefolosit"}
-                  </td>
-                  <td className="px-4 py-3 text-xs tabular-nums text-slate-500 dark:text-slate-400">
-                    {new Date(k.createdAt).toLocaleDateString("ro-RO")}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-1.5">
-                      {k.isActive && (
-                        <button onClick={() => revokeMut.mutate({ id: k.id })}
-                          title="Revocă"
-                          className="w-8 h-8 rounded-full apple-btn-glass border border-slate-200 dark:border-slate-700 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center transition-colors">
-                          <ShieldOff className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                      <button onClick={() => setKeyToDelete({ id: k.id, name: k.name })}
-                        title="Șterge"
-                        className="w-8 h-8 rounded-full apple-btn-glass border border-slate-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-950/40 text-red-500 dark:text-red-400 flex items-center justify-center transition-colors">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+                <tr>
+                  {[
+                    "Nume",
+                    "Prefix key",
+                    "Status",
+                    "Ultima utilizare",
+                    "Creat",
+                    "Acțiuni",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="px-4 py-3 text-left text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap"
+                    >
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
+                {(keys as any[]).map((k) => (
+                  <tr
+                    key={k.id}
+                    className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors"
+                  >
+                    <td className="px-4 py-3 text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                      {k.name}
+                    </td>
+                    <td className="px-4 py-3">
+                      <code className="font-sans tabular-nums text-[12px] bg-[#f2f2f7] dark:bg-[#2c2c2e] px-2.5 py-0.5 rounded-full text-[#3a3a3c] dark:text-[#ebebf5]">
+                        {k.keyPrefix}…
+                      </code>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium ${
+                          k.isActive
+                            ? "bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300"
+                            : "bg-[#f2f2f7] text-[#6e6e73] dark:bg-[#2c2c2e] dark:text-[#98989d]"
+                        }`}
+                      >
+                        {k.isActive ? "Activ" : "Revocat"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-[12.5px] tabular-nums text-[#6e6e73] dark:text-[#98989d]">
+                      {k.lastUsedAt
+                        ? new Date(k.lastUsedAt).toLocaleString("ro-RO")
+                        : "Nefolosit"}
+                    </td>
+                    <td className="px-4 py-3 text-[12.5px] tabular-nums text-[#6e6e73] dark:text-[#98989d]">
+                      {new Date(k.createdAt).toLocaleDateString("ro-RO")}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-1.5">
+                        {k.isActive && (
+                          <button
+                            type="button"
+                            onClick={() => revokeMut.mutate({ id: k.id })}
+                            title="Revocă"
+                            className="apple-btn-glass w-8 h-8 text-amber-600 dark:text-amber-400 flex items-center justify-center cursor-pointer"
+                          >
+                            <ShieldOff className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setKeyToDelete({ id: k.id, name: k.name })}
+                          title="Șterge"
+                          className="apple-btn-glass w-8 h-8 text-rose-600 dark:text-rose-400 flex items-center justify-center cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
       <AlertDialog open={!!keyToDelete} onOpenChange={(open) => !open && setKeyToDelete(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.10] rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Ștergi definitiv această cheie?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-[#1d1d1f] dark:text-[#f5f5f7]">
+              Ștergi definitiv această cheie?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-[#6e6e73] dark:text-[#98989d]">
               Cheia API <strong>{keyToDelete?.name}</strong> va fi ștearsă ireversibil, iar aplicațiile externe care o folosesc nu se vor mai putea autentifica.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-full">Anulează</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-full apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7]">
+              Anulează
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => keyToDelete && deleteMut.mutate({ id: keyToDelete.id })}
               className="rounded-full bg-red-600 hover:bg-red-700 text-white"
@@ -231,63 +307,95 @@ export default function ApiKeysPage() {
       </AlertDialog>
 
       {/* Docs */}
-      <div className="bg-slate-900 dark:bg-slate-950 rounded-[22px] p-5 space-y-4">
+      <div className="apple-surface p-5 space-y-4">
         <div className="flex items-center gap-2">
-          <ExternalLink className="w-4 h-4 text-slate-400" />
-          <h3 className="text-sm font-semibold text-white">Referință API</h3>
+          <ExternalLink className="w-4 h-4 text-[#6e6e73] dark:text-[#98989d]" />
+          <h3 className="text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+            Referință API
+          </h3>
         </div>
-        <div className="space-y-4 text-xs tabular-nums">
-
+        <div className="space-y-4 text-[12px] tabular-nums">
           {/* Facturi Primite */}
-          <p className="text-slate-400 text-xs font-sans font-semibold uppercase tracking-wider">Facturi Primite</p>
+          <p className="text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-semibold">
+            Facturi primite
+          </p>
           <div>
-            <p className="text-slate-500 mb-1"># Lista tuturor facturilor primite (filtre opționale)</p>
-            <div className="bg-slate-800 rounded-xl p-3 text-emerald-400 overflow-x-auto">
+            <p className="text-[#6e6e73] dark:text-[#98989d] mb-1">
+              # Lista tuturor facturilor primite (filtre opționale)
+            </p>
+            <div className="bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.05] dark:border-white/[0.07] rounded-xl p-3 text-emerald-700 dark:text-emerald-400 overflow-x-auto">
               <p>GET {baseUrl}/api/v1/facturi-primite</p>
-              <p className="text-slate-500">   ?from=2026-01-01 &amp;to=2026-12-31</p>
-              <p className="text-slate-500">   &amp;supplier=Orange &amp;status=processed &amp;costCenterId=1</p>
-              <p className="text-indigo-400">Authorization: Bearer sk_...</p>
+              <p className="text-[#6e6e73] dark:text-[#98989d]">
+                {"   "}?from=2026-01-01 &amp;to=2026-12-31
+              </p>
+              <p className="text-[#6e6e73] dark:text-[#98989d]">
+                {"   "}&amp;supplier=Orange &amp;status=processed &amp;costCenterId=1
+              </p>
+              <p className="text-[#0071e3] dark:text-[#64d2ff]">
+                Authorization: Bearer sk_...
+              </p>
             </div>
           </div>
           <div>
-            <p className="text-slate-500 mb-1"># Detalii factură primită</p>
-            <div className="bg-slate-800 rounded-xl p-3 text-emerald-400 overflow-x-auto">
+            <p className="text-[#6e6e73] dark:text-[#98989d] mb-1">
+              # Detalii factură primită
+            </p>
+            <div className="bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.05] dark:border-white/[0.07] rounded-xl p-3 text-emerald-700 dark:text-emerald-400 overflow-x-auto">
               <p>GET {baseUrl}/api/v1/facturi-primite/:id</p>
-              <p className="text-indigo-400">Authorization: Bearer sk_...</p>
+              <p className="text-[#0071e3] dark:text-[#64d2ff]">
+                Authorization: Bearer sk_...
+              </p>
             </div>
           </div>
 
           {/* Facturi Emise */}
-          <p className="text-slate-400 text-xs font-sans font-semibold uppercase tracking-wider pt-2">Facturi Emise</p>
+          <p className="text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-semibold pt-2">
+            Facturi emise
+          </p>
           <div>
-            <p className="text-slate-500 mb-1"># Lista tuturor facturilor emise (filtre opționale)</p>
-            <div className="bg-slate-800 rounded-xl p-3 text-emerald-400 overflow-x-auto">
+            <p className="text-[#6e6e73] dark:text-[#98989d] mb-1">
+              # Lista tuturor facturilor emise (filtre opționale)
+            </p>
+            <div className="bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.05] dark:border-white/[0.07] rounded-xl p-3 text-emerald-700 dark:text-emerald-400 overflow-x-auto">
               <p>GET {baseUrl}/api/v1/facturi-emise</p>
-              <p className="text-slate-500">   ?from=2026-01-01 &amp;to=2026-12-31</p>
-              <p className="text-slate-500">   &amp;client=Acme &amp;status=paid</p>
-              <p className="text-indigo-400">Authorization: Bearer sk_...</p>
+              <p className="text-[#6e6e73] dark:text-[#98989d]">
+                {"   "}?from=2026-01-01 &amp;to=2026-12-31
+              </p>
+              <p className="text-[#6e6e73] dark:text-[#98989d]">
+                {"   "}&amp;client=Acme &amp;status=paid
+              </p>
+              <p className="text-[#0071e3] dark:text-[#64d2ff]">
+                Authorization: Bearer sk_...
+              </p>
             </div>
           </div>
           <div>
-            <p className="text-slate-500 mb-1"># Detalii factură emisă</p>
-            <div className="bg-slate-800 rounded-xl p-3 text-emerald-400 overflow-x-auto">
+            <p className="text-[#6e6e73] dark:text-[#98989d] mb-1">
+              # Detalii factură emisă
+            </p>
+            <div className="bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.05] dark:border-white/[0.07] rounded-xl p-3 text-emerald-700 dark:text-emerald-400 overflow-x-auto">
               <p>GET {baseUrl}/api/v1/facturi-emise/:id</p>
-              <p className="text-indigo-400">Authorization: Bearer sk_...</p>
+              <p className="text-[#0071e3] dark:text-[#64d2ff]">
+                Authorization: Bearer sk_...
+              </p>
             </div>
           </div>
 
           {/* Centre de Cost */}
-          <p className="text-slate-400 text-xs font-sans font-semibold uppercase tracking-wider pt-2">Centre de Cost</p>
+          <p className="text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-semibold pt-2">
+            Centre de cost
+          </p>
           <div>
-            <div className="bg-slate-800 rounded-xl p-3 text-emerald-400 overflow-x-auto space-y-1">
+            <div className="bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.05] dark:border-white/[0.07] rounded-xl p-3 text-emerald-700 dark:text-emerald-400 overflow-x-auto space-y-1">
               <p>GET {baseUrl}/api/v1/cost-centers</p>
               <p>GET {baseUrl}/api/v1/cost-centers/:id</p>
               <p>GET {baseUrl}/api/v1/cost-centers/:id/invoices</p>
               <p>GET {baseUrl}/api/v1/cost-centers/:id/summary</p>
-              <p className="text-indigo-400">Authorization: Bearer sk_...</p>
+              <p className="text-[#0071e3] dark:text-[#64d2ff]">
+                Authorization: Bearer sk_...
+              </p>
             </div>
           </div>
-
         </div>
       </div>
     </div>

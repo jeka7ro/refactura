@@ -377,55 +377,49 @@ export default function ContractSignaturePadModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl rounded-2xl p-5 sm:p-6 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-2xl">
+      <DialogContent className="max-w-2xl rounded-[20px] p-5 sm:p-6 bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.10] shadow-2xl overscroll-contain">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                <PenTool className="h-5 w-5" />
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="h-9 w-9 rounded-[10px] bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <PenTool className="h-4.5 w-4.5" />
               </div>
-              <div>
-                <DialogTitle className="text-base font-bold text-slate-900 dark:text-white">
-                  Semnare Document — {role === "supplier" ? "Furnizor / Prestator" : "Beneficiar / Client"}
+              <div className="min-w-0">
+                <DialogTitle className="text-[16px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] truncate">
+                  Semnare document — {role === "supplier" ? "Furnizor / Prestator" : "Beneficiar / Client"}
                 </DialogTitle>
-                <DialogDescription className="text-xs text-slate-500">
-                  {contractNumber ? `Contract nr. ${contractNumber}` : "Document oficial"} • {partyName}
+                <DialogDescription className="text-xs text-[#6e6e73] dark:text-[#98989d] truncate">
+                  {contractNumber ? `Contract nr. ${contractNumber}` : "Document oficial"} · {partyName}
                 </DialogDescription>
               </div>
             </div>
 
-            <Badge variant="outline" className="text-xs font-semibold">
+            <Badge variant="outline" className="text-xs font-semibold border-black/[0.08] dark:border-white/[0.12] text-[#1d1d1f] dark:text-[#f5f5f7] shrink-0">
               {role === "supplier" ? "Furnizor" : "Client"}
             </Badge>
           </div>
         </DialogHeader>
 
         {/* Mode Switcher Tabs */}
-        <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/60 rounded-full my-2 border border-slate-200 dark:border-slate-700">
+        <div className="apple-segmented w-full grid grid-cols-2 my-1">
           <button
             type="button"
+            data-active={activeTab === "olografic"}
             onClick={() => setActiveTab("olografic")}
-            className={`flex items-center justify-center gap-2 py-2 px-3 rounded-full text-xs font-bold transition-all ${
-              activeTab === "olografic"
-                ? "bg-primary text-white shadow-xs"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-            }`}
+            className="apple-segmented-item w-full h-8 text-xs"
           >
-            <PenTool className="h-4 w-4" />
-            <span>1. Semnătură Olografică (Desenează pe Ecran)</span>
+            <PenTool className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">1. Semnătură olografică</span>
           </button>
 
           <button
             type="button"
+            data-active={activeTab === "digital"}
             onClick={() => setActiveTab("digital")}
-            className={`flex items-center justify-center gap-2 py-2 px-3 rounded-full text-xs font-bold transition-all ${
-              activeTab === "digital"
-                ? "bg-primary text-white shadow-xs"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-            }`}
+            className="apple-segmented-item w-full h-8 text-xs"
           >
-            <ShieldCheck className="h-4 w-4" />
-            <span>2. Semnătură Digitală & Certificat eIDAS</span>
+            <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">2. Semnătură digitală eIDAS</span>
           </button>
         </div>
 
@@ -435,9 +429,9 @@ export default function ContractSignaturePadModal({
              ═════════════════════════════════════════════════════════════════ */
           <div className="space-y-4">
             {/* Toolbar stil peniță și culori */}
-            <div className="flex flex-wrap items-center justify-between gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-xs">
-              <div className="flex items-center gap-3">
-                <span className="font-semibold text-slate-700 dark:text-slate-300">Cerneală:</span>
+            <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.06] dark:border-white/[0.08] text-xs">
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="font-medium text-[#6e6e73] dark:text-[#98989d]">Cerneală:</span>
                 <div className="flex items-center gap-1.5">
                   {[
                     { label: "Bleumarin", color: "#1e3a8a" },
@@ -449,7 +443,7 @@ export default function ContractSignaturePadModal({
                       type="button"
                       onClick={() => setPenColor(c.color)}
                       style={{ backgroundColor: c.color }}
-                      className={`h-5 w-5 rounded-full border-2 transition-transform ${
+                      className={`h-5 w-5 rounded-full border-2 transition-transform cursor-pointer ${
                         penColor === c.color
                           ? "ring-2 ring-primary ring-offset-1 scale-110 border-white"
                           : "border-transparent opacity-80 hover:opacity-100"
@@ -459,9 +453,9 @@ export default function ContractSignaturePadModal({
                   ))}
                 </div>
 
-                <div className="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-1" />
+                <div className="h-4 w-px bg-black/[0.1] dark:bg-white/[0.12] mx-0.5" />
 
-                <span className="font-semibold text-slate-700 dark:text-slate-300">Grosime:</span>
+                <span className="font-medium text-[#6e6e73] dark:text-[#98989d]">Grosime:</span>
                 <div className="flex items-center gap-1">
                   {[
                     { label: "Fin", width: 1.5 },
@@ -472,10 +466,10 @@ export default function ContractSignaturePadModal({
                       key={w.width}
                       type="button"
                       onClick={() => setPenWidth(w.width)}
-                      className={`px-2 py-0.5 rounded text-[11px] font-medium ${
+                      className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium cursor-pointer ${
                         penWidth === w.width
                           ? "bg-primary text-white"
-                          : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                          : "bg-white dark:bg-[#3a3a3c] text-[#1d1d1f] dark:text-[#ebebf5]"
                       }`}
                     >
                       {w.label}
@@ -491,7 +485,7 @@ export default function ContractSignaturePadModal({
                   size="sm"
                   onClick={handleUndo}
                   disabled={strokesHistory.length === 0}
-                  className="h-7 text-xs px-2 text-slate-600 hover:text-slate-900 rounded-lg"
+                  className="h-7 text-xs px-2.5 text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7] rounded-full"
                 >
                   <RotateCcw className="h-3.5 w-3.5 mr-1" />
                   Undo
@@ -501,7 +495,7 @@ export default function ContractSignaturePadModal({
                   variant="ghost"
                   size="sm"
                   onClick={handleClear}
-                  className="h-7 text-xs px-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg"
+                  className="h-7 text-xs px-2.5 text-[#ff3b30] dark:text-[#ff453a] hover:bg-[#ff3b30]/10 dark:hover:bg-[#ff453a]/15 rounded-full"
                 >
                   <Trash2 className="h-3.5 w-3.5 mr-1" />
                   Șterge
@@ -509,8 +503,8 @@ export default function ContractSignaturePadModal({
               </div>
             </div>
 
-            {/* Interactive Drawing Canvas */}
-            <div className="relative rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 overflow-hidden shadow-inner">
+            {/* Interactive Drawing Canvas (Paper-white sheet so navy/black ink is always legible) */}
+            <div className="relative rounded-2xl border-2 border-dashed border-black/[0.14] dark:border-white/[0.18] bg-white overflow-hidden shadow-inner">
               <canvas
                 ref={canvasRef}
                 onPointerDown={handlePointerDown}
@@ -522,26 +516,26 @@ export default function ContractSignaturePadModal({
               />
 
               {!hasDrawn && (
-                <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center text-slate-400 dark:text-slate-600 select-none">
+                <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center text-[#8e8e93] select-none px-4 text-center">
                   <PenTool className="h-7 w-7 mb-1 opacity-50" />
-                  <p className="text-xs font-semibold">Semnați aici folosind mouse-ul, trackpad-ul sau ecranul tactil</p>
-                  <p className="text-[11px] opacity-75">Traseul este salvat automat la rezoluție maximă pentru print PDF</p>
+                  <p className="text-xs font-semibold text-[#6e6e73]">Semnați aici folosind mouse-ul, trackpad-ul sau ecranul tactil</p>
+                  <p className="text-[11px] opacity-80">Traseul este salvat automat la rezoluție maximă pentru print PDF</p>
                 </div>
               )}
 
-              <div className="absolute bottom-2 left-3 pointer-events-none text-[10px] text-slate-400">
+              <div className="absolute bottom-2 left-3 pointer-events-none text-[10px] text-[#8e8e93]">
                 Semnătură olografică securizată
               </div>
             </div>
 
             {/* Opțiuni suplimentare */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
-              <label className="flex items-center gap-2 cursor-pointer select-none text-slate-700 dark:text-slate-300">
+              <label className="flex items-center gap-2 cursor-pointer select-none text-[#1d1d1f] dark:text-[#ebebf5]">
                 <input
                   type="checkbox"
                   checked={saveAsDefault}
                   onChange={(e) => setSaveAsDefault(e.target.checked)}
-                  className="rounded border-slate-300 text-primary focus:ring-primary h-4 w-4"
+                  className="rounded border-black/20 dark:border-white/20 text-primary focus:ring-primary h-4 w-4"
                 />
                 <span>Memorează ca semnătură implicită pentru utilizări viitoare</span>
               </label>
@@ -550,7 +544,7 @@ export default function ContractSignaturePadModal({
                 <button
                   type="button"
                   onClick={handleLoadSavedDefault}
-                  className="text-primary hover:underline font-semibold text-xs flex items-center gap-1"
+                  className="text-primary hover:underline font-semibold text-xs flex items-center gap-1 cursor-pointer"
                 >
                   <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
                   Încarcă semnătura salvată anterior
@@ -558,19 +552,19 @@ export default function ContractSignaturePadModal({
               )}
             </div>
 
-            <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-[11px] text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
+            <div className="p-3 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/14 border border-emerald-500/20 text-[11.5px] text-emerald-800 dark:text-emerald-300 flex items-center justify-between gap-2">
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={applyDigitalSeal}
                   onChange={(e) => setApplyDigitalSeal(e.target.checked)}
-                  className="rounded border-emerald-400 text-emerald-600 focus:ring-emerald-500 h-4 w-4"
+                  className="rounded border-emerald-500/40 text-emerald-600 focus:ring-emerald-500 h-4 w-4 shrink-0"
                 />
-                <span className="font-semibold">
-                  Opțiune Hibridă: Atașează și amprentă digitală de securitate (Marcă temporală & Hash SHA-256)
+                <span className="font-medium">
+                  Opțiune hibridă: Atașează și amprentă digitală de securitate (Marcă temporală & Hash SHA-256)
                 </span>
               </label>
-              <Badge variant="outline" className="bg-white/60 border-emerald-300 text-emerald-700 text-[10px]">
+              <Badge variant="outline" className="bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-[10px] shrink-0">
                 Recomandat
               </Badge>
             </div>
@@ -580,59 +574,59 @@ export default function ContractSignaturePadModal({
              TAB 2: SEMNĂTURĂ ELECTRONICĂ & CERTIFICAT DIGITAL eIDAS
              ═════════════════════════════════════════════════════════════════ */
           <div className="space-y-4">
-            <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-900 dark:text-emerald-200 flex items-start gap-3">
-              <ShieldCheck className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+            <div className="p-3.5 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/14 border border-emerald-500/20 text-xs text-emerald-900 dark:text-emerald-200 flex items-start gap-3">
+              <ShieldCheck className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
               <div>
-                <h4 className="font-bold">Certificare Electronică Digitală conform Regulamentului eIDAS</h4>
-                <p className="text-[11px] text-emerald-700 dark:text-emerald-300 mt-0.5 leading-relaxed">
+                <h4 className="font-bold">Certificare electronică digitală conform Regulamentului eIDAS</h4>
+                <p className="text-[11.5px] text-emerald-800 dark:text-emerald-300/90 mt-0.5 leading-relaxed">
                   Documentul va include un sigiliu electronic securizat cu hash unic SHA-256, marcă temporală exactă și
-                  datele complete de identificare. Pentru a semna, verifică datele și apasă butonul albastru <strong>„Aplică Semnătura pe Document”</strong> de mai jos.
+                  datele complete de identificare. Pentru a semna, verifică datele și apasă butonul <strong>„Aplică semnătura pe document”</strong> de mai jos.
                 </p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                  Nume & Prenume Semnatar:
+                <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
+                  Nume & prenume semnatar
                 </label>
                 <Input
                   value={signatoryName}
                   onChange={(e) => setSignatoryName(e.target.value)}
                   placeholder="ex: Popescu Ion"
-                  className="rounded-xl text-xs h-9"
+                  className="apple-input h-9 text-xs"
                 />
               </div>
 
               <div>
-                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                  Funcție / Calitate:
+                <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
+                  Funcție / calitate
                 </label>
                 <Input
                   value={signatoryRole}
                   onChange={(e) => setSignatoryRole(e.target.value)}
                   placeholder="ex: Administrator / Director General"
-                  className="rounded-xl text-xs h-9"
+                  className="apple-input h-9 text-xs"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-                Tip Certificat / Emitent Calificat:
+              <label className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
+                Tip certificat / emitent calificat
               </label>
               <Input
                 value={certIssuer}
                 onChange={(e) => setCertIssuer(e.target.value)}
                 placeholder="ex: CertSIGN Qualified CA / DigiSign / Trans Sped"
-                className="rounded-xl text-xs h-9"
+                className="apple-input h-9 text-xs"
               />
             </div>
 
             {/* Optional Stamp / Logo Upload */}
-            <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-slate-700 dark:text-slate-300">
+            <div className="p-3 rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-xs space-y-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span className="font-medium text-[#1d1d1f] dark:text-[#ebebf5]">
                   Atașează opțional ștampilă scanată sau facsimil:
                 </span>
                 <input
@@ -642,26 +636,24 @@ export default function ContractSignaturePadModal({
                   onChange={handleStampUpload}
                   className="hidden"
                 />
-                <Button
+                <button
                   type="button"
-                  variant="outline"
-                  size="sm"
                   onClick={() => fileInputRef.current?.click()}
-                  className="h-7 text-xs rounded-lg border-slate-300"
+                  className="apple-btn-glass inline-flex items-center h-7 px-3 text-xs font-medium text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
                 >
-                  <Upload className="h-3.5 w-3.5 mr-1" />
-                  {uploadedStamp ? "Înlocuiește Imaginea" : "Alege Imagine PNG"}
-                </Button>
+                  <Upload className="h-3.5 w-3.5 mr-1.5" />
+                  {uploadedStamp ? "Înlocuiește imaginea" : "Alege imagine PNG"}
+                </button>
               </div>
 
               {uploadedStamp && (
-                <div className="flex items-center gap-3 p-2 rounded-lg bg-white dark:bg-slate-950 border border-emerald-300">
+                <div className="flex items-center gap-3 p-2 rounded-xl bg-white dark:bg-[#1c1c1e] border border-emerald-500/30">
                   <img
                     src={uploadedStamp}
                     alt="Ștampilă încărcată"
-                    className="h-10 w-24 object-contain"
+                    className="h-10 w-24 object-contain bg-white rounded p-0.5"
                   />
-                  <div className="text-[11px] text-emerald-700 font-medium flex items-center gap-1">
+                  <div className="text-[11px] text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-1">
                     <FileCheck className="h-4 w-4" />
                     Imagine atașată pentru sigiliul digital
                   </div>
@@ -670,46 +662,45 @@ export default function ContractSignaturePadModal({
             </div>
 
             {/* Preview of digital stamp */}
-            <div className="p-3.5 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/20 text-xs">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 mb-2">
-                Previzualizare Sigiliu Digital Oficial:
+            <div className="p-3.5 rounded-xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7]/60 dark:bg-[#2c2c2e]/60 text-xs">
+              <div className="text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-2">
+                Previzualizare sigiliu digital oficial:
               </div>
-              <div className="p-3 rounded-lg bg-white dark:bg-slate-950 border border-emerald-400 font-sans space-y-1">
-                <div className="font-bold text-emerald-600 text-xs tracking-wide">
+              <div className="p-3 rounded-xl bg-white dark:bg-[#1c1c1e] border border-emerald-500/35 font-sans space-y-1">
+                <div className="font-bold text-emerald-600 dark:text-emerald-400 text-xs tracking-wide">
                   SEMNĂTURĂ DIGITALĂ CERTIFICATĂ (eIDAS)
                 </div>
-                <div className="font-extrabold text-slate-900 dark:text-white text-sm">
+                <div className="font-extrabold text-[#1d1d1f] dark:text-[#f5f5f7] text-sm">
                   {signatoryName.toUpperCase() || "[NUME SEMNATAR]"}
                 </div>
-                <div className="text-[11px] text-slate-600 dark:text-slate-400">
+                <div className="text-[11px] text-[#6e6e73] dark:text-[#98989d]">
                   Calitate: {signatoryRole} | Emitent: {certIssuer}
                 </div>
-                <div className="text-[10px] tabular-nums text-emerald-700 pt-1 border-t border-slate-100 dark:border-slate-800">
-                  Timestamp: {new Date().toLocaleString("ro-RO")} • Verificare integritate SHA-256
+                <div className="text-[10.5px] tabular-nums text-emerald-700 dark:text-emerald-400 pt-1 border-t border-black/[0.05] dark:border-white/[0.07]">
+                  Timestamp: {new Date().toLocaleString("ro-RO")} · Verificare integritate SHA-256
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        <DialogFooter className="flex items-center justify-between sm:justify-between gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
-          <Button
+        <DialogFooter className="flex items-center justify-between sm:justify-between gap-3 pt-3 border-t border-black/[0.06] dark:border-white/[0.08]">
+          <button
             type="button"
-            variant="outline"
             onClick={() => onOpenChange(false)}
-            className="rounded-xl text-xs"
+            className="apple-btn-glass px-4 h-9 text-xs font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
           >
             Anulează
-          </Button>
+          </button>
 
-          <Button
+          <button
             type="button"
             onClick={handleApply}
-            className="rounded-xl bg-primary hover:bg-primary/90 text-white font-semibold text-xs shadow-sm"
+            className="apple-btn-prominent inline-flex items-center px-4 h-9 text-white font-semibold text-xs cursor-pointer"
           >
             <Check className="h-4 w-4 mr-1.5" />
-            Aplică Semnătura pe Document
-          </Button>
+            Aplică semnătura pe document
+          </button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

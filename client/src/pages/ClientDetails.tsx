@@ -11,7 +11,6 @@ import {
   Phone,
   Plus,
   ExternalLink,
-  Calendar,
   DollarSign,
   TrendingUp,
   TrendingDown,
@@ -375,8 +374,10 @@ export default function ClientDetails() {
   if (isLoading) {
     return (
       <div className="p-12 flex flex-col justify-center items-center h-full min-h-[400px]">
-        <Loader2 className="w-10 h-10 animate-spin text-primary mb-3" />
-        <p className="text-sm font-medium text-slate-500">Se încarcă datele și analizele clientului...</p>
+        <Loader2 className="w-8 h-8 animate-spin text-[#8e8e93] mb-3" />
+        <p className="text-[13px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+          Se încarcă datele și analizele partenerului...
+        </p>
       </div>
     );
   }
@@ -384,18 +385,22 @@ export default function ClientDetails() {
   if (error || !data) {
     return (
       <div className="p-3 sm:p-5 max-w-full">
-        <div className="text-red-500 bg-red-50 dark:bg-red-950/40 p-6 rounded-2xl border border-red-200 dark:border-red-900 shadow-sm flex items-center gap-4">
-          <AlertCircle className="w-8 h-8 text-red-500 shrink-0" />
+        <div className="apple-surface p-6 flex items-center gap-4 border border-[#ff3b30]/25">
+          <div className="w-10 h-10 rounded-xl bg-[#ff3b30]/12 text-[#ff3b30] dark:text-[#ff453a] flex items-center justify-center shrink-0">
+            <AlertCircle className="w-5 h-5" />
+          </div>
           <div>
-            <h3 className="font-bold text-base text-red-800 dark:text-red-300">Clientul nu a fost găsit</h3>
-            <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+            <h3 className="font-semibold text-[15px] text-[#1d1d1f] dark:text-[#f5f5f7]">
+              Partenerul nu a fost găsit
+            </h3>
+            <p className="text-[13px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
               Nu s-au putut încărca datele pentru ID-ul solicitat. Asigură-te că linkul este corect.
             </p>
             <Link
               href="/clienti"
-              className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-red-700 dark:text-red-300 underline"
+              className="mt-3 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] hover:underline"
             >
-              <ArrowLeft className="w-3.5 h-3.5" /> Înapoi la lista de clienți
+              <ArrowLeft className="w-3.5 h-3.5" /> Înapoi la lista de parteneri
             </Link>
           </div>
         </div>
@@ -406,29 +411,20 @@ export default function ClientDetails() {
   const { client, topLines = [] } = data;
 
   return (
-    <div className="p-3 sm:p-5 max-w-full space-y-6">
+    <div className="p-3 sm:p-5 max-w-full space-y-4 overflow-x-hidden">
       {/* Top Navigation & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-start sm:items-center gap-3 min-w-0">
           <Link
             href="/clienti"
-            className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 shadow-sm transition-all"
-            title="Înapoi la clienți"
+            className="apple-btn-glass inline-flex items-center justify-center w-9 h-9 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] shrink-0"
+            title="Înapoi la parteneri"
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                Dosar Client & Analitice
-              </span>
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                ID: {client.id}
-              </span>
-            </div>
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Building2 className="w-6 h-6 text-primary shrink-0" />
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight truncate">
                 {client.name}
               </h1>
 
@@ -437,53 +433,56 @@ export default function ClientDetails() {
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {firmeApiQuery.data.general.stare && (
                     <span
-                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold shadow-xs ${
+                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
                         firmeApiQuery.data.general.stare.toLowerCase().includes("inactiv")
-                          ? "bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400 border border-rose-200 dark:border-rose-900"
-                          : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900"
+                          ? "bg-[#ff3b30]/12 text-[#ff3b30] dark:text-[#ff453a] border border-[#ff3b30]/20"
+                          : "bg-[#34c759]/12 text-[#248a3d] dark:text-[#30d158] border border-[#34c759]/20"
                       }`}
                     >
-                      <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-current" />
                       {firmeApiQuery.data.general.stare.split(" din data")[0]}
                     </span>
                   )}
                   {firmeApiQuery.data.general.tva !== undefined && (
                     <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold border ${
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium border ${
                         firmeApiQuery.data.general.tva.platitor
-                          ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-900"
-                          : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
+                          ? "bg-[#007aff]/10 text-[#007aff] dark:text-[#0a84ff] border-[#007aff]/20"
+                          : "bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#6e6e73] dark:text-[#98989d] border-black/[0.06] dark:border-white/[0.08]"
                       }`}
                     >
                       {firmeApiQuery.data.general.tva.platitor ? "Plătitor TVA" : "Neplătitor TVA"}
                     </span>
                   )}
                   {firmeApiQuery.data.general.e_factura && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-900">
-                      <Check className="w-3 h-3 text-purple-600" /> RO e-Factura
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] border border-black/[0.06] dark:border-white/[0.08]">
+                      <Check className="w-3 h-3 text-[#248a3d] dark:text-[#30d158]" /> RO e-Factura
                     </span>
                   )}
                   {firmeApiQuery.data.caen?.caen_principal?.cod && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-900">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium tabular-nums bg-amber-500/12 text-amber-700 dark:text-amber-400 border border-amber-500/20">
                       CAEN {firmeApiQuery.data.caen.caen_principal.cod}
                     </span>
                   )}
                 </div>
               )}
             </div>
+            <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5 tabular-nums">
+              Dosar partener & analitice · ID #{client.id}
+            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
           <button
             onClick={handleOpenEdit}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 shadow-sm transition-all"
+            className="apple-btn-glass flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-semibold"
           >
-            <Edit3 className="w-3.5 h-3.5 text-slate-500" /> Editează Profil
+            <Edit3 className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d]" /> Editează Profil
           </button>
           <Link
             href={`/facturi-emise-nou/new?clientId=${client.id}`}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-full bg-primary text-white hover:opacity-95 shadow-sm transition-all whitespace-nowrap"
+            className="apple-btn-prominent flex items-center justify-center gap-1.5 h-9 px-4 rounded-full text-white text-[12.5px] font-semibold whitespace-nowrap"
           >
             <Plus className="w-4 h-4" /> Emite Factură Nouă
           </Link>
@@ -491,286 +490,313 @@ export default function ClientDetails() {
       </div>
 
       {/* Client Overview Card */}
-      <div className="bg-white dark:bg-slate-900 rounded-[22px] p-5 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-          <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-            <div className="text-slate-400 font-medium mb-1 flex items-center gap-1.5">
-              <Hash className="w-3.5 h-3.5 text-primary" /> Identificare Fiscală
+      <div className="apple-surface p-4 sm:p-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+          <div className="p-3.5 rounded-2xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.04] dark:border-white/[0.06] min-w-0">
+            <div className="text-[#6e6e73] dark:text-[#98989d] text-[12px] font-medium mb-1 flex items-center gap-1.5">
+              <Hash className="w-3.5 h-3.5 shrink-0" /> Identificare fiscală
             </div>
-            <div className="font-bold text-slate-900 dark:text-white text-sm">
+            <div className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] text-[13.5px]">
               CUI: <span className="tabular-nums">{client.cui || "—"}</span>
             </div>
-            <div className="text-slate-500 dark:text-slate-400 mt-0.5">
+            <div className="text-[#6e6e73] dark:text-[#98989d] text-[12px] mt-0.5 tabular-nums">
               Reg. Com: <span className="font-medium">{client.regCom || "—"}</span>
             </div>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-            <div className="text-slate-400 font-medium mb-1 flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-primary" /> Sediu & Locație
+          <div className="p-3.5 rounded-2xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.04] dark:border-white/[0.06] min-w-0">
+            <div className="text-[#6e6e73] dark:text-[#98989d] text-[12px] font-medium mb-1 flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 shrink-0" /> Sediu & locație
             </div>
-            <div className="font-bold text-slate-900 dark:text-white truncate" title={client.address || "—"}>
+            <div className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] text-[13.5px] truncate" title={client.address || "—"}>
               {client.address || "Adresă nespecificată"}
             </div>
-            <div className="text-slate-500 dark:text-slate-400 mt-0.5">
+            <div className="text-[#6e6e73] dark:text-[#98989d] text-[12px] mt-0.5 truncate">
               {client.city ? `${client.city}, ` : ""}
               {client.country || "RO"}
             </div>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-            <div className="text-slate-400 font-medium mb-1 flex items-center gap-1.5">
-              <Mail className="w-3.5 h-3.5 text-primary" /> Date de Contact
+          <div className="p-3.5 rounded-2xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.04] dark:border-white/[0.06] min-w-0">
+            <div className="text-[#6e6e73] dark:text-[#98989d] text-[12px] font-medium mb-1 flex items-center gap-1.5">
+              <Mail className="w-3.5 h-3.5 shrink-0" /> Date de contact
             </div>
-            <div className="font-bold text-slate-900 dark:text-white truncate" title={client.email || "—"}>
+            <div className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] text-[13.5px] truncate" title={client.email || "—"}>
               {client.email ? (
-                <a href={`mailto:${client.email}`} className="text-primary hover:underline">
+                <a href={`mailto:${client.email}`} className="hover:underline">
                   {client.email}
                 </a>
               ) : (
                 "—"
               )}
             </div>
-            <div className="text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1">
-              <Phone className="w-3 h-3" />
+            <div className="text-[#6e6e73] dark:text-[#98989d] text-[12px] mt-0.5 flex items-center gap-1 tabular-nums">
+              <Phone className="w-3 h-3 shrink-0" />
               <span>{client.phone || "—"}</span>
             </div>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-            <div className="text-slate-400 font-medium mb-1 flex items-center gap-1.5">
-              <CreditCard className="w-3.5 h-3.5 text-primary" /> Preferințe Financiare
+          <div className="p-3.5 rounded-2xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.04] dark:border-white/[0.06] min-w-0">
+            <div className="text-[#6e6e73] dark:text-[#98989d] text-[12px] font-medium mb-1 flex items-center gap-1.5">
+              <CreditCard className="w-3.5 h-3.5 shrink-0" /> Preferințe financiare
             </div>
-            <div className="font-bold text-slate-900 dark:text-white">
-              Monedă: <span className="font-bold text-primary">{client.currency || "RON"}</span>
+            <div className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] text-[13.5px]">
+              Monedă: <span>{client.currency || "RON"}</span>
             </div>
-            <div className="text-slate-500 dark:text-slate-400 mt-0.5">
-              Cod SAGA: <span className="tabular-nums">{(client as any).sagaCode || "—"}</span>
+            <div className="text-[#6e6e73] dark:text-[#98989d] text-[12px] mt-0.5">
+              Cod SAGA: <span className="tabular-nums font-medium">{(client as any).sagaCode || "—"}</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Period Filter & Search Bar (Identical to Evidență Facturi) */}
-      <div className="bg-white dark:bg-slate-900 rounded-[22px] p-4 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        {/* Period Chips */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-xs font-bold text-slate-500 dark:text-slate-400 mr-1 flex items-center gap-1">
-            <Calendar className="w-3.5 h-3.5 text-primary" /> Perioadă:
-          </span>
-          {[
-            { id: "all", label: "Toate dățile" },
-            { id: "this_month", label: "Luna curentă" },
-            { id: "last_month", label: "Luna trecută" },
-            { id: "this_year", label: "Anul curent" },
-            { id: "last_year", label: "Anul trecut" },
-            { id: "last_30_days", label: "Ultimele 30 zile" },
-            { id: "custom", label: "Personalizat..." },
-          ].map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setPeriod(item.id as PeriodFilter)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                period === item.id
-                  ? "bg-primary text-white shadow-sm"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
+      {/* Unified Period Filter & Search Toolbar */}
+      <div className="apple-surface px-3 py-2.5 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        {/* Period Segmented Pills */}
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          <div className="apple-segmented flex items-center flex-wrap">
+            {[
+              { id: "all", label: "Toate dățile" },
+              { id: "this_month", label: "Luna curentă" },
+              { id: "last_month", label: "Luna trecută" },
+              { id: "this_year", label: "Anul curent" },
+              { id: "last_year", label: "Anul trecut" },
+              { id: "last_30_days", label: "Ultimele 30 zile" },
+              { id: "custom", label: "Personalizat" },
+            ].map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                data-active={period === item.id}
+                onClick={() => setPeriod(item.id as PeriodFilter)}
+                className="apple-segmented-item h-[28px] px-3 text-[12px]"
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Search & Custom Date Inputs */}
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2.5 flex-wrap">
           {period === "custom" && (
-            <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700">
+            <div className="flex items-center gap-1.5 bg-[#f2f2f7] dark:bg-[#2c2c2e] h-[34px] px-3 rounded-full border border-black/[0.06] dark:border-white/[0.08]">
               <input
                 type="date"
                 value={customFrom}
                 onChange={(e) => setCustomFrom(e.target.value)}
-                className="h-7 text-xs tabular-nums bg-transparent text-slate-700 dark:text-slate-200 outline-none w-28"
+                className="h-7 text-[16px] sm:text-[12px] tabular-nums bg-transparent text-[#1d1d1f] dark:text-[#f5f5f7] outline-none w-28"
               />
-              <span className="text-xs text-slate-400 font-bold">-</span>
+              <span className="text-xs text-[#8e8e93]">–</span>
               <input
                 type="date"
                 value={customTo}
                 onChange={(e) => setCustomTo(e.target.value)}
-                className="h-7 text-xs tabular-nums bg-transparent text-slate-700 dark:text-slate-200 outline-none w-28"
+                className="h-7 text-[16px] sm:text-[12px] tabular-nums bg-transparent text-[#1d1d1f] dark:text-[#f5f5f7] outline-none w-28"
               />
             </div>
           )}
 
-          <div className="relative min-w-[200px]">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <div className="relative flex-1 sm:flex-initial min-w-[200px] sm:w-64">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#8e8e93] pointer-events-none" />
             <input
               type="text"
               placeholder="Caută factură / sumă..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary"
+              className="apple-pill-control w-full h-[34px] pl-8 pr-3 rounded-full text-[16px] sm:text-[12.5px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none"
             />
           </div>
         </div>
       </div>
 
       {/* KPI Cards Section */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Total Facturat */}
-        <div className="bg-white dark:bg-slate-900 rounded-[22px] p-4 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Total Facturat</span>
-            <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 flex items-center justify-center">
-              <DollarSign className="w-4 h-4" />
+        <div className="apple-surface outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+              Total facturat
+            </span>
+            <div className="w-7 h-7 rounded-[8px] bg-[#007aff]/10 dark:bg-[#0a84ff]/15 text-[#007aff] dark:text-[#0a84ff] flex items-center justify-center shrink-0">
+              <DollarSign className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="mt-2 text-xl sm:text-2xl font-black tabular-nums text-slate-900 dark:text-white">
-            {kpis.totalInvoiced.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
-            <span className="text-xs font-bold text-slate-500">{kpis.currency}</span>
-          </div>
-          <div className="mt-1 text-[11px] text-slate-400 flex items-center gap-1 font-medium">
-            <FileText className="w-3 h-3 text-slate-400" />
-            <span>{kpis.invoiceCount} facturi emise în perioadă</span>
+          <div>
+            <div className="text-[20px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none tabular-nums">
+              {kpis.totalInvoiced.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
+              <span className="text-[12px] font-semibold text-[#8e8e93]">{kpis.currency}</span>
+            </div>
+            <div className="mt-1.5 text-[11.5px] text-[#8e8e93] tabular-nums truncate">
+              {kpis.invoiceCount} facturi emise în perioadă
+            </div>
           </div>
         </div>
 
         {/* Total Încasat */}
-        <div className="bg-white dark:bg-slate-900 rounded-[22px] p-4 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Total Încasat</span>
-            <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 flex items-center justify-center">
-              <CheckCircle2 className="w-4 h-4" />
+        <div className="apple-surface outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+              Total încasat
+            </span>
+            <div className="w-7 h-7 rounded-[8px] bg-[#34c759]/12 dark:bg-[#30d158]/16 text-[#248a3d] dark:text-[#30d158] flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="mt-2 text-xl sm:text-2xl font-black tabular-nums text-emerald-600 dark:text-emerald-400">
-            {kpis.totalCollected.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
-            <span className="text-xs font-bold text-emerald-600/70">{kpis.currency}</span>
-          </div>
-          <div className="mt-1 text-[11px] text-slate-400 flex items-center gap-1 font-medium">
-            <span>{kpis.paidCount} facturi încasate integral</span>
+          <div>
+            <div className="text-[20px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none tabular-nums">
+              {kpis.totalCollected.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
+              <span className="text-[12px] font-semibold text-[#8e8e93]">{kpis.currency}</span>
+            </div>
+            <div className="mt-1.5 text-[11.5px] text-[#8e8e93] tabular-nums truncate">
+              {kpis.paidCount} facturi încasate integral
+            </div>
           </div>
         </div>
 
         {/* Rest de Plată */}
-        <div className="bg-white dark:bg-slate-900 rounded-[22px] p-4 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Rest de Plată</span>
-            <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-600 flex items-center justify-center">
-              <Clock className="w-4 h-4" />
+        <div className="apple-surface outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+              Rest de plată
+            </span>
+            <div className="w-7 h-7 rounded-[8px] bg-amber-500/12 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <Clock className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="mt-2 text-xl sm:text-2xl font-black tabular-nums text-amber-600 dark:text-amber-400">
-            {kpis.totalPending.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
-            <span className="text-xs font-bold text-amber-600/70">{kpis.currency}</span>
-          </div>
-          <div className="mt-1 text-[11px] text-slate-400 flex items-center gap-1 font-medium">
-            <span>{kpis.pendingCount} facturi în așteptare / neîncasate</span>
+          <div>
+            <div className="text-[20px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none tabular-nums">
+              {kpis.totalPending.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
+              <span className="text-[12px] font-semibold text-[#8e8e93]">{kpis.currency}</span>
+            </div>
+            <div className="mt-1.5 text-[11.5px] text-[#8e8e93] tabular-nums truncate">
+              {kpis.pendingCount} facturi neîncasate
+            </div>
           </div>
         </div>
 
         {/* Valoare Medie / Factură */}
-        <div className="bg-white dark:bg-slate-900 rounded-[22px] p-4 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Valoare Medie / Factură</span>
-            <div className="w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 flex items-center justify-center">
-              <TrendingUp className="w-4 h-4" />
+        <div className="apple-surface outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+              Valoare medie / factură
+            </span>
+            <div className="w-7 h-7 rounded-[8px] bg-[#8e8e93]/12 dark:bg-white/[0.08] text-[#6e6e73] dark:text-[#98989d] flex items-center justify-center shrink-0">
+              <TrendingUp className="w-3.5 h-3.5" />
             </div>
           </div>
-          <div className="mt-2 text-xl sm:text-2xl font-black tabular-nums text-slate-900 dark:text-white">
-            {kpis.avgInvoice.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
-            <span className="text-xs font-bold text-slate-500">{kpis.currency}</span>
-          </div>
-          <div className="mt-1 text-[11px] text-slate-400 flex items-center gap-1 font-medium">
-            <span>Ticket mediu per tranzacție</span>
+          <div>
+            <div className="text-[20px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none tabular-nums">
+              {kpis.avgInvoice.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{" "}
+              <span className="text-[12px] font-semibold text-[#8e8e93]">{kpis.currency}</span>
+            </div>
+            <div className="mt-1.5 text-[11.5px] text-[#8e8e93] truncate">
+              Tichet mediu per tranzacție
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Tabs: Facturi Emise | Produse / Servicii | Facturi Primite */}
-      <div className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+      {/* Tabs: Facturi Emise | Produse / Servicii | Facturi Primite | FirmeAPI | Contracte */}
+      <div className="apple-surface overflow-hidden">
         {/* Tab Headers */}
-        <div className="flex items-center border-b border-slate-200 dark:border-slate-800 px-5 pt-3 gap-6 overflow-x-auto">
+        <div className="flex items-center border-b border-black/[0.05] dark:border-white/[0.07] bg-[#fafafa] dark:bg-white/[0.02] px-4 sm:px-5 pt-3 gap-5 overflow-x-auto">
           <button
             onClick={() => setActiveTab("sent")}
-            className={`pb-3 text-xs font-bold transition-all relative flex items-center gap-2 whitespace-nowrap ${
+            className={`pb-3 text-[12.5px] font-semibold transition-colors relative flex items-center gap-2 whitespace-nowrap tabular-nums ${
               activeTab === "sent"
-                ? "text-primary"
-                : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                ? "text-[#1d1d1f] dark:text-[#f5f5f7]"
+                : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7]"
             }`}
           >
-            <FileText className="w-4 h-4" />
-            Facturi Emise Către Client ({filteredSentInvoices.length})
+            <FileText className="w-3.5 h-3.5" />
+            Facturi emise ({filteredSentInvoices.length})
             {activeTab === "sent" && (
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-t-full" />
+              <span
+                className="absolute bottom-0 left-0 w-full h-[2px] rounded-t-full"
+                style={{ backgroundColor: "var(--tenant-theme-color, #007aff)" }}
+              />
             )}
           </button>
 
           <button
             onClick={() => setActiveTab("products")}
-            className={`pb-3 text-xs font-bold transition-all relative flex items-center gap-2 whitespace-nowrap ${
+            className={`pb-3 text-[12.5px] font-semibold transition-colors relative flex items-center gap-2 whitespace-nowrap tabular-nums ${
               activeTab === "products"
-                ? "text-primary"
-                : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                ? "text-[#1d1d1f] dark:text-[#f5f5f7]"
+                : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7]"
             }`}
           >
-            <Package className="w-4 h-4" />
-            Top Produse & Servicii ({topLines.length})
+            <Package className="w-3.5 h-3.5" />
+            Top produse & servicii ({topLines.length})
             {activeTab === "products" && (
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-t-full" />
+              <span
+                className="absolute bottom-0 left-0 w-full h-[2px] rounded-t-full"
+                style={{ backgroundColor: "var(--tenant-theme-color, #007aff)" }}
+              />
             )}
           </button>
 
           {data.receivedInvoices && data.receivedInvoices.length > 0 && (
             <button
               onClick={() => setActiveTab("received")}
-              className={`pb-3 text-xs font-bold transition-all relative flex items-center gap-2 whitespace-nowrap ${
+              className={`pb-3 text-[12.5px] font-semibold transition-colors relative flex items-center gap-2 whitespace-nowrap tabular-nums ${
                 activeTab === "received"
-                  ? "text-primary"
-                  : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                  ? "text-[#1d1d1f] dark:text-[#f5f5f7]"
+                  : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7]"
               }`}
             >
-              <CreditCard className="w-4 h-4" />
-              Facturi Primite de la Client (Furnizor) ({filteredReceivedInvoices.length})
+              <CreditCard className="w-3.5 h-3.5" />
+              Facturi primite ({filteredReceivedInvoices.length})
               {activeTab === "received" && (
-                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-t-full" />
+                <span
+                  className="absolute bottom-0 left-0 w-full h-[2px] rounded-t-full"
+                  style={{ backgroundColor: "var(--tenant-theme-color, #007aff)" }}
+                />
               )}
             </button>
           )}
 
           <button
             onClick={() => setActiveTab("firme_api")}
-            className={`pb-3 text-xs font-bold transition-all relative flex items-center gap-2 whitespace-nowrap ${
+            className={`pb-3 text-[12.5px] font-semibold transition-colors relative flex items-center gap-2 whitespace-nowrap ${
               activeTab === "firme_api"
-                ? "text-primary"
-                : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                ? "text-[#1d1d1f] dark:text-[#f5f5f7]"
+                : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7]"
             }`}
           >
-            <Building2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <Building2 className="w-3.5 h-3.5 text-[#248a3d] dark:text-[#30d158]" />
             Dosar FirmeAPI & Bilanț
             {firmeApiQuery.data && (
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+              <span className="px-2 py-0.5 rounded-full text-[10.5px] font-semibold tabular-nums bg-[#34c759]/12 text-[#248a3d] dark:text-[#30d158]">
                 {firmeApiQuery.data.financials.length > 0
-                  ? `${firmeApiQuery.data.financials.length} Ani Bilanț`
+                  ? `${firmeApiQuery.data.financials.length} ani bilanț`
                   : "ONRC"}
               </span>
             )}
             {activeTab === "firme_api" && (
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-t-full" />
+              <span
+                className="absolute bottom-0 left-0 w-full h-[2px] rounded-t-full"
+                style={{ backgroundColor: "var(--tenant-theme-color, #007aff)" }}
+              />
             )}
           </button>
 
           <button
             onClick={() => setActiveTab("contracts")}
-            className={`pb-3 text-xs font-bold transition-all relative flex items-center gap-2 whitespace-nowrap ${
+            className={`pb-3 text-[12.5px] font-semibold transition-colors relative flex items-center gap-2 whitespace-nowrap tabular-nums ${
               activeTab === "contracts"
-                ? "text-primary"
-                : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                ? "text-[#1d1d1f] dark:text-[#f5f5f7]"
+                : "text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7]"
             }`}
           >
-            <FileSignature className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-            Contracte & Documente ({partnerContracts.length})
+            <FileSignature className="w-3.5 h-3.5" />
+            Contracte & documente ({partnerContracts.length})
             {activeTab === "contracts" && (
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-t-full" />
+              <span
+                className="absolute bottom-0 left-0 w-full h-[2px] rounded-t-full"
+                style={{ backgroundColor: "var(--tenant-theme-color, #007aff)" }}
+              />
             )}
           </button>
         </div>
@@ -779,18 +805,18 @@ export default function ClientDetails() {
         {activeTab === "sent" && (
           <div className="overflow-x-auto">
             {filteredSentInvoices.length > 0 ? (
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 font-bold uppercase tracking-wider">
+              <table className="w-full text-left text-[13px]">
+                <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
                   <tr>
-                    <th className="py-3 px-4">Nr. Factură</th>
-                    <th className="py-3 px-4">Data Emiterii</th>
-                    <th className="py-3 px-4">Scadență</th>
-                    <th className="py-3 px-4 text-right">Valoare Totală</th>
-                    <th className="py-3 px-4 text-center">Status</th>
-                    <th className="py-3 px-4 text-center">Acțiuni</th>
+                    <th className="py-3 px-4 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Nr. factură</th>
+                    <th className="py-3 px-4 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Data emiterii</th>
+                    <th className="py-3 px-4 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Scadență</th>
+                    <th className="py-3 px-4 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Valoare totală</th>
+                    <th className="py-3 px-4 text-center text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Status</th>
+                    <th className="py-3 px-4 text-center text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Acțiuni</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
                   {filteredSentInvoices.map((inv) => {
                     const isPaid = inv.status === "paid";
                     const isSent = inv.status === "sent";
@@ -798,24 +824,24 @@ export default function ClientDetails() {
                     const isOverdue = inv.status === "overdue";
 
                     const badgeClass = isPaid
-                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400"
+                      ? "bg-[#34c759]/12 text-[#248a3d] dark:text-[#30d158]"
                       : isSent
-                      ? "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400"
+                      ? "bg-[#007aff]/10 text-[#007aff] dark:text-[#0a84ff]"
                       : isStorno
-                      ? "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-400"
+                      ? "bg-[#ff3b30]/12 text-[#ff3b30] dark:text-[#ff453a]"
                       : isOverdue
-                      ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400"
-                      : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
+                      ? "bg-amber-500/12 text-amber-700 dark:text-amber-400"
+                      : "bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#6e6e73] dark:text-[#98989d]";
 
                     const label = isPaid
-                      ? "ÎNCASATĂ"
+                      ? "Încasată"
                       : isSent
-                      ? "TRIMISĂ"
+                      ? "Trimisă"
                       : isStorno
-                      ? "STORNATĂ"
+                      ? "Stornată"
                       : isOverdue
-                      ? "RESTANTĂ"
-                      : (inv.status || "EMISĂ").toUpperCase();
+                      ? "Restantă"
+                      : inv.status || "Emisă";
 
                     const viewUrl =
                       inv.type === "reinvoice"
@@ -827,34 +853,34 @@ export default function ClientDetails() {
                     return (
                       <tr
                         key={`${inv.type}-${inv.id}`}
-                        className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors"
+                        className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors"
                       >
-                        <td className="py-3 px-4 font-bold text-slate-900 dark:text-white">
+                        <td className="py-3 px-4">
                           <a
                             href={viewUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1.5 text-primary hover:underline"
+                            className="inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] hover:underline tabular-nums"
                           >
                             {inv.number}
-                            <ExternalLink className="w-3 h-3 opacity-60" />
+                            <ExternalLink className="w-3 h-3 text-[#8e8e93]" />
                           </a>
                         </td>
-                        <td className="py-3 px-4 text-slate-600 dark:text-slate-300">
+                        <td className="py-3 px-4 tabular-nums text-[#6e6e73] dark:text-[#98989d]">
                           {inv.issueDate || "—"}
                         </td>
-                        <td className="py-3 px-4 text-slate-500">
+                        <td className="py-3 px-4 tabular-nums text-[#8e8e93]">
                           {inv.dueDate || "—"}
                         </td>
-                        <td className="py-3 px-4 text-right font-black text-slate-900 dark:text-white">
+                        <td className="py-3 px-4 text-right font-semibold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">
                           {parseFloat(inv.total || "0").toLocaleString("ro-RO", {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,
                           })}{" "}
-                          <span className="text-[10px] text-slate-400 font-semibold">{inv.currency}</span>
+                          <span className="text-[11px] text-[#8e8e93] font-medium">{inv.currency}</span>
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider ${badgeClass}`}>
+                          <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${badgeClass}`}>
                             {label}
                           </span>
                         </td>
@@ -863,7 +889,7 @@ export default function ClientDetails() {
                             href={viewUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium text-[11px] transition-colors"
+                            className="apple-btn-glass inline-flex items-center gap-1 h-7 px-2.5 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] font-medium text-[11.5px]"
                           >
                             <Download className="w-3 h-3" />
                             PDF
@@ -875,7 +901,7 @@ export default function ClientDetails() {
                 </tbody>
               </table>
             ) : (
-              <div className="py-12 text-center text-slate-400 text-xs">
+              <div className="py-12 text-center text-[#8e8e93] text-[13px]">
                 Nu există facturi emise în perioada selectată.
               </div>
             )}
@@ -884,34 +910,34 @@ export default function ClientDetails() {
 
         {/* Tab 2: Top Products / Services */}
         {activeTab === "products" && (
-          <div className="p-5">
+          <div>
             {topLines.length > 0 ? (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 font-bold uppercase tracking-wider">
+                <table className="w-full text-left text-[13px]">
+                  <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
                     <tr>
-                      <th className="py-3 px-4">#</th>
-                      <th className="py-3 px-4">Denumire Produs / Serviciu</th>
-                      <th className="py-3 px-4 text-right">Cantitate</th>
-                      <th className="py-3 px-4 text-right">Valoare Totală</th>
+                      <th className="py-3 px-4 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Nr.</th>
+                      <th className="py-3 px-4 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Denumire produs / serviciu</th>
+                      <th className="py-3 px-4 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Cantitate</th>
+                      <th className="py-3 px-4 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Valoare totală</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                  <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
                     {topLines.map((line: any, idx: number) => (
-                      <tr key={idx} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
-                        <td className="py-2.5 px-4 text-slate-400 font-medium tabular-nums">{idx + 1}</td>
-                        <td className="py-2.5 px-4 font-bold text-slate-800 dark:text-slate-200">
+                      <tr key={idx} className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors">
+                        <td className="py-3 px-4 text-[#8e8e93] font-medium tabular-nums">{idx + 1}</td>
+                        <td className="py-3 px-4 font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                           {line.description}
                         </td>
-                        <td className="py-2.5 px-4 text-right tabular-nums text-slate-600 dark:text-slate-300 font-semibold">
+                        <td className="py-3 px-4 text-right tabular-nums text-[#6e6e73] dark:text-[#98989d] font-medium">
                           {line.quantity}
                         </td>
-                        <td className="py-2.5 px-4 text-right tabular-nums font-black text-slate-900 dark:text-white">
+                        <td className="py-3 px-4 text-right tabular-nums font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                           {parseFloat(line.total || "0").toLocaleString("ro-RO", {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,
                           })}{" "}
-                          <span className="text-[10px] text-slate-400">{kpis.currency}</span>
+                          <span className="text-[11px] text-[#8e8e93]">{kpis.currency}</span>
                         </td>
                       </tr>
                     ))}
@@ -919,8 +945,8 @@ export default function ClientDetails() {
                 </table>
               </div>
             ) : (
-              <div className="py-12 text-center text-slate-400 text-xs">
-                Nu există linii de produse detaliate înregistrate pentru acest client.
+              <div className="py-12 text-center text-[#8e8e93] text-[13px]">
+                Nu există linii de produse detaliate înregistrate pentru acest partener.
               </div>
             )}
           </div>
@@ -930,33 +956,33 @@ export default function ClientDetails() {
         {activeTab === "received" && (
           <div className="overflow-x-auto">
             {filteredReceivedInvoices.length > 0 ? (
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 font-bold uppercase tracking-wider">
+              <table className="w-full text-left text-[13px]">
+                <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
                   <tr>
-                    <th className="py-3 px-4">Nr. Factură</th>
-                    <th className="py-3 px-4">Data Emiterii</th>
-                    <th className="py-3 px-4 text-right">Valoare Totală</th>
-                    <th className="py-3 px-4 text-center">Status</th>
-                    <th className="py-3 px-4 text-center">Document</th>
+                    <th className="py-3 px-4 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Nr. factură</th>
+                    <th className="py-3 px-4 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Data emiterii</th>
+                    <th className="py-3 px-4 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Valoare totală</th>
+                    <th className="py-3 px-4 text-center text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Status</th>
+                    <th className="py-3 px-4 text-center text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Document</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
                   {filteredReceivedInvoices.map((inv) => (
-                    <tr key={inv.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
-                      <td className="py-3 px-4 font-bold text-purple-600 dark:text-purple-400">
+                    <tr key={inv.id} className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors">
+                      <td className="py-3 px-4 text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums">
                         {inv.invoiceNumber || inv.number || `#${inv.id}`}
                       </td>
-                      <td className="py-3 px-4 tabular-nums text-slate-600 dark:text-slate-300">{inv.issueDate || "—"}</td>
-                      <td className="py-3 px-4 text-right tabular-nums font-black text-slate-900 dark:text-white">
+                      <td className="py-3 px-4 tabular-nums text-[#6e6e73] dark:text-[#98989d]">{inv.issueDate || "—"}</td>
+                      <td className="py-3 px-4 text-right tabular-nums font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                         {parseFloat(inv.total || "0").toLocaleString("ro-RO", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}{" "}
-                        <span className="text-[10px] text-slate-400">{inv.currency}</span>
+                        <span className="text-[11px] text-[#8e8e93]">{inv.currency}</span>
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-400">
-                          {inv.status || "PROCESAT"}
+                        <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#6e6e73] dark:text-[#98989d]">
+                          {inv.status || "Procesat"}
                         </span>
                       </td>
                       <td className="py-3 px-4 text-center">
@@ -964,7 +990,7 @@ export default function ClientDetails() {
                           href={`/api/pdf/archive/${inv.id}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium text-[11px]"
+                          className="apple-btn-glass inline-flex items-center gap-1 h-7 px-2.5 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] font-medium text-[11.5px]"
                         >
                           <Download className="w-3 h-3" /> PDF
                         </a>
@@ -974,7 +1000,7 @@ export default function ClientDetails() {
                 </tbody>
               </table>
             ) : (
-              <div className="py-12 text-center text-slate-400 text-xs">
+              <div className="py-12 text-center text-[#8e8e93] text-[13px]">
                 Nicio factură primită în perioada selectată.
               </div>
             )}
@@ -983,56 +1009,56 @@ export default function ClientDetails() {
 
         {/* Tab 4: FirmeAPI Dossier & Bilant */}
         {activeTab === "firme_api" && (
-          <div className="p-5 sm:p-6 space-y-6">
+          <div className="p-4 sm:p-6 space-y-6">
             {!cleanCui ? (
               <div className="py-12 px-4 text-center max-w-md mx-auto">
-                <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 flex items-center justify-center mx-auto mb-3">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500/12 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto mb-3">
                   <AlertCircle className="w-6 h-6" />
                 </div>
-                <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200">
+                <h3 className="font-semibold text-[15px] text-[#1d1d1f] dark:text-[#f5f5f7]">
                   CUI / CIF lipsă
                 </h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  Acest client nu are completat un cod fiscal (CUI) valid. Adaugă CUI-ul în profilul clientului pentru a accesa dosarul complet FirmeAPI și bilanțul oficial.
+                <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-1">
+                  Acest partener nu are completat un cod fiscal (CUI) valid. Adaugă CUI-ul în profilul partenerului pentru a accesa dosarul complet FirmeAPI și bilanțul oficial.
                 </p>
                 <button
                   onClick={handleOpenEdit}
-                  className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-full bg-primary text-white shadow-sm hover:opacity-95"
+                  className="apple-btn-prominent mt-4 inline-flex items-center gap-1.5 h-9 px-4 text-[12.5px] font-semibold rounded-full text-white"
                 >
-                  <Edit3 className="w-3.5 h-3.5" /> Completează CUI Client
+                  <Edit3 className="w-3.5 h-3.5" /> Completează CUI
                 </button>
               </div>
             ) : firmeApiQuery.isLoading ? (
               <div className="py-16 text-center">
-                <Loader2 className="w-9 h-9 animate-spin text-emerald-600 mx-auto mb-3" />
-                <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200">
+                <Loader2 className="w-8 h-8 animate-spin text-[#8e8e93] mx-auto mb-3" />
+                <h3 className="font-semibold text-[14px] text-[#1d1d1f] dark:text-[#f5f5f7]">
                   Se interoghează baza de date FirmeAPI.ro & Registrul Comerțului...
                 </h3>
-                <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-1 max-w-sm mx-auto">
                   Se descarcă bilanțul multianual, asociații din Registrul Comerțului, codurile CAEN și istoricul din Monitorul Oficial.
                 </p>
               </div>
             ) : !firmeApiQuery.data?.general ? (
               <div className="py-12 px-4 text-center max-w-md mx-auto">
-                <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center mx-auto mb-3">
+                <div className="w-12 h-12 rounded-2xl bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#6e6e73] dark:text-[#98989d] flex items-center justify-center mx-auto mb-3">
                   <Building2 className="w-6 h-6" />
                 </div>
-                <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200">
+                <h3 className="font-semibold text-[15px] text-[#1d1d1f] dark:text-[#f5f5f7]">
                   Firma nu a fost găsită în baza FirmeAPI
                 </h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  Nu s-au găsit înregistrări oficiale pentru CUI: <span className="tabular-nums font-bold">{cleanCui}</span>. Verifică dacă codul fiscal este corect.
+                <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-1">
+                  Nu s-au găsit înregistrări oficiale pentru CUI: <span className="tabular-nums font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">{cleanCui}</span>. Verifică dacă codul fiscal este corect.
                 </p>
                 <div className="mt-4 flex items-center justify-center gap-2">
                   <button
                     onClick={handleRefreshFirmeApi}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-full bg-emerald-600 text-white shadow-sm hover:opacity-95"
+                    className="apple-btn-prominent inline-flex items-center gap-1.5 h-9 px-4 text-[12.5px] font-semibold rounded-full text-white"
                   >
                     <RefreshCw className="w-3.5 h-3.5" /> Reîncearcă interogarea
                   </button>
                   <button
                     onClick={handleOpenEdit}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
+                    className="apple-btn-glass inline-flex items-center gap-1.5 h-9 px-4 text-[12.5px] font-semibold rounded-full text-[#1d1d1f] dark:text-[#f5f5f7]"
                   >
                     <Edit3 className="w-3.5 h-3.5" /> Editează CUI
                   </button>
@@ -1062,37 +1088,37 @@ export default function ClientDetails() {
                 return (
                   <div className="space-y-6">
                     {/* Header Bar with Legal & Official Info */}
-                    <div className="p-4 sm:p-5 rounded-[22px] bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent border border-emerald-200/80 dark:border-emerald-800/50 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div className="p-4 sm:p-5 rounded-2xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.05] dark:border-white/[0.07] flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                       <div>
                         <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-                            <ShieldCheck className="w-3.5 h-3.5" /> Date Oficiale ONRC & ANAF
+                          <span className="text-[11.5px] font-semibold text-[#248a3d] dark:text-[#30d158] flex items-center gap-1">
+                            <ShieldCheck className="w-3.5 h-3.5" /> Date oficiale ONRC & ANAF
                           </span>
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300">
+                          <span className="px-2 py-0.5 rounded-full text-[10.5px] font-semibold bg-[#34c759]/12 text-[#248a3d] dark:text-[#30d158]">
                             FirmeAPI.ro Intelligence
                           </span>
                           {dossier.cachedAt && (
-                            <span className="text-[10px] text-slate-400">
+                            <span className="text-[11px] text-[#8e8e93] tabular-nums">
                               Actualizat: {new Date(dossier.cachedAt).toLocaleDateString("ro-RO")}
                             </span>
                           )}
                         </div>
-                        <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                        <h2 className="text-[18px] font-bold tracking-[-0.02em] text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-2">
                           {g?.denumire}
                         </h2>
-                        <div className="mt-1 text-xs text-slate-600 dark:text-slate-300 flex items-center gap-4 flex-wrap">
+                        <div className="mt-1 text-[12.5px] text-[#6e6e73] dark:text-[#98989d] flex items-center gap-4 flex-wrap">
                           <span>
-                            CUI: <strong className="tabular-nums text-slate-900 dark:text-white">{g?.cui}</strong>
+                            CUI: <strong className="tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">{g?.cui}</strong>
                           </span>
                           <span>
-                            Reg. Com: <strong className="text-slate-900 dark:text-white">{g?.nr_reg_com || "—"}</strong>
+                            Reg. Com: <strong className="text-[#1d1d1f] dark:text-[#f5f5f7]">{g?.nr_reg_com || "—"}</strong>
                           </span>
                           <span>
-                            Formă: <strong className="text-slate-900 dark:text-white">{g?.forma_juridica || "SRL"}</strong>
+                            Formă: <strong className="text-[#1d1d1f] dark:text-[#f5f5f7]">{g?.forma_juridica || "SRL"}</strong>
                           </span>
                           {g?.data_inregistrare && (
-                            <span>
-                              Înființat: <strong className="text-slate-900 dark:text-white">{g.data_inregistrare}</strong>
+                            <span className="tabular-nums">
+                              Înființat: <strong className="text-[#1d1d1f] dark:text-[#f5f5f7]">{g.data_inregistrare}</strong>
                             </span>
                           )}
                         </div>
@@ -1102,16 +1128,16 @@ export default function ClientDetails() {
                         <button
                           onClick={handleRefreshFirmeApi}
                           disabled={forceRefreshing}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 shadow-xs transition-all disabled:opacity-50"
+                          className="apple-btn-glass inline-flex items-center gap-1.5 h-9 px-3.5 text-[12.5px] font-semibold rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] disabled:opacity-50"
                         >
-                          <RefreshCw className={`w-3.5 h-3.5 text-emerald-600 ${forceRefreshing ? "animate-spin" : ""}`} />
+                          <RefreshCw className={`w-3.5 h-3.5 ${forceRefreshing ? "animate-spin" : ""}`} />
                           Actualizează Dosar
                         </button>
 
                         <button
                           onClick={() => syncMutation.mutate({ clientId: id, cui: cleanCui })}
                           disabled={syncMutation.isPending}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-full bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm transition-all disabled:opacity-50"
+                          className="apple-btn-prominent inline-flex items-center gap-1.5 h-9 px-4 text-[12.5px] font-semibold rounded-full text-white disabled:opacity-50"
                         >
                           {syncMutation.isPending ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1124,106 +1150,106 @@ export default function ClientDetails() {
                     </div>
 
                     {/* Fiscal & Legal Details Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5">
                       {/* Sediu Social */}
-                      <div className="p-4 rounded-[22px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-                        <div className="text-slate-400 font-medium text-xs mb-1.5 flex items-center gap-1.5">
-                          <MapPin className="w-3.5 h-3.5 text-emerald-600" /> Sediu Social Oficial
+                      <div className="p-4 rounded-2xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.04] dark:border-white/[0.06]">
+                        <div className="text-[#6e6e73] dark:text-[#98989d] font-medium text-[12px] mb-1.5 flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5" /> Sediu social oficial
                         </div>
-                        <div className="font-semibold text-slate-900 dark:text-white text-xs leading-relaxed">
+                        <div className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] text-[13px] leading-relaxed">
                           {g?.adresa || g?.adresa_sediu_social?.strada || "Adresă indisponibilă"}
                         </div>
-                        <div className="mt-1 text-[11px] text-slate-500">
+                        <div className="mt-1 text-[11.5px] text-[#6e6e73] dark:text-[#98989d]">
                           {g?.adresa_sediu_social?.localitate ? `${g.adresa_sediu_social.localitate}, ` : ""}
                           {g?.adresa_sediu_social?.judet || ""}
                         </div>
                       </div>
 
                       {/* Regim TVA & e-Factura */}
-                      <div className="p-4 rounded-[22px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-                        <div className="text-slate-400 font-medium text-xs mb-1.5 flex items-center gap-1.5">
-                          <CreditCard className="w-3.5 h-3.5 text-emerald-600" /> Regim Fiscal & TVA
+                      <div className="p-4 rounded-2xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.04] dark:border-white/[0.06]">
+                        <div className="text-[#6e6e73] dark:text-[#98989d] font-medium text-[12px] mb-1.5 flex items-center gap-1.5">
+                          <CreditCard className="w-3.5 h-3.5" /> Regim fiscal & TVA
                         </div>
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span
-                            className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                            className={`px-2.5 py-0.5 rounded-full text-[11.5px] font-semibold ${
                               g?.tva?.platitor
-                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
-                                : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                                ? "bg-[#34c759]/12 text-[#248a3d] dark:text-[#30d158]"
+                                : "bg-black/[0.05] dark:bg-white/[0.08] text-[#6e6e73] dark:text-[#98989d]"
                             }`}
                           >
                             {g?.tva?.platitor ? "Plătitor de TVA" : "Neplătitor de TVA"}
                           </span>
                           {g?.tva_incasare?.activ && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+                            <span className="px-2 py-0.5 rounded-full text-[10.5px] font-semibold bg-[#007aff]/10 text-[#007aff] dark:text-[#0a84ff]">
                               TVA la Încasare
                             </span>
                           )}
                           {g?.split_tva?.activ && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+                            <span className="px-2 py-0.5 rounded-full text-[10.5px] font-semibold bg-amber-500/12 text-amber-700 dark:text-amber-400">
                               Split TVA
                             </span>
                           )}
                         </div>
-                        <div className="mt-2 text-[11px] text-slate-500 flex items-center gap-1">
+                        <div className="mt-2 text-[11.5px] text-[#6e6e73] dark:text-[#98989d] flex items-center gap-1">
                           <span>RO e-Factura:</span>
-                          <strong className={g?.e_factura ? "text-purple-600 font-bold" : "text-slate-400"}>
+                          <strong className={g?.e_factura ? "text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold" : "text-[#8e8e93]"}>
                             {g?.e_factura ? "Înrolat în registru" : "Neînrolat"}
                           </strong>
                         </div>
                       </div>
 
                       {/* Stare Firmă & Inactivitate ANAF */}
-                      <div className="p-4 rounded-[22px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-                        <div className="text-slate-400 font-medium text-xs mb-1.5 flex items-center gap-1.5">
-                          <Building2 className="w-3.5 h-3.5 text-emerald-600" /> Stare Companie & ANAF
+                      <div className="p-4 rounded-2xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.04] dark:border-white/[0.06]">
+                        <div className="text-[#6e6e73] dark:text-[#98989d] font-medium text-[12px] mb-1.5 flex items-center gap-1.5">
+                          <Building2 className="w-3.5 h-3.5" /> Stare companie & ANAF
                         </div>
-                        <div className="font-bold text-slate-900 dark:text-white text-xs">
+                        <div className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] text-[13px]">
                           {g?.stare || "Înregistrat"}
                         </div>
-                        <div className="mt-1.5 text-[11px]">
+                        <div className="mt-1.5 text-[11.5px]">
                           {g?.status_inactiv?.inactiv ? (
-                            <span className="text-rose-600 font-bold flex items-center gap-1">
-                              <AlertCircle className="w-3 h-3" /> Declarată Inactivă de ANAF
+                            <span className="text-[#ff3b30] dark:text-[#ff453a] font-semibold flex items-center gap-1">
+                              <AlertCircle className="w-3.5 h-3.5" /> Declarată inactivă de ANAF
                             </span>
                           ) : (
-                            <span className="text-emerald-600 font-medium flex items-center gap-1">
-                              <CheckCircle2 className="w-3 h-3" /> Activă fiscal (fără inactivitate)
+                            <span className="text-[#248a3d] dark:text-[#30d158] font-medium flex items-center gap-1">
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Activă fiscal (fără inactivitate)
                             </span>
                           )}
                         </div>
                       </div>
 
                       {/* Organ Fiscal Competent */}
-                      <div className="p-4 rounded-[22px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-                        <div className="text-slate-400 font-medium text-xs mb-1.5 flex items-center gap-1.5">
-                          <Briefcase className="w-3.5 h-3.5 text-emerald-600" /> Organ Fiscal & Proprietate
+                      <div className="p-4 rounded-2xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.04] dark:border-white/[0.06]">
+                        <div className="text-[#6e6e73] dark:text-[#98989d] font-medium text-[12px] mb-1.5 flex items-center gap-1.5">
+                          <Briefcase className="w-3.5 h-3.5" /> Organ fiscal & proprietate
                         </div>
-                        <div className="font-semibold text-slate-900 dark:text-white text-xs truncate" title={g?.organ_fiscal || "—"}>
+                        <div className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] text-[13px] truncate" title={g?.organ_fiscal || "—"}>
                           {g?.organ_fiscal || "ANAF"}
                         </div>
-                        <div className="mt-1 text-[11px] text-slate-500 truncate" title={g?.forma_de_proprietate || "—"}>
+                        <div className="mt-1 text-[11.5px] text-[#6e6e73] dark:text-[#98989d] truncate" title={g?.forma_de_proprietate || "—"}>
                           {g?.forma_de_proprietate || "Capital Privat"}
                         </div>
                       </div>
                     </div>
 
                     {/* Section 1: Financial Evolution & Balance Sheets (Bilanț Multianual) */}
-                    <div className="bg-white dark:bg-slate-900 rounded-[22px] p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-4">
+                    <div className="rounded-2xl p-5 border border-black/[0.06] dark:border-white/[0.08] space-y-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-black/[0.05] dark:border-white/[0.07] pb-4">
                         <div>
-                          <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                            <TrendingUp className="w-5 h-5 text-emerald-600" />
-                            Performanță Financiară & Bilanțuri Oficiale
+                          <h3 className="text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-2">
+                            <TrendingUp className="w-4 h-4 text-[#248a3d] dark:text-[#30d158]" />
+                            Performanță financiară & bilanțuri oficiale
                           </h3>
-                          <p className="text-xs text-slate-500 mt-0.5">
+                          <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d] mt-0.5 tabular-nums">
                             Situații financiare anuale depuse la Ministerul Finanțelor Publice ({fin.length} ani raportați)
                           </p>
                         </div>
                         {latestFin && (
                           <div className="flex items-center gap-2">
-                            <span className="px-3 py-1 rounded-full text-xs font-black bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                              Ultimul Bilanț: {latestFin.an}
+                            <span className="px-3 py-1 rounded-full text-[11.5px] font-semibold tabular-nums bg-[#34c759]/12 text-[#248a3d] dark:text-[#30d158]">
+                              Ultimul bilanț: {latestFin.an}
                             </span>
                           </div>
                         )}
@@ -1232,73 +1258,73 @@ export default function ClientDetails() {
                       {latestFin ? (
                         <>
                           {/* Latest Year Highlight KPI Cards */}
-                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
                             {/* Cifră Afaceri Netă */}
-                            <div className="p-4 rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block">
-                                Cifră de Afaceri Netă ({latestFin.an})
+                            <div className="p-4 rounded-2xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.04] dark:border-white/[0.06]">
+                              <span className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block">
+                                Cifră de afaceri netă ({latestFin.an})
                               </span>
-                              <div className="mt-1 text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+                              <div className="mt-1.5 text-[20px] sm:text-[22px] font-bold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">
                                 {latestFin.cifraAfaceri.toLocaleString("ro-RO")}{" "}
-                                <span className="text-xs font-bold text-slate-400">RON</span>
+                                <span className="text-[11.5px] font-semibold text-[#8e8e93]">RON</span>
                               </div>
-                              <span className="text-[10px] text-slate-400 mt-0.5 block">
+                              <span className="text-[11px] text-[#8e8e93] mt-1 block tabular-nums">
                                 Venituri: {latestFin.venituriTotale.toLocaleString("ro-RO")} RON
                               </span>
                             </div>
 
                             {/* Rezultat Net (Profit / Pierdere) */}
-                            <div className="p-4 rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block">
-                                Rezultat Net ({latestFin.an})
+                            <div className="p-4 rounded-2xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.04] dark:border-white/[0.06]">
+                              <span className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block">
+                                Rezultat net ({latestFin.an})
                               </span>
                               {latestFin.profitNet > 0 ? (
-                                <div className="mt-1 text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                                <div className="mt-1.5 text-[20px] sm:text-[22px] font-bold tabular-nums text-[#248a3d] dark:text-[#30d158]">
                                   +{latestFin.profitNet.toLocaleString("ro-RO")}{" "}
-                                  <span className="text-xs font-bold text-emerald-600/70">RON</span>
+                                  <span className="text-[11.5px] font-semibold opacity-75">RON</span>
                                 </div>
                               ) : latestFin.pierdereNeta > 0 ? (
-                                <div className="mt-1 text-xl sm:text-2xl font-black text-rose-600 dark:text-rose-400">
+                                <div className="mt-1.5 text-[20px] sm:text-[22px] font-bold tabular-nums text-[#ff3b30] dark:text-[#ff453a]">
                                   -{latestFin.pierdereNeta.toLocaleString("ro-RO")}{" "}
-                                  <span className="text-xs font-bold text-rose-600/70">RON</span>
+                                  <span className="text-[11.5px] font-semibold opacity-75">RON</span>
                                 </div>
                               ) : (
-                                <div className="mt-1 text-xl sm:text-2xl font-black text-slate-500">
-                                  0 <span className="text-xs font-bold text-slate-400">RON</span>
+                                <div className="mt-1.5 text-[20px] sm:text-[22px] font-bold tabular-nums text-[#8e8e93]">
+                                  0 <span className="text-[11.5px] font-semibold">RON</span>
                                 </div>
                               )}
-                              <span className="text-[10px] text-slate-400 mt-0.5 block">
-                                {latestFin.profitNet > 0 ? "Profit Net Raportat" : latestFin.pierdereNeta > 0 ? "Pierdere Netă Raportată" : "Echilibru"}
+                              <span className="text-[11px] text-[#8e8e93] mt-1 block">
+                                {latestFin.profitNet > 0 ? "Profit net raportat" : latestFin.pierdereNeta > 0 ? "Pierdere netă raportată" : "Echilibru"}
                               </span>
                             </div>
 
                             {/* Număr Mediu Salariați */}
-                            <div className="p-4 rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block">
-                                Număr Mediu Salariați
+                            <div className="p-4 rounded-2xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.04] dark:border-white/[0.06]">
+                              <span className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block">
+                                Număr mediu salariați
                               </span>
-                              <div className="mt-1 text-xl sm:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                                <Users className="w-5 h-5 text-emerald-600" />
+                              <div className="mt-1.5 text-[20px] sm:text-[22px] font-bold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-2">
+                                <Users className="w-4 h-4 text-[#6e6e73] dark:text-[#98989d]" />
                                 {latestFin.angajati}{" "}
-                                <span className="text-xs font-bold text-slate-400">
+                                <span className="text-[11.5px] font-semibold text-[#8e8e93]">
                                   {latestFin.angajati === 1 ? "salariat" : "salariați"}
                                 </span>
                               </div>
-                              <span className="text-[10px] text-slate-400 mt-0.5 block">
+                              <span className="text-[11px] text-[#8e8e93] mt-1 block">
                                 Conform declarației 100/101
                               </span>
                             </div>
 
                             {/* Datorii Totale */}
-                            <div className="p-4 rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                              <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 block">
-                                Datorii Totale
+                            <div className="p-4 rounded-2xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.04] dark:border-white/[0.06]">
+                              <span className="text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] block">
+                                Datorii totale
                               </span>
-                              <div className="mt-1 text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400">
+                              <div className="mt-1.5 text-[20px] sm:text-[22px] font-bold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">
                                 {latestFin.datorii.toLocaleString("ro-RO")}{" "}
-                                <span className="text-xs font-bold text-amber-600/70">RON</span>
+                                <span className="text-[11.5px] font-semibold text-[#8e8e93]">RON</span>
                               </div>
-                              <span className="text-[10px] text-slate-400 mt-0.5 block">
+                              <span className="text-[11px] text-[#8e8e93] mt-1 block tabular-nums">
                                 Creanțe: {latestFin.creante.toLocaleString("ro-RO")} RON
                               </span>
                             </div>
@@ -1307,18 +1333,18 @@ export default function ClientDetails() {
                           {/* Multi-Year Chart (Cifră Afaceri vs Venituri vs Profit/Pierdere) */}
                           {finChartData.length > 1 && (
                             <div>
-                              <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-1.5">
-                                <TrendingUp className="w-4 h-4 text-emerald-600" />
-                                Evoluție Financiară Multianuală (Bilanțuri {finChartData[0]?.an} - {finChartData[finChartData.length - 1]?.an})
+                              <h4 className="text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] mb-3 flex items-center gap-1.5 tabular-nums">
+                                <TrendingUp className="w-4 h-4 text-[#6e6e73] dark:text-[#98989d]" />
+                                Evoluție financiară multianuală (bilanțuri {finChartData[0]?.an} – {finChartData[finChartData.length - 1]?.an})
                               </h4>
                               <div className="h-[260px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
                                   <BarChart data={finChartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.2)" />
-                                    <XAxis dataKey="an" tick={{ fontSize: 11 }} stroke="#94a3b8" />
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(142, 142, 147, 0.18)" />
+                                    <XAxis dataKey="an" tick={{ fontSize: 11 }} stroke="#8e8e93" />
                                     <YAxis
                                       tick={{ fontSize: 11 }}
-                                      stroke="#94a3b8"
+                                      stroke="#8e8e93"
                                       tickFormatter={(val) =>
                                         val >= 1000000
                                           ? `${(val / 1000000).toFixed(1)}M`
@@ -1331,17 +1357,17 @@ export default function ClientDetails() {
                                       content={({ active, payload, label }) => {
                                         if (active && payload && payload.length) {
                                           return (
-                                            <div className="bg-slate-900 text-white text-xs p-3 rounded-xl shadow-xl border border-slate-700 space-y-1.5">
-                                              <div className="font-black text-sm border-b border-slate-700 pb-1 text-emerald-400">
+                                            <div className="apple-surface text-[#1d1d1f] dark:text-[#f5f5f7] text-xs p-3 shadow-xl space-y-1.5">
+                                              <div className="font-semibold text-[13px] border-b border-black/[0.06] dark:border-white/[0.08] pb-1 tabular-nums">
                                                 Anul {label}
                                               </div>
                                               {payload.map((p: any, idx: number) => (
                                                 <div key={idx} className="flex items-center justify-between gap-4">
-                                                  <span className="flex items-center gap-1.5 text-slate-300">
+                                                  <span className="flex items-center gap-1.5 text-[#6e6e73] dark:text-[#98989d]">
                                                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
                                                     {p.name}:
                                                   </span>
-                                                  <span className="font-bold">
+                                                  <span className="font-semibold tabular-nums">
                                                     {Number(p.value).toLocaleString("ro-RO")} {p.name === "Salariați" ? "pers." : "RON"}
                                                   </span>
                                                 </div>
@@ -1365,67 +1391,67 @@ export default function ClientDetails() {
 
                           {/* Multi-Year Detailed Table */}
                           <div>
-                            <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
-                              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                              Tabel Comparativ Bilanț pe Toți Anii Raportați
+                            <h4 className="text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] mb-2.5 flex items-center gap-1.5">
+                              <FileSpreadsheet className="w-4 h-4 text-[#6e6e73] dark:text-[#98989d]" />
+                              Tabel comparativ bilanț pe toți anii raportați
                             </h4>
-                            <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
-                              <table className="w-full text-left text-xs whitespace-nowrap">
-                                <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 font-bold uppercase tracking-wider text-[11px]">
+                            <div className="overflow-x-auto rounded-2xl border border-black/[0.06] dark:border-white/[0.08]">
+                              <table className="w-full text-left text-[12.5px] whitespace-nowrap">
+                                <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
                                   <tr>
-                                    <th className="py-2.5 px-3">An</th>
-                                    <th className="py-2.5 px-3 text-right">Cifră Afaceri</th>
-                                    <th className="py-2.5 px-3 text-right">Venituri Totale</th>
-                                    <th className="py-2.5 px-3 text-right">Cheltuieli</th>
-                                    <th className="py-2.5 px-3 text-right">Profit Net</th>
-                                    <th className="py-2.5 px-3 text-right">Pierdere Netă</th>
-                                    <th className="py-2.5 px-3 text-center">Salariați</th>
-                                    <th className="py-2.5 px-3 text-right">Active Imob.</th>
-                                    <th className="py-2.5 px-3 text-right">Creanțe</th>
-                                    <th className="py-2.5 px-3 text-right">Casa & Bănci</th>
-                                    <th className="py-2.5 px-3 text-right">Datorii Totale</th>
-                                    <th className="py-2.5 px-3 text-right">Capitaluri Proprii</th>
+                                    <th className="py-2.5 px-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">An</th>
+                                    <th className="py-2.5 px-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Cifră afaceri</th>
+                                    <th className="py-2.5 px-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Venituri totale</th>
+                                    <th className="py-2.5 px-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Cheltuieli</th>
+                                    <th className="py-2.5 px-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Profit net</th>
+                                    <th className="py-2.5 px-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Pierdere netă</th>
+                                    <th className="py-2.5 px-3 text-center text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Salariați</th>
+                                    <th className="py-2.5 px-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Active imob.</th>
+                                    <th className="py-2.5 px-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Creanțe</th>
+                                    <th className="py-2.5 px-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Casa & bănci</th>
+                                    <th className="py-2.5 px-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Datorii totale</th>
+                                    <th className="py-2.5 px-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Capitaluri proprii</th>
                                   </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
                                   {fin.map((item) => (
-                                    <tr key={item.an} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40">
+                                    <tr key={item.an} className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] tabular-nums">
                                       <td className="py-2.5 px-3">
-                                        <span className="font-black px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 tabular-nums">
+                                        <span className="font-semibold px-2 py-0.5 rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7]">
                                           {item.an}
                                         </span>
                                       </td>
-                                      <td className="py-2.5 px-3 text-right font-black text-slate-900 dark:text-white">
+                                      <td className="py-2.5 px-3 text-right font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                                         {item.cifraAfaceri.toLocaleString("ro-RO")}
                                       </td>
-                                      <td className="py-2.5 px-3 text-right text-slate-700 dark:text-slate-200">
+                                      <td className="py-2.5 px-3 text-right text-[#1d1d1f] dark:text-[#f5f5f7]">
                                         {item.venituriTotale.toLocaleString("ro-RO")}
                                       </td>
-                                      <td className="py-2.5 px-3 text-right text-slate-500">
+                                      <td className="py-2.5 px-3 text-right text-[#6e6e73] dark:text-[#98989d]">
                                         {item.cheltuieliTotale.toLocaleString("ro-RO")}
                                       </td>
-                                      <td className="py-2.5 px-3 text-right font-bold text-emerald-600 dark:text-emerald-400">
+                                      <td className="py-2.5 px-3 text-right font-semibold text-[#248a3d] dark:text-[#30d158]">
                                         {item.profitNet > 0 ? item.profitNet.toLocaleString("ro-RO") : "—"}
                                       </td>
-                                      <td className="py-2.5 px-3 text-right font-bold text-rose-600 dark:text-rose-400">
+                                      <td className="py-2.5 px-3 text-right font-semibold text-[#ff3b30] dark:text-[#ff453a]">
                                         {item.pierdereNeta > 0 ? item.pierdereNeta.toLocaleString("ro-RO") : "—"}
                                       </td>
-                                      <td className="py-2.5 px-3 text-center font-bold text-slate-800 dark:text-slate-200">
+                                      <td className="py-2.5 px-3 text-center font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                                         {item.angajati}
                                       </td>
-                                      <td className="py-2.5 px-3 text-right text-slate-600 dark:text-slate-400">
+                                      <td className="py-2.5 px-3 text-right text-[#6e6e73] dark:text-[#98989d]">
                                         {item.activeImobilizate.toLocaleString("ro-RO")}
                                       </td>
-                                      <td className="py-2.5 px-3 text-right text-slate-600 dark:text-slate-400">
+                                      <td className="py-2.5 px-3 text-right text-[#6e6e73] dark:text-[#98989d]">
                                         {item.creante.toLocaleString("ro-RO")}
                                       </td>
-                                      <td className="py-2.5 px-3 text-right text-emerald-700 dark:text-emerald-400 font-semibold">
+                                      <td className="py-2.5 px-3 text-right text-[#1d1d1f] dark:text-[#f5f5f7] font-medium">
                                         {item.casaSiConturi.toLocaleString("ro-RO")}
                                       </td>
-                                      <td className="py-2.5 px-3 text-right font-bold text-amber-600 dark:text-amber-400">
+                                      <td className="py-2.5 px-3 text-right font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">
                                         {item.datorii.toLocaleString("ro-RO")}
                                       </td>
-                                      <td className="py-2.5 px-3 text-right font-semibold text-slate-700 dark:text-slate-300">
+                                      <td className="py-2.5 px-3 text-right font-medium text-[#6e6e73] dark:text-[#98989d]">
                                         {item.capitaluriProprii.toLocaleString("ro-RO")}
                                       </td>
                                     </tr>
@@ -1436,22 +1462,22 @@ export default function ClientDetails() {
                           </div>
                         </>
                       ) : (
-                        <div className="py-6 text-center text-xs text-slate-400">
+                        <div className="py-6 text-center text-[12.5px] text-[#8e8e93]">
                           Nu au fost găsite date de bilanț raportate la ANAF pentru acest CUI.
                         </div>
                       )}
                     </div>
 
                     {/* Section 2: Acționari & Asociați (Holdings) & Conducere */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                       {/* Acționari & Asociați */}
-                      <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-                        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                          <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                            <Users className="w-4 h-4 text-emerald-600" />
-                            Acționari & Asociați Oficiali ({holdings.length})
+                      <div className="rounded-2xl p-5 border border-black/[0.06] dark:border-white/[0.08] space-y-4">
+                        <div className="flex items-center justify-between border-b border-black/[0.05] dark:border-white/[0.07] pb-3">
+                          <h3 className="text-[14.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-2 tabular-nums">
+                            <Users className="w-4 h-4 text-[#6e6e73] dark:text-[#98989d]" />
+                            Acționari & asociați oficiali ({holdings.length})
                           </h3>
-                          <span className="text-[11px] text-slate-400 font-medium">ONRC Data</span>
+                          <span className="text-[11.5px] text-[#8e8e93] font-medium">ONRC Data</span>
                         </div>
 
                         {holdings.length > 0 ? (
@@ -1459,53 +1485,53 @@ export default function ClientDetails() {
                             {holdings.map((h, idx) => (
                               <div
                                 key={idx}
-                                className={`p-3.5 rounded-xl border transition-all ${
+                                className={`p-3.5 rounded-2xl border transition-all ${
                                   h.current
-                                    ? "bg-slate-50/70 dark:bg-slate-800/50 border-emerald-200/80 dark:border-emerald-800/40"
-                                    : "bg-slate-50/30 dark:bg-slate-800/20 border-slate-100 dark:border-slate-800 opacity-70"
+                                    ? "bg-[#f2f2f7] dark:bg-[#2c2c2e] border-black/[0.05] dark:border-white/[0.08]"
+                                    : "bg-[#f2f2f7]/60 dark:bg-[#2c2c2e]/50 border-black/[0.03] dark:border-white/[0.04] opacity-70"
                                 }`}
                               >
                                 <div className="flex items-start justify-between gap-2">
                                   <div>
-                                    <div className="font-bold text-slate-900 dark:text-white text-xs flex items-center gap-1.5">
+                                    <div className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] text-[13px] flex items-center gap-1.5">
                                       {h.name}
                                       {h.current ? (
-                                        <span className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#34c759]/12 text-[#248a3d] dark:text-[#30d158]">
                                           Activ
                                         </span>
                                       ) : (
-                                        <span className="px-1.5 py-0.2 rounded-full text-[10px] font-semibold bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-black/[0.06] dark:bg-white/[0.08] text-[#6e6e73] dark:text-[#98989d]">
                                           Istoric
                                         </span>
                                       )}
                                     </div>
-                                    <div className="text-[11px] text-slate-500 mt-0.5">
+                                    <div className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
                                       {h.type} {h.entity ? `(${h.entity})` : ""}
                                     </div>
                                   </div>
 
-                                  <div className="text-right">
-                                    <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">
+                                  <div className="text-right tabular-nums">
+                                    <span className="text-[14px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7]">
                                       {h.percent}%
                                     </span>
-                                    <div className="text-[10px] text-slate-400">
+                                    <div className="text-[10.5px] text-[#8e8e93]">
                                       {h.from} {h.to ? `→ ${h.to}` : "→ Prezent"}
                                     </div>
                                   </div>
                                 </div>
 
                                 {/* Visual Progress Bar */}
-                                <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full mt-2.5 overflow-hidden">
+                                <div className="w-full bg-black/[0.08] dark:bg-white/[0.1] h-1.5 rounded-full mt-2.5 overflow-hidden">
                                   <div
                                     className={`h-full rounded-full ${
-                                      h.current ? "bg-emerald-500" : "bg-slate-400"
+                                      h.current ? "bg-[#34c759]" : "bg-[#8e8e93]"
                                     }`}
                                     style={{ width: `${Math.min(100, Math.max(0, h.percent))}%` }}
                                   />
                                 </div>
 
                                 {h.placeofbirth && (
-                                  <div className="mt-1.5 text-[10px] text-slate-400">
+                                  <div className="mt-1.5 text-[11px] text-[#8e8e93]">
                                     Loc naștere: {h.placeofbirth}
                                   </div>
                                 )}
@@ -1513,20 +1539,20 @@ export default function ClientDetails() {
                             ))}
                           </div>
                         ) : (
-                          <div className="py-6 text-center text-xs text-slate-400">
+                          <div className="py-6 text-center text-[12.5px] text-[#8e8e93]">
                             Nu există date detaliate despre acționari.
                           </div>
                         )}
                       </div>
 
                       {/* Administratori & Conducere */}
-                      <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-                        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                          <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                            <Briefcase className="w-4 h-4 text-emerald-600" />
-                            Administratori & Conducere Oficială ({admins.length})
+                      <div className="rounded-2xl p-5 border border-black/[0.06] dark:border-white/[0.08] space-y-4">
+                        <div className="flex items-center justify-between border-b border-black/[0.05] dark:border-white/[0.07] pb-3">
+                          <h3 className="text-[14.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-2 tabular-nums">
+                            <Briefcase className="w-4 h-4 text-[#6e6e73] dark:text-[#98989d]" />
+                            Administratori & conducere ({admins.length})
                           </h3>
-                          <span className="text-[11px] text-slate-400 font-medium">Registrul Comerțului</span>
+                          <span className="text-[11.5px] text-[#8e8e93] font-medium">Registrul Comerțului</span>
                         </div>
 
                         {admins.length > 0 ? (
@@ -1534,30 +1560,30 @@ export default function ClientDetails() {
                             {admins.map((adm, idx) => (
                               <div
                                 key={idx}
-                                className="p-3.5 rounded-xl bg-slate-50/70 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3"
+                                className="p-3.5 rounded-2xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.04] dark:border-white/[0.06] flex items-center justify-between gap-3"
                               >
                                 <div>
-                                  <div className="font-bold text-slate-900 dark:text-white text-xs flex items-center gap-1.5">
+                                  <div className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] text-[13px] flex items-center gap-1.5">
                                     {adm.nume}
-                                    <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#007aff]/10 text-[#007aff] dark:text-[#0a84ff]">
                                       {adm.stare || "Activ"}
                                     </span>
                                   </div>
-                                  <div className="text-[11px] text-slate-500 mt-0.5">
-                                    Calitate: <strong className="capitalize">{adm.calitate || "Administrator"}</strong>
+                                  <div className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
+                                    Calitate: <strong className="capitalize text-[#1d1d1f] dark:text-[#f5f5f7]">{adm.calitate || "Administrator"}</strong>
                                     {adm.tip ? ` • ${adm.tip}` : ""}
                                   </div>
                                   {adm.loc_nastere && (
-                                    <div className="text-[10px] text-slate-400 mt-0.5">
+                                    <div className="text-[11px] text-[#8e8e93] mt-0.5">
                                       Loc naștere: {adm.loc_nastere}
                                     </div>
                                   )}
                                 </div>
 
                                 {adm.data && (
-                                  <div className="text-right text-[11px]">
-                                    <span className="text-slate-400 block text-[10px]">Data numirii</span>
-                                    <span className="font-semibold text-slate-700 dark:text-slate-300">
+                                  <div className="text-right text-[11.5px] tabular-nums">
+                                    <span className="text-[#8e8e93] block text-[10.5px]">Data numirii</span>
+                                    <span className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                                       {adm.data}
                                     </span>
                                   </div>
@@ -1566,46 +1592,46 @@ export default function ClientDetails() {
                             ))}
                           </div>
                         ) : (
-                          <div className="py-6 text-center text-xs text-slate-400">
+                          <div className="py-6 text-center text-[12.5px] text-[#8e8e93]">
                             Nu sunt înregistrați administratori oficiali distincți.
                           </div>
                         )}
 
                         {/* Clasificare & Coduri CAEN */}
-                        <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-                          <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
-                            <Award className="w-4 h-4 text-emerald-600" />
-                            Activitate Principală (CAEN Rev. 2)
+                        <div className="pt-3 border-t border-black/[0.05] dark:border-white/[0.07]">
+                          <h4 className="text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] mb-2 flex items-center gap-1.5">
+                            <Award className="w-4 h-4 text-[#6e6e73] dark:text-[#98989d]" />
+                            Activitate principală (CAEN Rev. 2)
                           </h4>
 
                           {caen?.caen_principal ? (
-                            <div className="p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/40">
+                            <div className="p-3 rounded-2xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.04] dark:border-white/[0.06]">
                               <div className="flex items-center gap-2">
-                                <span className="px-2 py-0.5 rounded-lg text-xs font-black bg-amber-500 text-white tabular-nums">
+                                <span className="px-2.5 py-0.5 rounded-full text-[11.5px] font-semibold bg-amber-500/15 text-amber-700 dark:text-amber-400 tabular-nums">
                                   {caen.caen_principal.cod}
                                 </span>
-                                <span className="font-bold text-slate-900 dark:text-white text-xs">
+                                <span className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px]">
                                   {caen.caen_principal.denumire}
                                 </span>
                               </div>
                             </div>
                           ) : (
-                            <div className="text-xs text-slate-400">CAEN principal nespecificat.</div>
+                            <div className="text-[12.5px] text-[#8e8e93]">CAEN principal nespecificat.</div>
                           )}
 
                           {caen?.caen_secundare && caen.caen_secundare.length > 0 && (
                             <div className="mt-3">
-                              <span className="text-[11px] font-semibold text-slate-500 block mb-1.5">
-                                Activități Secundare Autorizate ({caen.caen_secundare.length}):
+                              <span className="text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1.5 tabular-nums">
+                                Activități secundare autorizate ({caen.caen_secundare.length}):
                               </span>
                               <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
                                 {caen.caen_secundare.map((cs, idx) => (
                                   <span
                                     key={idx}
-                                    className="px-2 py-1 rounded-lg text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
+                                    className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#6e6e73] dark:text-[#98989d] border border-black/[0.04] dark:border-white/[0.06]"
                                     title={cs.denumire}
                                   >
-                                    <strong className="tabular-nums text-emerald-600 mr-1">{cs.cod}</strong>
+                                    <strong className="tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7] mr-1">{cs.cod}</strong>
                                     {cs.denumire.length > 35 ? `${cs.denumire.substring(0, 35)}...` : cs.denumire}
                                   </span>
                                 ))}
@@ -1617,53 +1643,53 @@ export default function ClientDetails() {
                     </div>
 
                     {/* Section 3: Monitorul Oficial (Publicații & Rezoluții ONRC) */}
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-                      <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                    <div className="rounded-2xl p-5 border border-black/[0.06] dark:border-white/[0.08] space-y-4">
+                      <div className="flex items-center justify-between border-b border-black/[0.05] dark:border-white/[0.07] pb-3">
                         <div>
-                          <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                            <BookOpen className="w-4 h-4 text-emerald-600" />
-                            Monitorul Oficial — Istoric Mențiuni & Rezoluții ONRC ({mof.length})
+                          <h3 className="text-[14.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-2 tabular-nums">
+                            <BookOpen className="w-4 h-4 text-[#6e6e73] dark:text-[#98989d]" />
+                            Monitorul Oficial — Istoric mențiuni & rezoluții ONRC ({mof.length})
                           </h3>
-                          <p className="text-xs text-slate-500 mt-0.5">
+                          <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
                             Publicații în Monitorul Oficial al României, Partea a IV-a
                           </p>
                         </div>
-                        <span className="text-[11px] font-semibold text-slate-400">Partea IV</span>
+                        <span className="text-[11.5px] font-medium text-[#8e8e93]">Partea IV</span>
                       </div>
 
                       {mof.length > 0 ? (
-                        <div className="space-y-3">
+                        <div className="space-y-2.5">
                           {mof.map((entry, idx) => {
                             const isExpanded = expandedMofIndex === idx;
                             return (
                               <div
                                 key={idx}
-                                className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 overflow-hidden"
+                                className="rounded-2xl border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] overflow-hidden"
                               >
                                 <button
                                   type="button"
                                   onClick={() => setExpandedMofIndex(isExpanded ? null : idx)}
-                                  className="w-full p-3.5 text-left flex items-center justify-between gap-3 hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-colors"
+                                  className="w-full p-3.5 text-left flex items-center justify-between gap-3 hover:bg-black/[0.03] dark:hover:bg-white/[0.04] transition-colors"
                                 >
                                   <div className="flex items-center gap-2.5 flex-wrap">
-                                    <span className="px-2 py-0.5 rounded-md text-[11px] font-black bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 tabular-nums">
+                                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] border border-black/[0.06] dark:border-white/[0.08] tabular-nums">
                                       Nr. {entry.numar}
                                     </span>
-                                    <span className="text-xs font-semibold text-slate-900 dark:text-white">
+                                    <span className="text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                                       {entry.titlu_publicatie || "Notificare Monitorul Oficial"}
                                     </span>
-                                    <span className="text-[11px] text-slate-400 font-medium">
+                                    <span className="text-[11.5px] text-[#8e8e93] font-medium tabular-nums">
                                       {entry.data}
                                     </span>
                                   </div>
 
-                                  <div className="text-slate-400">
+                                  <div className="text-[#8e8e93]">
                                     {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                                   </div>
                                 </button>
 
                                 {isExpanded && entry.continut && (
-                                  <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 leading-relaxed space-y-2">
+                                  <div className="p-4 bg-white dark:bg-[#1c1c1e] border-t border-black/[0.06] dark:border-white/[0.08] text-[12.5px] text-[#6e6e73] dark:text-[#98989d] leading-relaxed space-y-2">
                                     {String(entry.continut || "")
                                       .replace(/<br\s*\/?>/gi, "\n")
                                       .replace(/<\/p>/gi, "\n\n")
@@ -1681,7 +1707,7 @@ export default function ClientDetails() {
                                         <p key={pIdx}>
                                           {para.split(/(\*\*[^*]+\*\*)/g).map((chunk, cIdx) =>
                                             chunk.startsWith("**") && chunk.endsWith("**") ? (
-                                              <strong key={cIdx}>{chunk.slice(2, -2)}</strong>
+                                              <strong key={cIdx} className="text-[#1d1d1f] dark:text-[#f5f5f7]">{chunk.slice(2, -2)}</strong>
                                             ) : (
                                               chunk
                                             )
@@ -1695,7 +1721,7 @@ export default function ClientDetails() {
                           })}
                         </div>
                       ) : (
-                        <div className="py-6 text-center text-xs text-slate-400">
+                        <div className="py-6 text-center text-[12.5px] text-[#8e8e93]">
                           Nu au fost găsite publicații recente în Monitorul Oficial pentru acest CUI.
                         </div>
                       )}
@@ -1709,30 +1735,30 @@ export default function ClientDetails() {
 
         {/* Tab 5: Contracte & Acte Adiționale ale Partenerului */}
         {activeTab === "contracts" && (
-          <div className="p-5 space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+          <div className="p-4 sm:p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-black/[0.05] dark:border-white/[0.07] pb-4">
               <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <FileSignature className="w-4 h-4 text-primary" />
-                  Contracte și Acte Adiționale — {data?.client?.name}
+                <h3 className="text-[14.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-2">
+                  <FileSignature className="w-4 h-4 text-[#6e6e73] dark:text-[#98989d]" />
+                  Contracte și acte adiționale — {data?.client?.name}
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
                   Documente semnate, arhivate sau generate digital pentru acest partener.
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Link
                   href={`/contracte/new?partnerId=${id}&mode=upload`}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-xs"
+                  className="apple-btn-glass inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]"
                 >
-                  <Upload className="w-3.5 h-3.5 text-primary" />
+                  <Upload className="w-3.5 h-3.5" />
                   Încarcă Contract Semnat (PDF)
                 </Link>
 
                 <Link
                   href={`/contracte/new?partnerId=${id}&mode=generate`}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-primary hover:bg-primary/90 text-xs font-semibold text-white shadow-xs"
+                  className="apple-btn-prominent inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-[12.5px] font-semibold text-white"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Generează Document Nou
@@ -1741,23 +1767,23 @@ export default function ClientDetails() {
             </div>
 
             {loadingContracts ? (
-              <div className="py-12 flex flex-col items-center justify-center text-slate-400 text-xs">
-                <Loader2 className="w-6 h-6 animate-spin mb-2 text-primary" />
+              <div className="py-12 flex flex-col items-center justify-center text-[#8e8e93] text-[13px]">
+                <Loader2 className="w-6 h-6 animate-spin mb-2" />
                 Se încarcă contractele...
               </div>
             ) : partnerContracts.length === 0 ? (
-              <div className="py-12 text-center rounded-[22px] border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 p-6">
-                <FileSignature className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-                <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
+              <div className="py-12 text-center rounded-2xl border border-dashed border-black/[0.1] dark:border-white/[0.12] bg-[#f2f2f7]/60 dark:bg-[#2c2c2e]/50 p-6">
+                <FileSignature className="w-10 h-10 text-[#8e8e93] mx-auto mb-2 opacity-60" />
+                <h4 className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                   Niciun contract înregistrat pentru acest partener
                 </h4>
-                <p className="text-[11px] text-slate-500 max-w-sm mx-auto mt-1 mb-4">
+                <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d] max-w-sm mx-auto mt-1 mb-4">
                   Puteți încărca un contract semnat deja (PDF/scanare) sau puteți genera unul nou direct din sistem.
                 </p>
                 <div className="flex items-center justify-center gap-2">
                   <Link
                     href={`/contracte/new?partnerId=${id}&mode=upload`}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary hover:bg-primary/90 text-white font-semibold text-xs shadow-xs"
+                    className="apple-btn-prominent inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-white font-semibold text-[12.5px]"
                   >
                     <Upload className="w-3.5 h-3.5" />
                     Încarcă Primul Contract Semnat
@@ -1765,93 +1791,93 @@ export default function ClientDetails() {
                 </div>
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-500 uppercase tracking-wider font-semibold text-[10px] border-b border-slate-200 dark:border-slate-800">
+              <div className="overflow-x-auto rounded-2xl border border-black/[0.06] dark:border-white/[0.08]">
+                <table className="w-full text-left text-[13px]">
+                  <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
                     <tr>
-                      <th className="py-2.5 px-3">Număr Document</th>
-                      <th className="py-2.5 px-3">Tip</th>
-                      <th className="py-2.5 px-3">Dată Încheiere</th>
-                      <th className="py-2.5 px-3">Valabilitate</th>
-                      <th className="py-2.5 px-3 text-right">Valoare</th>
-                      <th className="py-2.5 px-3 text-center">Status</th>
-                      <th className="py-2.5 px-3 text-center">Fișier</th>
-                      <th className="py-2.5 px-3 text-right">Acțiuni</th>
+                      <th className="py-3 px-3.5 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Număr document</th>
+                      <th className="py-3 px-3.5 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Tip</th>
+                      <th className="py-3 px-3.5 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Dată încheiere</th>
+                      <th className="py-3 px-3.5 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Valabilitate</th>
+                      <th className="py-3 px-3.5 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Valoare</th>
+                      <th className="py-3 px-3.5 text-center text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Status</th>
+                      <th className="py-3 px-3.5 text-center text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Fișier</th>
+                      <th className="py-3 px-3.5 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Acțiuni</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 bg-white dark:bg-slate-900">
+                  <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
                     {partnerContracts.map((ctr: any) => (
-                      <tr key={ctr.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
-                        <td className="py-2.5 px-3">
+                      <tr key={ctr.id} className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors">
+                        <td className="py-3 px-3.5">
                           <Link
                             href={`/contracte/${ctr.id}`}
-                            className="font-bold text-primary hover:underline"
+                            className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] hover:underline tabular-nums"
                           >
                             {ctr.number}
                           </Link>
                           {ctr.parentContractId && (
-                            <div className="text-[10px] text-purple-600 dark:text-purple-400">
+                            <div className="text-[11px] text-[#6e6e73] dark:text-[#98989d]">
                               Act adițional
                             </div>
                           )}
                         </td>
-                        <td className="py-2.5 px-3">
+                        <td className="py-3 px-3.5">
                           {ctr.type === "act_aditional" ? (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7]">
                               Act Adițional
                             </span>
                           ) : ctr.type === "pv_receptie" ? (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#34c759]/12 text-[#248a3d] dark:text-[#30d158]">
                               Proces Verbal
                             </span>
                           ) : (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#007aff]/10 text-[#007aff] dark:text-[#0a84ff]">
                               Contract Cadru
                             </span>
                           )}
                         </td>
-                        <td className="py-2.5 px-3 tabular-nums text-slate-600 dark:text-slate-300">
+                        <td className="py-3 px-3.5 tabular-nums text-[#6e6e73] dark:text-[#98989d]">
                           {ctr.date}
                         </td>
-                        <td className="py-2.5 px-3 tabular-nums text-slate-500 text-[11px]">
+                        <td className="py-3 px-3.5 tabular-nums text-[#8e8e93] text-[12px]">
                           {ctr.validUntil ? `Până la ${ctr.validUntil}` : "Nedeterminată"}
                         </td>
-                        <td className="py-2.5 px-3 text-right tabular-nums font-bold text-slate-900 dark:text-white">
+                        <td className="py-3 px-3.5 text-right tabular-nums font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                           {parseFloat(ctr.value || 0).toLocaleString("ro-RO", {
                             minimumFractionDigits: 2,
                           })}{" "}
-                          <span className="text-[10px] font-normal text-slate-500">
+                          <span className="text-[11px] font-medium text-[#8e8e93]">
                             {ctr.currency || "RON"}
                           </span>
                         </td>
-                        <td className="py-2.5 px-3 text-center">
+                        <td className="py-3 px-3.5 text-center">
                           {ctr.status === "activ" ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
-                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#34c759]/12 text-[#248a3d] dark:text-[#30d158]">
+                              <span className="h-1.5 w-1.5 rounded-full bg-[#34c759]" />
                               Activ
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#6e6e73] dark:text-[#98989d]">
                               {ctr.status}
                             </span>
                           )}
                         </td>
-                        <td className="py-2.5 px-3 text-center">
+                        <td className="py-3 px-3.5 text-center">
                           {ctr.fileUrl ? (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] tabular-nums bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                            <span className="px-2.5 py-0.5 rounded-full text-[11px] tabular-nums bg-[#007aff]/10 text-[#007aff] dark:text-[#0a84ff]">
                               PDF Fizic
                             </span>
                           ) : (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] tabular-nums bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                            <span className="px-2.5 py-0.5 rounded-full text-[11px] tabular-nums bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#6e6e73] dark:text-[#98989d]">
                               Digital
                             </span>
                           )}
                         </td>
-                        <td className="py-2.5 px-3 text-right">
+                        <td className="py-3 px-3.5 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <Link
                               href={`/contracte/${ctr.id}`}
-                              className="w-8 h-8 rounded-full inline-flex items-center justify-center text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                              className="w-8 h-8 rounded-full apple-btn-glass inline-flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white transition-colors"
                               title="Vezi Document PDF"
                             >
                               <ExternalLink className="w-3.5 h-3.5" />
@@ -1859,7 +1885,7 @@ export default function ClientDetails() {
 
                             <a
                               href={`/api/pdf/contract/${ctr.id}?download=1`}
-                              className="w-8 h-8 rounded-full inline-flex items-center justify-center text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors"
+                              className="w-8 h-8 rounded-full apple-btn-glass inline-flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white transition-colors"
                               title="Descarcă PDF"
                             >
                               <Download className="w-3.5 h-3.5" />
@@ -1867,7 +1893,7 @@ export default function ClientDetails() {
 
                             <Link
                               href={`/contracte/new?partnerId=${id}&parentContractId=${ctr.id}&type=act_aditional`}
-                              className="w-8 h-8 rounded-full inline-flex items-center justify-center text-slate-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/40 transition-colors"
+                              className="w-8 h-8 rounded-full apple-btn-glass inline-flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white transition-colors"
                               title="Adaugă Act Adițional la acest Contract"
                             >
                               <Plus className="w-3.5 h-3.5" />
@@ -1885,16 +1911,16 @@ export default function ClientDetails() {
       </div>
 
       {/* Visual Analytics Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Monthly Trend Area Chart */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-[22px] p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="lg:col-span-2 apple-surface p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-primary" />
-                Evoluție Facturare Lunară
+              <h3 className="text-[14.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-[#6e6e73] dark:text-[#98989d]" />
+                Evoluție facturare lunară
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">Volumul vânzărilor către acest client pe luni</p>
+              <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">Volumul vânzărilor către acest partener pe luni</p>
             </div>
           </div>
 
@@ -1903,20 +1929,20 @@ export default function ClientDetails() {
               <AreaChart data={monthlyTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="clientBillingGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--primary, #239040)" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="var(--primary, #239040)" stopOpacity={0.0} />
+                    <stop offset="5%" stopColor="var(--tenant-theme-color, #007aff)" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="var(--tenant-theme-color, #007aff)" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.2)" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(142, 142, 147, 0.18)" />
                 <XAxis
                   dataKey="month"
-                  tick={{ fontSize: 11, fill: "#94a3b8" }}
-                  axisLine={{ stroke: "rgba(148, 163, 184, 0.2)" }}
+                  tick={{ fontSize: 11, fill: "#8e8e93" }}
+                  axisLine={{ stroke: "rgba(142, 142, 147, 0.2)" }}
                   tickLine={false}
                 />
                 <YAxis
-                  tick={{ fontSize: 11, fill: "#94a3b8" }}
-                  axisLine={{ stroke: "rgba(148, 163, 184, 0.2)" }}
+                  tick={{ fontSize: 11, fill: "#8e8e93" }}
+                  axisLine={{ stroke: "rgba(142, 142, 147, 0.2)" }}
                   tickLine={false}
                   tickFormatter={(val) => (val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val)}
                 />
@@ -1925,16 +1951,16 @@ export default function ClientDetails() {
                     if (active && payload && payload.length) {
                       const dataPoint = payload[0].payload;
                       return (
-                        <div className="bg-slate-900 text-white text-xs p-2.5 rounded-xl shadow-lg border border-slate-700">
-                          <div className="font-semibold text-slate-300">{dataPoint.month}</div>
-                          <div className="text-sm font-bold text-white mt-1">
+                        <div className="apple-surface text-[#1d1d1f] dark:text-[#f5f5f7] text-xs p-3 shadow-xl">
+                          <div className="font-medium text-[#6e6e73] dark:text-[#98989d]">{dataPoint.month}</div>
+                          <div className="text-[14px] font-bold tabular-nums mt-0.5">
                             {Number(dataPoint.total).toLocaleString("ro-RO", {
                               minimumFractionDigits: 2,
                               maximumFractionDigits: 2,
                             })}{" "}
                             {kpis.currency}
                           </div>
-                          <div className="text-[10px] text-slate-400 mt-0.5">{dataPoint.count} facturi</div>
+                          <div className="text-[11px] text-[#8e8e93] mt-0.5 tabular-nums">{dataPoint.count} facturi</div>
                         </div>
                       );
                     }
@@ -1944,7 +1970,7 @@ export default function ClientDetails() {
                 <Area
                   type="monotone"
                   dataKey="total"
-                  stroke="var(--primary, #239040)"
+                  stroke="var(--tenant-theme-color, #007aff)"
                   strokeWidth={2.5}
                   fillOpacity={1}
                   fill="url(#clientBillingGradient)"
@@ -1955,13 +1981,13 @@ export default function ClientDetails() {
         </div>
 
         {/* Status Distribution Donut Chart */}
-        <div className="bg-white dark:bg-slate-900 rounded-[22px] p-5 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+        <div className="apple-surface p-5 flex flex-col justify-between">
           <div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-              Status Încasare
+            <h3 className="text-[14.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-[#248a3d] dark:text-[#30d158]" />
+              Status încasare
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">Rata de colectare a creanțelor</p>
+            <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">Rata de colectare a creanțelor</p>
           </div>
 
           <div className="h-[180px] w-full my-auto">
@@ -1986,9 +2012,9 @@ export default function ClientDetails() {
                       if (active && payload && payload.length) {
                         const item = payload[0];
                         return (
-                          <div className="bg-slate-900 text-white text-xs p-2 rounded-lg shadow-md border border-slate-700">
-                            <span className="font-semibold">{item.name}: </span>
-                            <span className="font-bold tabular-nums">
+                          <div className="apple-surface text-[#1d1d1f] dark:text-[#f5f5f7] text-xs px-3 py-2 shadow-xl">
+                            <span className="text-[#6e6e73] dark:text-[#98989d]">{item.name}: </span>
+                            <span className="font-semibold tabular-nums">
                               {Number(item.value).toLocaleString("ro-RO", {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 2,
@@ -2004,17 +2030,17 @@ export default function ClientDetails() {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex items-center justify-center text-xs text-slate-400">
+              <div className="h-full flex items-center justify-center text-[12.5px] text-[#8e8e93]">
                 Fără date de plată în perioada selectată
               </div>
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+          <div className="grid grid-cols-2 gap-2 pt-3 border-t border-black/[0.05] dark:border-white/[0.07] text-[12px]">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
-              <span className="text-slate-600 dark:text-slate-400 truncate">Încasat:</span>
-              <span className="font-bold tabular-nums text-slate-900 dark:text-white ml-auto">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#34c759] shrink-0" />
+              <span className="text-[#6e6e73] dark:text-[#98989d] truncate">Încasat:</span>
+              <span className="font-semibold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7] ml-auto">
                 {kpis.totalInvoiced > 0
                   ? Math.round((kpis.totalCollected / kpis.totalInvoiced) * 100)
                   : 0}
@@ -2022,9 +2048,9 @@ export default function ClientDetails() {
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" />
-              <span className="text-slate-600 dark:text-slate-400 truncate">Rest:</span>
-              <span className="font-bold tabular-nums text-slate-900 dark:text-white ml-auto">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#007aff] shrink-0" />
+              <span className="text-[#6e6e73] dark:text-[#98989d] truncate">Rest:</span>
+              <span className="font-semibold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7] ml-auto">
                 {kpis.totalInvoiced > 0
                   ? Math.round((kpis.totalPending / kpis.totalInvoiced) * 100)
                   : 0}
@@ -2037,104 +2063,104 @@ export default function ClientDetails() {
 
       {/* Edit Client Profile Modal (In-App UI modal without browser alerts) */}
       {isEditModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 rounded-[22px] max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 relative max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overscroll-contain animate-in fade-in duration-200">
+          <div className="apple-surface rounded-[22px] max-w-lg w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto overscroll-contain">
             <button
               onClick={() => setIsEditModalOpen(false)}
               aria-label="Închide"
-              className="absolute top-4 right-4 w-8 h-8 rounded-full inline-flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors"
+              className="apple-btn-glass absolute top-4 right-4 w-8 h-8 rounded-full inline-flex items-center justify-center text-[#6e6e73] dark:text-[#98989d] hover:text-[#1d1d1f] dark:hover:text-white"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
 
-            <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-4">
-              <Edit3 className="w-4 h-4 text-primary" />
-              Editează Profil Client
+            <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-2 mb-4">
+              <Edit3 className="w-4 h-4 text-[#6e6e73] dark:text-[#98989d]" />
+              Editează profil partener
             </h2>
 
-            <form onSubmit={handleSaveClient} className="space-y-3.5 text-xs">
+            <form onSubmit={handleSaveClient} className="space-y-3.5 text-[13px]">
               <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Denumire Companie *
+                <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1.5">
+                  Denumire companie *
                 </label>
                 <input
                   type="text"
                   required
                   value={editFormData.name}
                   onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="apple-input w-full h-10 px-3.5 text-[16px] sm:text-[13.5px] text-[#1d1d1f] dark:text-[#f5f5f7]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">CUI / CIF</label>
+                  <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1.5">CUI / CIF</label>
                   <input
                     type="text"
                     value={editFormData.cui}
                     onChange={(e) => setEditFormData({ ...editFormData, cui: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary tabular-nums"
+                    className="apple-input w-full h-10 px-3.5 text-[16px] sm:text-[13.5px] text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums"
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Nr. Reg. Com.</label>
+                  <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1.5">Nr. Reg. Com.</label>
                   <input
                     type="text"
                     value={editFormData.regCom}
                     onChange={(e) => setEditFormData({ ...editFormData, regCom: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="apple-input w-full h-10 px-3.5 text-[16px] sm:text-[13.5px] text-[#1d1d1f] dark:text-[#f5f5f7]"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Adresă Sediu</label>
+                <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1.5">Adresă sediu</label>
                 <input
                   type="text"
                   value={editFormData.address}
                   onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="apple-input w-full h-10 px-3.5 text-[16px] sm:text-[13.5px] text-[#1d1d1f] dark:text-[#f5f5f7]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Oraș</label>
+                  <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1.5">Oraș</label>
                   <input
                     type="text"
                     value={editFormData.city}
                     onChange={(e) => setEditFormData({ ...editFormData, city: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="apple-input w-full h-10 px-3.5 text-[16px] sm:text-[13.5px] text-[#1d1d1f] dark:text-[#f5f5f7]"
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Țară</label>
+                  <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1.5">Țară</label>
                   <input
                     type="text"
                     value={editFormData.country}
                     onChange={(e) => setEditFormData({ ...editFormData, country: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="apple-input w-full h-10 px-3.5 text-[16px] sm:text-[13.5px] text-[#1d1d1f] dark:text-[#f5f5f7]"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Email</label>
+                  <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1.5">Email</label>
                   <input
                     type="email"
                     value={editFormData.email}
                     onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="apple-input w-full h-10 px-3.5 text-[16px] sm:text-[13.5px] text-[#1d1d1f] dark:text-[#f5f5f7]"
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">Telefon</label>
+                  <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1.5">Telefon</label>
                   <input
                     type="text"
                     value={editFormData.phone}
                     onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="apple-input w-full h-10 px-3.5 text-[16px] sm:text-[13.5px] text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums"
                   />
                 </div>
               </div>
@@ -2143,14 +2169,14 @@ export default function ClientDetails() {
                 <button
                   type="button"
                   onClick={() => setIsEditModalOpen(false)}
-                  className="px-4 py-2 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold"
+                  className="apple-btn-glass h-9 px-4 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-semibold"
                 >
                   Anulează
                 </button>
                 <button
                   type="submit"
                   disabled={updateClientMutation.isPending}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary text-white font-semibold hover:opacity-95 shadow-sm disabled:opacity-50"
+                  className="apple-btn-prominent inline-flex items-center gap-1.5 h-9 px-4 rounded-full text-white text-[12.5px] font-semibold disabled:opacity-50"
                 >
                   {updateClientMutation.isPending ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />

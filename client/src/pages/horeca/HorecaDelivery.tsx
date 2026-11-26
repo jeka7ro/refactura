@@ -29,30 +29,30 @@ const PLATFORMS = [
 ];
 
 const STATUS_FLOW = [
-  { value: "new", label: "Nouă", cls: "bg-blue-500/20 text-blue-300" },
+  { value: "new", label: "Nouă", cls: "bg-[#0071e3]/10 text-[#0071e3] dark:bg-[#0a84ff]/18 dark:text-[#64d2ff] border-[#0071e3]/20" },
   {
     value: "accepted",
     label: "Acceptată",
-    cls: "bg-yellow-500/20 text-yellow-300",
+    cls: "bg-amber-500/12 text-amber-700 dark:bg-amber-500/18 dark:text-amber-300 border-amber-500/20",
   },
   {
     value: "preparing",
     label: "Preparare",
-    cls: "bg-orange-500/20 text-orange-300",
+    cls: "bg-orange-500/12 text-orange-700 dark:bg-orange-500/18 dark:text-orange-300 border-orange-500/20",
   },
-  { value: "ready", label: "Gata", cls: "bg-green-500/20 text-green-300" },
+  { value: "ready", label: "Gata", cls: "bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300 border-emerald-500/20" },
   {
     value: "picked_up",
     label: "Ridicată",
-    cls: "bg-teal-500/20 text-teal-300",
+    cls: "bg-teal-500/10 text-teal-700 dark:bg-teal-500/18 dark:text-teal-300 border-teal-500/20",
   },
   {
     value: "delivered",
-    label: "Livrată ",
-    cls: "bg-emerald-500/20 text-emerald-300",
+    label: "Livrată",
+    cls: "bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300 border-emerald-500/20",
   },
-  { value: "cancelled", label: "Anulată", cls: "bg-red-500/20 text-red-300" },
-  { value: "rejected", label: "Respinsă", cls: "bg-red-700/20 text-red-400" },
+  { value: "cancelled", label: "Anulată", cls: "bg-[#ff3b30]/10 text-[#d70015] dark:bg-[#ff453a]/18 dark:text-[#ff6961] border-[#ff3b30]/20" },
+  { value: "rejected", label: "Respinsă", cls: "bg-[#ff3b30]/10 text-[#d70015] dark:bg-[#ff453a]/18 dark:text-[#ff6961] border-[#ff3b30]/20" },
 ];
 
 export default function HorecaDelivery() {
@@ -267,35 +267,32 @@ export default function HorecaDelivery() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-w-full overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/20 rounded-lg">
-            <Truck className="w-6 h-6 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Delivery</h1>
-            <p className="text-muted-foreground text-sm">
-              Comenzi agregate din toate platformele
-              {usesBridge && (
-                <span className="text-primary font-bold ml-2">
-                  (Aggregator Monitor API)
-                </span>
-              )}
-            </p>
-          </div>
+      <div className="flex items-center justify-between gap-3 flex-wrap px-0.5">
+        <div>
+          <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
+            Delivery
+          </h1>
+          <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
+            Comenzi agregate din toate platformele
+            {usesBridge && (
+              <span className="text-primary font-semibold ml-1.5">
+                (Aggregator Monitor API)
+              </span>
+            )}
+          </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
           {locations.length > 1 && (
             <div className="relative">
               <select
                 value={locationId || ""}
                 onChange={e => {
                   const val = e.target.value;
-                  setSelectedLocationId(val.startsWith('bridge-') ? val as any : Number(val));
+                  setSelectedLocationId(val.startsWith("bridge-") ? (val as any) : Number(val));
                 }}
-                className="appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-4 py-2 font-semibold shadow-sm min-w-[200px] rounded-lg focus:outline-none focus:border-blue-500 pr-10"
+                className="apple-pill-control appearance-none pl-3.5 pr-8 h-[34px] text-[12.5px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] min-w-[180px] focus:outline-none cursor-pointer"
               >
                 {locations.map((l: any) => (
                   <option key={l.id} value={l.id}>
@@ -303,14 +300,15 @@ export default function HorecaDelivery() {
                   </option>
                 ))}
               </select>
-              <ChevronDown className="w-4 h-4 text-muted-foreground absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           )}
           {/* Butonul dispare când form-ul e deschis sau pe bridge */}
           {!showAddForm && !usesBridge && (
             <button
+              type="button"
               onClick={() => setShowAddForm(true)}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-sm font-medium transition-colors shadow-sm"
+              className="apple-btn-prominent inline-flex items-center gap-1.5 text-white px-4 h-[34px] text-xs font-semibold cursor-pointer"
             >
               <Plus className="w-4 h-4" /> Înregistrează comandă
             </button>
@@ -320,28 +318,28 @@ export default function HorecaDelivery() {
 
       {/* KPI Cards — dispar când form e deschis */}
       {!showAddForm && (
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-card border border-chart-1/30 rounded-2xl p-4 shadow-sm">
-            <p className="text-muted-foreground text-xs mb-1">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+            <p className="text-[#6e6e73] dark:text-[#98989d] text-[12.5px] font-medium">
               Vânzări brute delivery
             </p>
-            <p className="text-foreground text-xl font-bold">
+            <p className="text-[#1d1d1f] dark:text-[#f5f5f7] text-[22px] sm:text-[25px] font-bold tracking-[-0.026em] leading-none tabular-nums">
               {formatCurrency(totalDelivered, "RON")}
             </p>
           </div>
-          <div className="bg-card border border-destructive/30 rounded-2xl p-4 shadow-sm">
-            <p className="text-muted-foreground text-xs mb-1">
+          <div className="apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+            <p className="text-[#6e6e73] dark:text-[#98989d] text-[12.5px] font-medium">
               Comisioane platforme
             </p>
-            <p className="text-destructive text-xl font-bold">
+            <p className="text-[#ff3b30] dark:text-[#ff453a] text-[22px] sm:text-[25px] font-bold tracking-[-0.026em] leading-none tabular-nums">
               -{formatCurrency(totalCommission, "RON")}
             </p>
           </div>
-          <div className="bg-card border border-chart-1/30 rounded-2xl p-4 shadow-sm">
-            <p className="text-muted-foreground text-xs mb-1">
+          <div className="apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+            <p className="text-[#6e6e73] dark:text-[#98989d] text-[12.5px] font-medium">
               Net după comisioane
             </p>
-            <p className="text-chart-1 text-xl font-bold">
+            <p className="text-[#1d1d1f] dark:text-[#f5f5f7] text-[22px] sm:text-[25px] font-bold tracking-[-0.026em] leading-none tabular-nums">
               {formatCurrency(netRevenue, "RON")}
             </p>
           </div>
@@ -350,21 +348,21 @@ export default function HorecaDelivery() {
 
       {/* Add form */}
       {showAddForm && (
-        <div className="bg-card border border-border rounded-lg p-6">
-          <h2 className="text-foreground font-semibold mb-4">
+        <div className="apple-surface p-5 sm:p-6">
+          <h2 className="text-[#1d1d1f] dark:text-[#f5f5f7] font-bold text-[16px] mb-4">
             Comandă delivery nouă
           </h2>
-          <div className="mb-3 flex items-center gap-2 text-chart-3 text-sm bg-chart-3/10 border border-chart-3/30 rounded-lg px-3 py-2">
+          <div className="mb-4 flex items-center gap-2 text-amber-800 dark:text-amber-300 text-xs bg-amber-500/12 border border-amber-500/20 rounded-xl px-3.5 py-2.5">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             Integrarea API cu platformele urmează. Deocamdată înregistrați
             manual.
           </div>
           <form
             onSubmit={handleSubmit}
-            className="grid grid-cols-2 md:grid-cols-3 gap-4"
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"
           >
             <div>
-              <label className="block text-muted-foreground text-xs mb-1">
+              <label className="block text-[#6e6e73] dark:text-[#98989d] text-[12.5px] font-medium mb-1">
                 Platformă *
               </label>
               <select
@@ -372,7 +370,7 @@ export default function HorecaDelivery() {
                 onChange={e =>
                   setForm(f => ({ ...f, platform: e.target.value as any }))
                 }
-                className="w-full bg-background border border-border text-foreground rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                className="apple-input w-full h-10 px-3.5 text-sm cursor-pointer"
               >
                 {PLATFORMS.map(p => (
                   <option key={p.value} value={p.value}>
@@ -382,7 +380,7 @@ export default function HorecaDelivery() {
               </select>
             </div>
             <div>
-              <label className="block text-muted-foreground text-xs mb-1">
+              <label className="block text-[#6e6e73] dark:text-[#98989d] text-[12.5px] font-medium mb-1">
                 ID extern
               </label>
               <input
@@ -391,11 +389,11 @@ export default function HorecaDelivery() {
                   setForm(f => ({ ...f, externalId: e.target.value }))
                 }
                 placeholder="ID din platformă"
-                className="w-full bg-background border border-border text-foreground rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                className="apple-input w-full h-10 px-3.5 text-sm"
               />
             </div>
             <div>
-              <label className="block text-muted-foreground text-xs mb-1">
+              <label className="block text-[#6e6e73] dark:text-[#98989d] text-[12.5px] font-medium mb-1">
                 Client
               </label>
               <input
@@ -404,11 +402,11 @@ export default function HorecaDelivery() {
                   setForm(f => ({ ...f, customerName: e.target.value }))
                 }
                 placeholder="Numele clientului"
-                className="w-full bg-background border border-border text-foreground rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                className="apple-input w-full h-10 px-3.5 text-sm"
               />
             </div>
             <div>
-              <label className="block text-muted-foreground text-xs mb-1">
+              <label className="block text-[#6e6e73] dark:text-[#98989d] text-[12.5px] font-medium mb-1">
                 Subtotal (RON) *
               </label>
               <input
@@ -422,11 +420,11 @@ export default function HorecaDelivery() {
                     total: e.target.value,
                   }))
                 }
-                className="w-full bg-background border border-border text-foreground rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                className="apple-input w-full h-10 px-3.5 text-sm tabular-nums"
               />
             </div>
             <div>
-              <label className="block text-muted-foreground text-xs mb-1">
+              <label className="block text-[#6e6e73] dark:text-[#98989d] text-[12.5px] font-medium mb-1">
                 Comision (RON)
               </label>
               <input
@@ -436,11 +434,11 @@ export default function HorecaDelivery() {
                 onChange={e =>
                   setForm(f => ({ ...f, commission: e.target.value }))
                 }
-                className="w-full bg-background border border-border text-foreground rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                className="apple-input w-full h-10 px-3.5 text-sm tabular-nums"
               />
             </div>
             <div>
-              <label className="block text-muted-foreground text-xs mb-1">
+              <label className="block text-[#6e6e73] dark:text-[#98989d] text-[12.5px] font-medium mb-1">
                 Total (RON) *
               </label>
               <input
@@ -448,26 +446,26 @@ export default function HorecaDelivery() {
                 step="0.01"
                 value={form.total}
                 onChange={e => setForm(f => ({ ...f, total: e.target.value }))}
-                className="w-full bg-background border border-border text-foreground rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                className="apple-input w-full h-10 px-3.5 text-sm tabular-nums"
               />
             </div>
-            <div className="md:col-span-3 flex justify-end gap-3">
+            <div className="sm:col-span-2 md:col-span-3 flex justify-end gap-2.5">
               <button
                 type="button"
                 onClick={() => setShowAddForm(false)}
-                className="flex items-center gap-1 bg-secondary text-secondary-foreground hover:bg-secondary/80 px-3 py-2 rounded-full text-sm transition-colors"
+                className="apple-btn-glass inline-flex items-center gap-1.5 text-[#1d1d1f] dark:text-[#f5f5f7] px-4 h-9 text-xs font-semibold cursor-pointer"
               >
-                <X className="w-3 h-3" /> Anulează
+                <X className="w-3.5 h-3.5" /> Anulează
               </button>
               <button
                 type="submit"
                 disabled={createMut.isPending}
-                className="flex items-center gap-1 bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-foreground px-3 py-2 rounded-full text-sm transition-colors"
+                className="apple-btn-prominent inline-flex items-center gap-1.5 disabled:opacity-50 text-white px-5 h-9 text-xs font-semibold cursor-pointer"
               >
                 {createMut.isPending ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
-                  <Check className="w-3 h-3" />
+                  <Check className="w-3.5 h-3.5" />
                 )}
                 Înregistrează
               </button>
@@ -476,110 +474,96 @@ export default function HorecaDelivery() {
         </div>
       )}
 
-      {/* Platform filter pills + status filter */}
-      <div className="flex gap-2 flex-wrap items-center">
-        <button
-          onClick={() => {
-            setPlatformFilter("");
-            setPage(1);
-          }}
-          className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${!platformFilter ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}
-        >
-          Toate
-        </button>
-        {PLATFORMS.map(p => (
-          <button
-            key={p.value}
-            onClick={() => {
-              setPlatformFilter(p.value);
-              setPage(1);
-            }}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors ${platformFilter === p.value ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}
-          >
-            <div className={`w-2 h-2 rounded-full ${p.color}`} /> {p.label}
-          </button>
-        ))}
-        <div className="relative ml-auto">
-          <select
-            value={statusFilter}
-            onChange={e => {
-              setStatusFilter(e.target.value);
-              setPage(1);
-            }}
-            className="appearance-none bg-background border border-border text-foreground pl-3 pr-8 py-1 !rounded-full text-xs focus:outline-none focus:border-primary shadow-sm"
-          >
-            <option value="">Toate statusurile</option>
-            {STATUS_FLOW.map(s => (
-              <option key={s.value} value={s.value}>
-                {s.label}
-              </option>
+      {/* Unified Filter & Search Bar inside apple-surface */}
+      <div className="apple-surface px-3 py-2.5">
+        <div className="flex flex-wrap items-center gap-2 w-full min-w-0">
+          <div className="apple-segmented flex-wrap sm:flex-nowrap !rounded-2xl sm:!rounded-full max-w-full">
+            <button
+              type="button"
+              data-active={!platformFilter}
+              onClick={() => {
+                setPlatformFilter("");
+                setPage(1);
+              }}
+              className="apple-segmented-item px-3 text-xs"
+            >
+              Toate
+            </button>
+            {PLATFORMS.map(p => (
+              <button
+                key={p.value}
+                type="button"
+                data-active={platformFilter === p.value}
+                onClick={() => {
+                  setPlatformFilter(p.value);
+                  setPage(1);
+                }}
+                className="apple-segmented-item px-3 text-xs"
+              >
+                <span className={`w-2 h-2 rounded-full ${p.color}`} /> {p.label}
+              </button>
             ))}
-          </select>
-          <ChevronDown className="w-4 h-4 text-muted-foreground absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+
+          <div className="relative">
+            <select
+              value={statusFilter}
+              onChange={e => {
+                setStatusFilter(e.target.value);
+                setPage(1);
+              }}
+              className="apple-pill-control appearance-none pl-3.5 pr-8 h-[34px] text-xs font-medium text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none cursor-pointer"
+            >
+              <option value="">Toate statusurile</option>
+              {STATUS_FLOW.map(s => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+
+          <div className="relative flex-1 min-w-[180px]">
+            <Search className="w-3.5 h-3.5 text-[#8e8e93] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              style={{
+                paddingLeft: 34,
+                paddingRight: search ? 84 : 16,
+              }}
+              className="apple-pill-control rounded-full w-full h-[34px] text-[13px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none focus:bg-white dark:focus:bg-[#2c2c2e]"
+              placeholder="Caută după platformă, client, adresă, ID..."
+              value={search}
+              onChange={e => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+            />
+            {search && (
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 bg-black/[0.07] dark:bg-white/[0.14] text-[#1d1d1f] dark:text-white rounded-full px-2 py-0.5 text-[10.5px] font-semibold tabular-nums whitespace-nowrap">
+                {filtered.length} / {deliveryOrders.length}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Search bar — regula 1 */}
-      <div style={{ position: "relative" }}>
-        <Search
-          className="w-4 h-4 text-muted-foreground"
-          style={{
-            position: "absolute",
-            left: 12,
-            top: "50%",
-            transform: "translateY(-50%)",
-            zIndex: 1,
-          }}
-        />
-        <input
-          className="w-full bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 shadow-sm transition-colors rounded-full"
-          style={{
-            paddingLeft: 36,
-            paddingRight: search ? 80 : 16,
-            paddingTop: 10,
-            paddingBottom: 10,
-            fontSize: 14,
-          }}
-          placeholder="Caută după platformă, client, adresă, ID extern..."
-          value={search}
-          onChange={e => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
-        />
-        {search && (
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 bg-accent text-accent-foreground rounded-md px-3 py-1 text-[11px] font-bold whitespace-nowrap">
-            {filtered.length} / {deliveryOrders.length}
-          </div>
-        )}
-      </div>
-
-      {/* Table — mereu vizibil */}
+      {/* Table */}
       {isLoading ? (
         <div className="flex justify-center py-12">
-          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+          <Loader2 className="w-7 h-7 text-primary animate-spin" />
         </div>
       ) : (
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-3 border-b border-border">
-            <span className="text-muted-foreground text-sm">
-              Total:{" "}
-              <strong className="text-foreground">{filtered.length}</strong>{" "}
-              înregistrări
-            </span>
-          </div>
+        <div className="apple-surface overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-secondary/50">
-                <tr className="text-muted-foreground text-left">
-                  <th
-                    style={{ width: 50, textAlign: "center" }}
-                    className="px-3 py-3 font-medium"
-                  >
+              <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+                <tr className="text-[#6e6e73] dark:text-[#98989d] text-left text-[12px] font-medium">
+                  <th className="w-12 text-center px-3 py-3 font-medium">
                     Nr.
                   </th>
                   <th
-                    className="px-4 py-3 font-medium cursor-pointer hover:text-foreground"
+                    className="px-4 py-3 font-medium cursor-pointer hover:text-[#1d1d1f] dark:hover:text-white select-none"
                     onClick={() => toggleSort("platform")}
                   >
                     Platformă{" "}
@@ -591,7 +575,7 @@ export default function HorecaDelivery() {
                   </th>
                   <th className="px-4 py-3 font-medium">Client</th>
                   <th
-                    className="px-4 py-3 font-medium cursor-pointer hover:text-foreground"
+                    className="px-4 py-3 font-medium cursor-pointer hover:text-[#1d1d1f] dark:hover:text-white select-none"
                     onClick={() => toggleSort("status")}
                   >
                     Status{" "}
@@ -602,7 +586,7 @@ export default function HorecaDelivery() {
                     )}
                   </th>
                   <th
-                    className="px-4 py-3 font-medium cursor-pointer hover:text-foreground"
+                    className="px-4 py-3 font-medium cursor-pointer hover:text-[#1d1d1f] dark:hover:text-white select-none"
                     onClick={() => toggleSort("total")}
                   >
                     Total{" "}
@@ -614,7 +598,7 @@ export default function HorecaDelivery() {
                   </th>
                   <th className="px-4 py-3 font-medium">Comision</th>
                   <th
-                    className="px-4 py-3 font-medium cursor-pointer hover:text-foreground"
+                    className="px-4 py-3 font-medium cursor-pointer hover:text-[#1d1d1f] dark:hover:text-white select-none"
                     onClick={() => toggleSort("createdAt")}
                   >
                     Ora{" "}
@@ -627,12 +611,12 @@ export default function HorecaDelivery() {
                   <th className="px-4 py-3 font-medium text-right">Acțiuni</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06] tabular-nums">
                 {paginated.length === 0 && (
                   <tr>
                     <td
                       colSpan={8}
-                      className="px-4 py-8 text-center text-muted-foreground"
+                      className="px-4 py-10 text-center text-[#6e6e73] dark:text-[#98989d] text-[13px]"
                     >
                       Nicio comandă delivery înregistrată
                     </td>
@@ -645,40 +629,33 @@ export default function HorecaDelivery() {
                   return (
                     <tr
                       key={o.id || o.externalId}
-                      className="hover:bg-secondary/30 transition-colors"
+                      className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors"
                     >
-                      <td
-                        style={{
-                          textAlign: "center",
-                          color: "var(--muted-foreground)",
-                          fontSize: 13,
-                        }}
-                        className="px-3 py-3"
-                      >
+                      <td className="text-center px-3 py-3 text-[#8e8e93] text-xs font-medium">
                         {(safePage - 1) * rowsPerPage + i + 1}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <div
-                            className={`w-2 h-2 rounded-full ${plat?.color || "bg-slate-300"}`}
+                            className={`w-2 h-2 rounded-full ${plat?.color || "bg-[#8e8e93]"}`}
                           />
-                          <span className="font-medium text-foreground">
+                          <span className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] text-[13.5px]">
                             {plat?.label || o.platform}
                           </span>
                         </div>
                         {o.externalId && (
-                          <div className="text-xs text-muted-foreground mt-0.5">
+                          <div className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
                             #{o.externalId}
                           </div>
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="font-medium text-foreground">
+                        <div className="font-medium text-[#1d1d1f] dark:text-[#f5f5f7] text-[13.5px]">
                           {o.customerName || "-"}
                         </div>
                         {o.deliveryAddress && (
                           <div
-                            className="text-xs text-muted-foreground mt-0.5 truncate max-w-[200px]"
+                            className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5 truncate max-w-[200px]"
                             title={o.deliveryAddress}
                           >
                             {o.deliveryAddress}
@@ -687,30 +664,31 @@ export default function HorecaDelivery() {
                       </td>
                       <td className="px-4 py-3">
                         <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border ${stat?.cls || "bg-muted text-muted-foreground border-border"}`}
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium border leading-none ${stat?.cls || "bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#6e6e73] dark:text-[#98989d] border-black/[0.06]"}`}
                         >
                           {stat?.label || o.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 font-semibold text-foreground">
+                      <td className="px-4 py-3 font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] text-[13.5px]">
                         {formatCurrency(o.total, "RON")}
                       </td>
-                      <td className="px-4 py-3 text-destructive font-medium">
+                      <td className="px-4 py-3 text-[#ff3b30] dark:text-[#ff453a] font-medium text-[13px]">
                         {o.commission > 0
                           ? `-${formatCurrency(o.commission, "RON")}`
-                          : "-"}
+                          : "—"}
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground text-sm">
+                      <td className="px-4 py-3 text-[#6e6e73] dark:text-[#98989d] text-[13px]">
                         {o.createdAt
                           ? new Date(o.createdAt).toLocaleTimeString("ro-RO", {
                               hour: "2-digit",
                               minute: "2-digit",
                             })
-                          : "-"}
+                          : "—"}
                       </td>
                       <td className="px-4 py-3 text-right">
                         {!isDelivered && (
                           <button
+                            type="button"
                             onClick={() =>
                               updateMut.mutate({
                                 id: o.id,
@@ -718,8 +696,8 @@ export default function HorecaDelivery() {
                               })
                             }
                             disabled={updateMut.isPending}
-                            title="Marchează ca Livrată"
-                            className="p-1.5 text-muted-foreground hover:text-chart-1 hover:bg-chart-1/10 rounded-lg transition-colors"
+                            title="Marchează ca livrată"
+                            className="apple-btn-glass w-8 h-8 inline-flex items-center justify-center text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer"
                           >
                             <PackageCheck className="w-4 h-4" />
                           </button>
@@ -732,9 +710,9 @@ export default function HorecaDelivery() {
             </table>
           </div>
           {/* Footer paginare */}
-          <div className="px-5 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/80 dark:bg-slate-900/80 rounded-b-xl">
+          <div className="px-4 sm:px-5 py-3 border-t border-black/[0.05] dark:border-white/[0.07] flex items-center justify-between flex-wrap gap-2 bg-[#fafafa] dark:bg-white/[0.02] text-xs text-[#6e6e73] dark:text-[#98989d] tabular-nums">
             <div className="flex items-center gap-4">
-              <span className="text-slate-500 dark:text-slate-400 text-sm font-medium flex items-center gap-2 whitespace-nowrap">
+              <span className="flex items-center gap-1.5 whitespace-nowrap">
                 Afișează
                 <div className="relative inline-block">
                   <select
@@ -743,7 +721,7 @@ export default function HorecaDelivery() {
                       setRowsPerPage(Number(e.target.value));
                       setPage(1);
                     }}
-                    className="appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 !rounded-full pl-3 pr-8 py-1 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-blue-500 shadow-sm"
+                    className="apple-pill-control appearance-none pl-3 pr-7 h-7 text-xs text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
                   >
                     <option value={10}>10</option>
                     <option value={15}>15</option>
@@ -751,62 +729,33 @@ export default function HorecaDelivery() {
                     <option value={50}>50</option>
                     <option value={9999}>Toți</option>
                   </select>
-                  <ChevronDown className="w-3 h-3 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <ChevronDown className="w-3 h-3 text-[#6e6e73] dark:text-[#98989d] absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </span>
-              <span className="text-slate-500 dark:text-slate-400 text-sm font-medium hidden sm:inline-block whitespace-nowrap">
+              <span className="hidden sm:inline-block whitespace-nowrap">
                 Total înregistrări:{" "}
-                <strong className="text-slate-900 dark:text-white">
+                <strong className="text-[#1d1d1f] dark:text-[#f5f5f7]">
                   {filtered.length}
                 </strong>
               </span>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-slate-500 dark:text-slate-400 text-sm font-medium whitespace-nowrap">
+            <div className="flex items-center gap-2">
+              <span className="whitespace-nowrap">
                 Pagina {safePage} din {totalPages}
               </span>
               <button
-                className="flex items-center justify-center transition-all"
+                type="button"
+                className="apple-btn-glass w-7 h-7 flex items-center justify-center text-[#1d1d1f] dark:text-[#f5f5f7] disabled:opacity-40 cursor-pointer"
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={safePage === 1}
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 9999,
-                  background:
-                    safePage === 1 ? "transparent" : "var(--background)",
-                  color: "var(--foreground)",
-                  border: safePage === 1 ? "none" : "1px solid var(--border)",
-                  cursor: safePage === 1 ? "not-allowed" : "pointer",
-                  opacity: safePage === 1 ? 0.4 : 1,
-                }}
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <button
-                className="flex items-center justify-center transition-all"
+                type="button"
+                className="apple-btn-glass w-7 h-7 flex items-center justify-center text-[#1d1d1f] dark:text-[#f5f5f7] disabled:opacity-40 cursor-pointer"
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={safePage === totalPages || totalPages === 0}
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 9999,
-                  background:
-                    safePage === totalPages || totalPages === 0
-                      ? "transparent"
-                      : "var(--background)",
-                  color: "var(--foreground)",
-                  border:
-                    safePage === totalPages || totalPages === 0
-                      ? "none"
-                      : "1px solid var(--border)",
-                  cursor:
-                    safePage === totalPages || totalPages === 0
-                      ? "not-allowed"
-                      : "pointer",
-                  opacity:
-                    safePage === totalPages || totalPages === 0 ? 0.4 : 1,
-                }}
               >
                 <ChevronRight className="w-4 h-4" />
               </button>

@@ -1,11 +1,19 @@
 // DevizDetail.tsx — Vizualizare Deviz de Lucrări
 import { useState } from "react";
-import { useRoute, useLocation } from "wouter";
-import { Loader2, ArrowLeft, FileDown, Eye, EyeOff, Pencil, Building2, User, FileText, CheckCircle2 } from "lucide-react";
+import { useRoute, useLocation, Link } from "wouter";
+import {
+  Loader2,
+  ArrowLeft,
+  FileDown,
+  Eye,
+  EyeOff,
+  Pencil,
+  Building2,
+  User,
+} from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { formatDate } from "@/lib/store";
 import { EditDevizModal } from "@/components/EditDevizModal";
-import { Link } from "wouter";
 
 export default function DevizDetail() {
   const [, params] = useRoute("/devize/:id");
@@ -23,21 +31,22 @@ export default function DevizDetail() {
   if (isLoading) {
     return (
       <div className="p-12 flex justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
+        <Loader2 className="w-6 h-6 animate-spin text-[#6e6e73]" />
       </div>
     );
   }
 
   if (!data || !data.deviz) {
     return (
-      <div className="p-6">
+      <div className="p-3 sm:p-5 max-w-full space-y-4">
         <button
+          type="button"
           onClick={() => navigate("/devize")}
-          className="flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors mb-6 text-sm font-medium"
+          className="apple-btn-glass inline-flex items-center gap-2 h-9 px-3.5 rounded-full text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" /> Înapoi la devize
         </button>
-        <div className="text-center py-12 text-slate-500">
+        <div className="apple-surface py-14 text-center text-[13px] text-[#6e6e73] dark:text-[#98989d]">
           Devizul nu a fost găsit.
         </div>
       </div>
@@ -45,39 +54,44 @@ export default function DevizDetail() {
   }
 
   const { deviz, lines, invoice, issuer } = data as any;
-  const vatRate = Number(deviz.vatRate) || 21;
+  const vatRate = deviz.vatRate ?? 21;
   const currency = deviz.currency || "RON";
 
   return (
-    <div className="p-3 sm:p-5 space-y-5 max-w-full">
+    <div className="p-3 sm:p-5 space-y-4 max-w-full">
       {/* Header & Butoane Acțiuni */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between gap-3 flex-wrap px-0.5">
+        <div className="flex items-center gap-3 min-w-0">
           <button
+            type="button"
             onClick={() => navigate("/devize")}
-            className="w-9 h-9 rounded-full flex items-center justify-center border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-300 transition-colors"
+            aria-label="Înapoi la lista de devize"
+            className="apple-btn-glass w-9 h-9 rounded-full flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white transition-colors shrink-0 cursor-pointer"
             title="Înapoi la lista de devize"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
-                Deviz de Lucrări #{deviz.number}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight tabular-nums">
+                Deviz de lucrări #{deviz.number}
               </h1>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800">
-                {deviz.status || "FINAL"}
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 dark:bg-emerald-500/18 dark:text-emerald-300 dark:border-emerald-500/25">
+                {deviz.status === "draft" ? "Ciornă" : "Finalizat"}
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Data emiterii: <strong className="tabular-nums">{formatDate(String(deviz.date))}</strong>
+            <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5 tabular-nums">
+              Data emiterii:{" "}
+              <strong className="text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold">
+                {formatDate(String(deviz.date))}
+              </strong>
               {invoice?.number && (
                 <>
-                  <span className="mx-2">•</span>
+                  <span className="mx-2 text-[#8e8e93]">·</span>
                   Factură asociată:{" "}
                   <Link
                     href={`/facturi-emise-nou/view/${invoice.id}`}
-                    className="font-bold text-sky-600 dark:text-sky-400 hover:underline"
+                    className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] hover:underline tabular-nums"
                   >
                     {invoice.number}
                   </Link>
@@ -89,142 +103,180 @@ export default function DevizDetail() {
 
         <div className="flex items-center gap-2 flex-wrap">
           <button
+            type="button"
             onClick={() => setShowCodes(!showCodes)}
-            className="flex items-center gap-1.5 px-3.5 h-9 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm"
+            className="apple-btn-glass flex items-center justify-center gap-1.5 px-3.5 h-9 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-semibold cursor-pointer"
           >
             {showCodes ? (
               <EyeOff className="w-3.5 h-3.5" />
             ) : (
               <Eye className="w-3.5 h-3.5" />
             )}
-            {showCodes ? "Ascunde coduri" : "Arată coduri"}
-          </button>
-          <button
-            onClick={() => setIsEditOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 h-9 rounded-full bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold transition-colors shadow-sm"
-          >
-            <Pencil className="w-3.5 h-3.5" />
-            Editează rânduri
+            <span>{showCodes ? "Ascunde coduri" : "Arată coduri"}</span>
           </button>
           <a
             href={`/api/pdf/deviz/${deviz.id}?download=1&showCodes=${showCodes ? "1" : "0"}`}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-1.5 px-3.5 h-9 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm"
+            className="apple-btn-glass flex items-center justify-center gap-1.5 px-3.5 h-9 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-semibold cursor-pointer"
           >
             <FileDown className="w-3.5 h-3.5" />
-            Descarcă PDF
+            <span>Descarcă PDF</span>
           </a>
+          <button
+            type="button"
+            onClick={() => setIsEditOpen(true)}
+            className="apple-btn-prominent flex items-center justify-center gap-1.5 h-9 px-4 rounded-full text-white text-[12.5px] font-semibold cursor-pointer"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+            <span>Editează rânduri</span>
+          </button>
         </div>
       </div>
 
       {/* Carduri Părți Contractante (Prestator & Beneficiar) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {/* Prestator / Furnizor */}
-        <div className="p-4 rounded-[22px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+        <div className="apple-surface p-4 sm:p-5 space-y-3">
+          <div className="flex items-center justify-between pb-2.5 border-b border-black/[0.05] dark:border-white/[0.07]">
+            <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d]">
               Prestator / Emitent
             </span>
-            <Building2 className="w-4 h-4 text-sky-600" />
+            <span className="w-7 h-7 rounded-[8px] bg-[#f2f4f7] dark:bg-[#2c2c2e] flex items-center justify-center shrink-0">
+              <Building2 className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#0a84ff]" />
+            </span>
           </div>
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+          <div className="space-y-0.5">
+            <h3 className="text-[14px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7]">
               {issuer?.name || "Companie Emitentă"}
             </h3>
-            <p className="text-xs tabular-nums font-semibold text-slate-600 dark:text-slate-300 mt-0.5">
+            <p className="text-[12.5px] tabular-nums font-medium text-[#3a3a3c] dark:text-[#ebebf5]">
               CUI / CIF: {issuer?.cui || "—"}
             </p>
             {issuer?.regCom && (
-              <p className="text-xs text-slate-500">Reg. Com: {issuer.regCom}</p>
+              <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d]">
+                Reg. Com: {issuer.regCom}
+              </p>
             )}
             {issuer?.address && (
-              <p className="text-xs text-slate-500 mt-1">{issuer.address}</p>
+              <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d] pt-0.5">
+                {issuer.address}
+              </p>
             )}
             {issuer?.iban && (
-              <p className="text-xs tabular-nums text-slate-600 dark:text-slate-400 mt-1">
+              <p className="text-[12px] tabular-nums text-[#6e6e73] dark:text-[#98989d] pt-0.5">
                 IBAN: {issuer.iban} {issuer.bank ? `(${issuer.bank})` : ""}
               </p>
             )}
           </div>
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500 flex justify-between">
-            <span>Întocmit de: <strong>{invoice?.intocmitDe || issuer?.intocmitDe || "Administrator"}</strong></span>
-            {invoice?.delegat && <span>Delegat: <strong>{invoice.delegat}</strong></span>}
+          <div className="pt-2.5 border-t border-black/[0.05] dark:border-white/[0.07] text-[12px] text-[#6e6e73] dark:text-[#98989d] flex justify-between flex-wrap gap-2">
+            <span>
+              Întocmit de:{" "}
+              <strong className="text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold">
+                {invoice?.intocmitDe || issuer?.intocmitDe || "Administrator"}
+              </strong>
+            </span>
+            {invoice?.delegat && (
+              <span>
+                Delegat:{" "}
+                <strong className="text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold">
+                  {invoice.delegat}
+                </strong>
+              </span>
+            )}
           </div>
         </div>
 
         {/* Beneficiar / Client */}
-        <div className="p-4 rounded-[22px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+        <div className="apple-surface p-4 sm:p-5 space-y-3">
+          <div className="flex items-center justify-between pb-2.5 border-b border-black/[0.05] dark:border-white/[0.07]">
+            <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d]">
               Beneficiar / Client
             </span>
-            <User className="w-4 h-4 text-blue-600" />
+            <span className="w-7 h-7 rounded-[8px] bg-[#eefbf3] dark:bg-emerald-500/18 flex items-center justify-center shrink-0">
+              <User className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            </span>
           </div>
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+          <div className="space-y-0.5">
+            <h3 className="text-[14px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7]">
               {invoice?.clientName || deviz?.clientName || "—"}
             </h3>
-            <p className="text-xs tabular-nums font-semibold text-slate-600 dark:text-slate-300 mt-0.5">
+            <p className="text-[12.5px] tabular-nums font-medium text-[#3a3a3c] dark:text-[#ebebf5]">
               CUI / CIF: {invoice?.clientCUI || deviz?.clientCUI || "—"}
             </p>
             {invoice?.clientRegCom && (
-              <p className="text-xs text-slate-500">Reg. Com: {invoice.clientRegCom}</p>
+              <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d]">
+                Reg. Com: {invoice.clientRegCom}
+              </p>
             )}
             {invoice?.clientAddress && (
-              <p className="text-xs text-slate-500 mt-1">{invoice.clientAddress}</p>
+              <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d] pt-0.5">
+                {invoice.clientAddress}
+              </p>
             )}
             {invoice?.clientCity && (
-              <p className="text-xs text-slate-500">Localitate: {invoice.clientCity}</p>
+              <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d]">
+                Localitate: {invoice.clientCity}
+              </p>
             )}
           </div>
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500 flex justify-between">
-            <span>Factură: <strong>{invoice?.number || (deviz.invoiceId ? `#${deviz.invoiceId}` : "—")}</strong></span>
-            <span>Monedă: <strong>{currency}</strong></span>
+          <div className="pt-2.5 border-t border-black/[0.05] dark:border-white/[0.07] text-[12px] text-[#6e6e73] dark:text-[#98989d] flex justify-between flex-wrap gap-2 tabular-nums">
+            <span>
+              Factură:{" "}
+              <strong className="text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold">
+                {invoice?.number || (deviz.invoiceId ? `#${deviz.invoiceId}` : "—")}
+              </strong>
+            </span>
+            <span>
+              Monedă:{" "}
+              <strong className="text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold">
+                {currency}
+              </strong>
+            </span>
           </div>
         </div>
       </div>
 
       {/* Tabel Linii Deviz cu Defalcare TVA */}
-      <div className="bg-white dark:bg-slate-900 rounded-[22px] shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+      <div className="apple-surface overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400 w-10">
-                  #
+          <table className="w-full text-[13px]">
+            <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+              <tr>
+                <th className="px-3 py-3 text-center text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] w-12">
+                  Nr.
                 </th>
-                <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  Denumire Lucrare / Material
+                <th className="px-4 py-3 text-left text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                  Denumire lucrare / material
                 </th>
                 {showCodes && (
-                  <th className="px-3 py-2.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  <th className="px-4 py-3 text-left text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
                     Cod CSV
                   </th>
                 )}
-                <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-slate-400 w-24">
+                <th className="px-4 py-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] w-24 whitespace-nowrap">
                   Cantitate
                 </th>
-                <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-slate-400 w-28">
+                <th className="px-4 py-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] w-28 whitespace-nowrap">
                   Preț fără TVA
                 </th>
-                <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-slate-400 w-28">
+                <th className="px-4 py-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] w-32 whitespace-nowrap">
                   Valoare fără TVA
                 </th>
-                <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-slate-400 w-24">
+                <th className="px-4 py-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] w-28 whitespace-nowrap">
                   TVA ({vatRate}%)
                 </th>
-                <th className="px-3 py-2.5 text-right text-[10px] font-bold uppercase tracking-wider text-slate-400 w-32">
+                <th className="px-4 py-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] w-36 whitespace-nowrap">
                   Total cu TVA ({currency})
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
               {lines.length === 0 ? (
                 <tr>
                   <td
                     colSpan={showCodes ? 8 : 7}
-                    className="py-8 text-center text-slate-400"
+                    className="py-10 text-center text-[13px] text-[#6e6e73] dark:text-[#98989d]"
                   >
                     Nu există linii în acest deviz.
                   </td>
@@ -232,41 +284,43 @@ export default function DevizDetail() {
               ) : (
                 lines.map((l: any, i: number) => {
                   const lineNet = Number(l.total) || 0;
-                  const lineVat = Number((lineNet * (vatRate / 100)).toFixed(2));
+                  const lineVat = Number((lineNet * (Number(vatRate) / 100)).toFixed(2));
                   const lineGross = Number((lineNet + lineVat).toFixed(2));
 
                   return (
                     <tr
                       key={l.id}
-                      className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                      className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors"
                     >
-                      <td className="px-3 py-2.5 text-slate-400 tabular-nums">{i + 1}</td>
-                      <td className="px-3 py-2.5 font-medium text-slate-900 dark:text-white">
+                      <td className="px-3 py-3 text-center text-[12px] font-medium text-[#8e8e93] tabular-nums">
+                        {i + 1}
+                      </td>
+                      <td className="px-4 py-3 font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">
                         {l.type !== "MANOPERA" && Number(deviz.totalMaterials) > 0 && (
-                          <span className="text-[10px] font-bold text-slate-400 mr-2 uppercase tracking-wider">
-                            [{l.type}]
+                          <span className="inline-flex items-center px-2 py-0.5 mr-2 rounded-full text-[10.5px] font-medium bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#6e6e73] dark:text-[#98989d]">
+                            {l.type}
                           </span>
                         )}
                         {(l.description || "").replace(/^\[MANOPERA\]\s*/i, "")}
                       </td>
                       {showCodes && (
-                        <td className="px-3 py-2.5 text-slate-500 tabular-nums text-[11px]">
+                        <td className="px-4 py-3 text-[#6e6e73] dark:text-[#98989d] tabular-nums text-[12px]">
                           {l.code || "—"}
                         </td>
                       )}
-                      <td className="px-3 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300">
+                      <td className="px-4 py-3 text-right tabular-nums text-[#6e6e73] dark:text-[#98989d]">
                         {Number(l.quantity).toFixed(2)}
                       </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300">
+                      <td className="px-4 py-3 text-right tabular-nums text-[#6e6e73] dark:text-[#98989d]">
                         {Number(l.unitPrice).toFixed(2)}
                       </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums font-medium text-slate-900 dark:text-white">
+                      <td className="px-4 py-3 text-right tabular-nums font-medium text-[#1d1d1f] dark:text-[#ebebf5]">
                         {lineNet.toFixed(2)}
                       </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums text-slate-500">
+                      <td className="px-4 py-3 text-right tabular-nums text-[#6e6e73] dark:text-[#98989d]">
                         {lineVat.toFixed(2)}
                       </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums font-bold text-slate-900 dark:text-white">
+                      <td className="px-4 py-3 text-right tabular-nums font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                         {lineGross.toFixed(2)} {currency}
                       </td>
                     </tr>
@@ -274,17 +328,17 @@ export default function DevizDetail() {
                 })
               )}
             </tbody>
-            <tfoot className="border-t-2 border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/40 text-xs">
+            <tfoot className="border-t border-black/[0.07] dark:border-white/[0.09] bg-[#fafafa] dark:bg-white/[0.025] text-[12.5px] tabular-nums">
               {Number(deviz.totalMaterials) > 0 && (
                 <>
                   <tr>
                     <td
                       colSpan={showCodes ? 5 : 4}
-                      className="px-3 py-2 text-right font-semibold text-slate-500"
+                      className="px-4 py-2 text-right font-medium text-[#6e6e73] dark:text-[#98989d]"
                     >
-                      Total Materiale fără TVA:
+                      Total materiale fără TVA:
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums font-bold text-slate-700 dark:text-slate-300">
+                    <td className="px-4 py-2 text-right font-semibold text-[#1d1d1f] dark:text-[#ebebf5]">
                       {Number(deviz.totalMaterials).toFixed(2)} {currency}
                     </td>
                     <td colSpan={2}></td>
@@ -292,11 +346,11 @@ export default function DevizDetail() {
                   <tr>
                     <td
                       colSpan={showCodes ? 5 : 4}
-                      className="px-3 py-2 text-right font-semibold text-slate-500"
+                      className="px-4 py-2 text-right font-medium text-[#6e6e73] dark:text-[#98989d]"
                     >
-                      Total Manoperă / Servicii fără TVA:
+                      Total manoperă / servicii fără TVA:
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums font-bold text-slate-700 dark:text-slate-300">
+                    <td className="px-4 py-2 text-right font-semibold text-[#1d1d1f] dark:text-[#ebebf5]">
                       {Number(deviz.totalLabor).toFixed(2)} {currency}
                     </td>
                     <td colSpan={2}></td>
@@ -306,11 +360,11 @@ export default function DevizDetail() {
               <tr>
                 <td
                   colSpan={showCodes ? 5 : 4}
-                  className="px-3 py-2 text-right font-bold text-slate-700 dark:text-slate-300"
+                  className="px-4 py-2 text-right font-semibold text-[#6e6e73] dark:text-[#98989d]"
                 >
-                  TOTAL FĂRĂ TVA:
+                  Total fără TVA:
                 </td>
-                <td className="px-3 py-2 text-right tabular-nums font-bold text-slate-900 dark:text-white">
+                <td className="px-4 py-2 text-right font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                   {Number(deviz.total).toFixed(2)} {currency}
                 </td>
                 <td colSpan={2}></td>
@@ -318,25 +372,28 @@ export default function DevizDetail() {
               <tr>
                 <td
                   colSpan={showCodes ? 5 : 4}
-                  className="px-3 py-2 text-right font-bold text-slate-700 dark:text-slate-300"
+                  className="px-4 py-2 text-right font-semibold text-[#6e6e73] dark:text-[#98989d]"
                 >
-                  TOTAL TVA ({vatRate}%):
+                  Total TVA ({vatRate}%):
                 </td>
-                <td colSpan={2} className="px-3 py-2 text-right tabular-nums font-bold text-amber-600 dark:text-amber-400">
+                <td
+                  colSpan={2}
+                  className="px-4 py-2 text-right font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]"
+                >
                   {Number(deviz.totalVAT).toFixed(2)} {currency}
                 </td>
                 <td></td>
               </tr>
-              <tr className="bg-sky-50 dark:bg-sky-950/40 border-t border-sky-200 dark:border-sky-800">
+              <tr className="bg-[#f2f2f7]/80 dark:bg-white/[0.045] border-t border-black/[0.06] dark:border-white/[0.08]">
                 <td
                   colSpan={showCodes ? 5 : 4}
-                  className="px-3 py-3 text-right font-black text-sky-800 dark:text-sky-300 text-sm"
+                  className="px-4 py-3.5 text-right font-bold text-[#1d1d1f] dark:text-[#f5f5f7] text-[13.5px]"
                 >
-                  TOTAL GENERAL DEVIZ (CU TVA):
+                  Total general deviz (cu TVA):
                 </td>
                 <td
                   colSpan={3}
-                  className="px-3 py-3 text-right font-black text-sky-800 dark:text-sky-300 text-base tabular-nums"
+                  className="px-4 py-3.5 text-right font-bold text-[#1d1d1f] dark:text-[#f5f5f7] text-[16px] tracking-[-0.02em] tabular-nums"
                 >
                   {Number(deviz.totalWithVAT).toFixed(2)} {currency}
                 </td>
@@ -347,11 +404,11 @@ export default function DevizDetail() {
       </div>
 
       {deviz.notes && (
-        <div className="bg-white dark:bg-slate-900 rounded-[22px] shadow-sm border border-slate-200 dark:border-slate-800 p-4">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
-            Mențiuni & Observații
+        <div className="apple-surface p-4 sm:p-5">
+          <h3 className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1.5">
+            Mențiuni & observații
           </h3>
-          <p className="text-xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+          <p className="text-[13px] text-[#1d1d1f] dark:text-[#ebebf5] whitespace-pre-wrap">
             {deviz.notes}
           </p>
         </div>

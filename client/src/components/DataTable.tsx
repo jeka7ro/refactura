@@ -156,21 +156,22 @@ export function DataTable<T extends Record<string, any>>({
     columns.length + (selectable ? 1 : 0) + (actions ? 1 : 0) + 1;
 
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-3">
       {/* Search & Header Content */}
       {(searchable || headerContent) && (
-        <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_16px_-4px_rgba(0,0,0,0.04)] px-4 py-2.5 flex flex-col sm:flex-row gap-3 justify-between items-center">
+        <div className="apple-surface px-3 py-2.5 flex flex-col sm:flex-row gap-2.5 justify-between items-center">
           {searchable ? (
-            <div className="relative w-full max-w-[340px]">
+            <div className="relative w-full sm:max-w-[320px]">
               <Search
-                className="w-3.5 h-3.5 text-[#636366] dark:text-[#98989d] pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
+                className="w-3.5 h-3.5 text-[#8e8e93] pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2"
               />
               <input
                 style={{
                   borderRadius: 9999,
-                  paddingRight: search ? 40 : 12,
+                  paddingLeft: 34,
+                  paddingRight: search ? 36 : 14,
                 }}
-                className="w-full h-9 pl-8.5 text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-white placeholder:text-[#636366] dark:placeholder:text-[#98989d] border border-black/[0.06] dark:border-white/[0.08] focus:bg-white dark:focus:bg-[#3a3a3c] transition-colors outline-none rounded-full"
+                className="apple-pill-control rounded-full w-full h-[34px] text-[13px] text-[#1d1d1f] dark:text-white placeholder:text-[#8e8e93] focus:bg-white dark:focus:bg-[#2c2c2e] focus:border-black/15 dark:focus:border-white/20 outline-none"
                 placeholder="Caută număr, partener..."
                 value={search}
                 onChange={e => {
@@ -186,9 +187,9 @@ export function DataTable<T extends Record<string, any>>({
                     setSearch("");
                     setPage(1);
                   }}
-                  className="w-7 h-7 right-1 top-1/2 -translate-y-1/2 absolute rounded-full inline-flex items-center justify-center text-[#636366] dark:text-[#98989d] hover:bg-black/[0.06] dark:hover:bg-white/[0.10] transition-colors cursor-pointer"
+                  className="w-6 h-6 right-1.5 top-1/2 -translate-y-1/2 absolute rounded-full inline-flex items-center justify-center text-[#6e6e73] dark:text-[#98989d] hover:bg-black/[0.06] dark:hover:bg-white/[0.12] transition-colors cursor-pointer"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-3 h-3" />
                 </button>
               )}
             </div>
@@ -205,13 +206,13 @@ export function DataTable<T extends Record<string, any>>({
       )}
 
       {/* Table card */}
-      <div className="bg-white dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] shadow-[0_1px_2px_rgba(0,0,0,0.03),0_4px_16px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
+      <div className="apple-surface overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead>
-              <tr className="border-b border-black/[0.06] dark:border-white/[0.08] bg-[#f9f9fb] dark:bg-white/[0.02]">
+          <table className="w-full text-[13px] text-left">
+            <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+              <tr>
                 {selectable && (
-                  <th className="px-3 py-2.5 w-9">
+                  <th className="px-4 py-3 w-10 text-center">
                     <input
                       type="checkbox"
                       aria-label="Selectează toate rândurile"
@@ -220,11 +221,11 @@ export function DataTable<T extends Record<string, any>>({
                         paginatedData.length > 0
                       }
                       onChange={handleSelectAll}
-                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-600"
+                      className="w-4 h-4 rounded border-slate-300 dark:border-[#48484a] dark:bg-[#2c2c2e] text-primary cursor-pointer"
                     />
                   </th>
                 )}
-                <th className="px-3 py-2.5 w-10 text-[11px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d]">
+                <th className="px-3 py-3 w-12 text-center text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
                   Nr.
                 </th>
                 {columns.map(col => {
@@ -232,12 +233,12 @@ export function DataTable<T extends Record<string, any>>({
                   return (
                     <th
                       key={String(col.key)}
-                      className={`px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] ${isSortable ? "cursor-pointer hover:text-[#1d1d1f] dark:hover:text-white transition-colors select-none" : ""} ${col.className || ""}`}
+                      className={`px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap ${isSortable ? "cursor-pointer hover:text-[#1d1d1f] dark:hover:text-white transition-colors select-none" : ""} ${col.className || ""}`}
                       onClick={() => isSortable && handleSort(col.key)}
                     >
                       <div className="flex items-center gap-1">
-                        {col.label}
-                        <span className="text-primary">
+                        <span>{col.label}</span>
+                        <span className="text-[#1d1d1f] dark:text-white opacity-60">
                           {getSortIcon(col.key)}
                         </span>
                       </div>
@@ -245,17 +246,17 @@ export function DataTable<T extends Record<string, any>>({
                   );
                 })}
                 {actions && (
-                  <th className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] text-right">
+                  <th className="px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] text-right whitespace-nowrap">
                     Acțiuni
                   </th>
                 )}
               </tr>
             </thead>
-            <tbody className="divide-y divide-black/[0.05] dark:divide-white/[0.06]">
+            <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
               {isLoading ? (
                 <tr>
-                  <td colSpan={colCount} className="p-8 text-center">
-                    <div className="flex flex-col items-center justify-center text-[#636366] dark:text-[#98989d]">
+                  <td colSpan={colCount} className="py-12 text-center">
+                    <div className="flex flex-col items-center justify-center text-[#6e6e73] dark:text-[#98989d]">
                       <Loader2 className="w-5 h-5 animate-spin mb-1" />
                       <span className="text-xs">Se încarcă...</span>
                     </div>
@@ -265,7 +266,7 @@ export function DataTable<T extends Record<string, any>>({
                 <tr>
                   <td
                     colSpan={colCount}
-                    className="py-6 text-center text-[#636366] dark:text-[#98989d] text-xs bg-black/[0.015] dark:bg-white/[0.02]"
+                    className="py-10 text-center text-[#6e6e73] dark:text-[#98989d] text-[13px]"
                   >
                     Nicio înregistrare găsită
                   </td>
@@ -274,11 +275,11 @@ export function DataTable<T extends Record<string, any>>({
                 paginatedData.map((row, idx) => (
                   <tr
                     key={String(row[rowKey])}
-                    className={`hover:bg-black/[0.025] dark:hover:bg-white/[0.04] transition-colors ${onRowClick ? "cursor-pointer" : ""}`}
+                    className={`hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors ${onRowClick ? "cursor-pointer" : ""}`}
                     onClick={() => onRowClick?.(row)}
                   >
                     {selectable && (
-                      <td className="px-3 py-2.5">
+                      <td className="px-4 py-3 text-center">
                         <input
                           type="checkbox"
                           checked={selectedRows.has(row[rowKey])}
@@ -286,17 +287,17 @@ export function DataTable<T extends Record<string, any>>({
                             e.stopPropagation();
                             handleSelectRow(row);
                           }}
-                          className="w-4 h-4 rounded border-slate-300 dark:border-slate-600"
+                          className="w-4 h-4 rounded border-slate-300 dark:border-[#48484a] dark:bg-[#2c2c2e] text-primary cursor-pointer"
                         />
                       </td>
                     )}
-                    <td className="px-3 py-2.5 text-center text-[11px] text-[#636366] dark:text-[#98989d] font-medium tabular-nums">
+                    <td className="px-3 py-3 text-center text-[12px] text-[#8e8e93] font-medium tabular-nums whitespace-nowrap">
                       {(page - 1) * rowsPerPage + idx + 1}
                     </td>
                     {columns.map(col => (
                       <td
                         key={String(col.key)}
-                        className={`px-3 py-2.5 ${col.className || ""}`}
+                        className={`px-4 py-3 ${col.className || ""}`}
                       >
                         {col.render
                           ? col.render(row[col.key], row)

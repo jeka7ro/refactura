@@ -104,10 +104,10 @@ export default function ArticleCombobox({
     <PopoverPrimitive.Root open={isOpen} onOpenChange={setIsOpen}>
       <PopoverPrimitive.Anchor asChild>
         <div
-          className={`relative flex items-center rounded-lg bg-white dark:bg-slate-800 border transition-all ${
+          className={`relative flex items-center rounded-lg bg-[#f2f2f7] dark:bg-[#2c2c2e] border transition-all ${
             isOpen
-              ? "border-teal-500 ring-1 ring-teal-500/20 shadow-xs"
-              : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+              ? "bg-white dark:bg-[#2c2c2e] border-[var(--tenant-theme-color,#16a34a)] ring-2 ring-[var(--tenant-theme-color,#16a34a)]/20 shadow-xs"
+              : "border-black/[0.08] dark:border-white/[0.10] hover:border-black/[0.15] dark:hover:border-white/[0.16]"
           } h-7 px-2 ${className}`}
           title={currentArticle ? `${currentArticle.code} — ${currentArticle.name}` : value}
         >
@@ -162,7 +162,7 @@ export default function ArticleCombobox({
                 }
               }
             }}
-            className="w-full bg-transparent text-xs tabular-nums font-medium text-slate-900 dark:text-white focus:outline-none pr-4 placeholder:font-sans placeholder:font-normal placeholder:text-slate-400"
+            className="w-full bg-transparent text-xs tabular-nums font-medium text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none pr-4 placeholder:font-sans placeholder:font-normal placeholder:text-[#8e8e93]"
           />
           <button
             type="button"
@@ -171,7 +171,7 @@ export default function ArticleCombobox({
               e.stopPropagation();
               setIsOpen((prev) => !prev);
             }}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 shrink-0"
+            className="text-[#8e8e93] hover:text-[#1d1d1f] dark:hover:text-[#f5f5f7] shrink-0"
           >
             <ChevronDown className={`w-3 h-3 transition-transform ${isOpen ? "rotate-180" : ""}`} />
           </button>
@@ -183,12 +183,12 @@ export default function ArticleCombobox({
           align="start"
           sideOffset={4}
           onOpenAutoFocus={(e) => e.preventDefault()}
-          className="z-50 min-w-[280px] max-w-[420px] w-[var(--radix-popover-trigger-width)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-lg p-1.5 focus:outline-none text-xs"
+          className="z-50 min-w-[280px] max-w-[420px] w-[var(--radix-popover-trigger-width)] bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.10] shadow-2xl rounded-2xl p-1.5 focus:outline-none text-xs overscroll-contain"
         >
-          <div className="flex items-center justify-between px-2 py-1 border-b border-slate-100 dark:border-slate-800 text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1">
-            <span>Nomenclator Articole ({filteredArticles.length})</span>
+          <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-black/[0.05] dark:border-white/[0.07] text-[11.5px] text-[#6e6e73] dark:text-[#98989d] font-medium mb-1">
+            <span>Nomenclator articole ({filteredArticles.length})</span>
             {search && (
-              <span className="font-normal lowercase truncate max-w-[120px]">„{search}”</span>
+              <span className="font-normal truncate max-w-[120px]">„{search}”</span>
             )}
           </div>
 
@@ -197,10 +197,10 @@ export default function ArticleCombobox({
             className="max-h-[220px] overflow-y-auto space-y-0.5 pr-0.5"
           >
             {filteredArticles.length === 0 ? (
-              <div className="p-3 text-center text-xs text-slate-400">
+              <div className="p-3 text-center text-xs text-[#6e6e73] dark:text-[#98989d]">
                 <p>Niciun articol găsit.</p>
-                <p className="text-[11px] mt-1 text-slate-500 tabular-nums">
-                  Poți păstra codul tastat: <strong>{search}</strong>
+                <p className="text-[11px] mt-1 text-[#8e8e93] tabular-nums">
+                  Poți păstra codul tastat: <strong className="text-[#1d1d1f] dark:text-[#f5f5f7]">{search}</strong>
                 </p>
               </div>
             ) : (
@@ -217,14 +217,14 @@ export default function ArticleCombobox({
                       handleSelect(art);
                     }}
                     onMouseEnter={() => setActiveIndex(idx)}
-                    className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors text-xs ${
+                    className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl cursor-pointer transition-colors text-xs ${
                       isActive
-                        ? "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white"
-                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60"
-                    } ${isSelected ? "font-semibold text-teal-600 dark:text-teal-400" : ""}`}
+                        ? "bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7]"
+                        : "text-[#1d1d1f] dark:text-[#ebebf5] hover:bg-[#f5f5f7] dark:hover:bg-white/[0.04]"
+                    } ${isSelected ? "font-semibold text-[var(--tenant-theme-color,#16a34a)]" : ""}`}
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="tabular-nums font-bold text-teal-600 dark:text-teal-400 text-xs shrink-0">
+                      <span className="tabular-nums font-bold text-[var(--tenant-theme-color,#16a34a)] text-xs shrink-0">
                         {art.code}
                       </span>
                       <span className="truncate" title={art.name}>
@@ -234,11 +234,11 @@ export default function ArticleCombobox({
 
                     <div className="flex items-center gap-1.5 shrink-0">
                       {art.category && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200/60 dark:border-slate-700/60">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#6e6e73] dark:text-[#98989d] border border-black/[0.06] dark:border-white/[0.08]">
                           {art.category}
                         </span>
                       )}
-                      {isSelected && <Check className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />}
+                      {isSelected && <Check className="w-3.5 h-3.5 text-[var(--tenant-theme-color,#16a34a)]" />}
                     </div>
                   </div>
                 );

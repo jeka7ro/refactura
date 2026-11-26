@@ -152,93 +152,97 @@ export default function Reports() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-6 h-6 animate-spin text-[#6e6e73]" />
       </div>
     );
   }
 
   return (
-    <div className="p-3 sm:p-5 max-w-full space-y-6">
+    <div className="p-3 sm:p-5 max-w-full space-y-4 overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="min-w-0">
+          <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
             Rapoarte
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
             Date reale din contul tău
           </p>
         </div>
         <button
+          type="button"
           onClick={handleExportCSV}
-          className="flex items-center gap-2 px-5 h-10 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold transition-colors"
+          className="apple-btn-glass inline-flex items-center gap-1.5 px-4 h-9 text-[12.5px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
         >
-          <Download className="w-4 h-4" /> Export CSV
+          <Download className="w-3.5 h-3.5" /> Export CSV
         </button>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard
-          title="Venituri Totale"
+          title="Venituri totale"
           value={formatCurrency(totalRevenue, selectedCurrency)}
-          icon={<DollarSign className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
-          iconBg="bg-blue-50 dark:bg-blue-950/50"
+          icon={<DollarSign className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />}
+          iconBg="bg-[#eefbf3] dark:bg-emerald-500/18"
           sub={`${totalReInvoices} re-facturi + arhiva emise`}
         />
         <KPICard
-          title="Facturi Primite"
+          title="Facturi primite"
           value={formatCurrency(totalExpenses, selectedCurrency)}
-          icon={<TrendingDown className="w-5 h-5 text-rose-600 dark:text-rose-400" />}
-          iconBg="bg-rose-50 dark:bg-rose-950/50"
+          icon={<TrendingDown className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />}
+          iconBg="bg-[#fff6eb] dark:bg-amber-500/18"
           sub="Cheltuieli din SPV"
         />
         <KPICard
-          title="Clienți Activi"
+          title="Clienți activi"
           value={activeClients.toString()}
-          icon={<Users className="w-5 h-5 text-violet-600 dark:text-violet-400" />}
-          iconBg="bg-violet-50 dark:bg-violet-950/50"
+          icon={<Users className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#0a84ff]" />}
+          iconBg="bg-[#f2f4f7] dark:bg-[#2c2c2e]"
           sub={`${dbClients.length} total în BD`}
         />
         <KPICard
-          title="Facturi Arhivă"
+          title="Facturi arhivă"
           value={archiveInvoices.length.toString()}
-          icon={<Percent className="w-5 h-5 text-amber-600 dark:text-amber-400" />}
-          iconBg="bg-amber-50 dark:bg-amber-950/50"
+          icon={<Percent className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d]" />}
+          iconBg="bg-[#f2f4f7] dark:bg-[#2c2c2e]"
           sub="Din toate sursele"
         />
       </div>
 
       {/* Chart evoluție lunară */}
       {monthlyData.length > 0 && (
-        <div className="bg-white dark:bg-slate-900 rounded-[22px] shadow-sm border border-slate-200 dark:border-slate-800 p-6">
-          <div className="flex items-center gap-2 mb-6">
-            <LineChartIcon className="w-5 h-5 text-blue-600" />
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              Evoluție Venituri (ultimele 6 luni)
+        <div className="apple-surface p-4 sm:p-5">
+          <div className="flex items-center gap-2 mb-5">
+            <span className="w-7 h-7 rounded-[8px] bg-[#f2f4f7] dark:bg-[#2c2c2e] flex items-center justify-center shrink-0">
+              <LineChartIcon className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#0a84ff]" />
+            </span>
+            <h2 className="text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+              Evoluție venituri (ultimele 6 luni)
             </h2>
           </div>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={monthlyData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="month" stroke="#94a3b8" />
-              <YAxis stroke="#94a3b8" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(142,142,147,0.2)" />
+              <XAxis dataKey="month" stroke="#8e8e93" fontSize={12} />
+              <YAxis stroke="#8e8e93" fontSize={12} />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "#1e293b",
-                  border: "1px solid #475569",
+                  backgroundColor: "#1c1c1e",
+                  border: "1px solid rgba(255,255,255,0.10)",
                   borderRadius: "12px",
-                  color: "#f1f5f9",
+                  color: "#f5f5f7",
+                  fontSize: "12px",
                 }}
               />
               <Legend />
               <Line
                 type="monotone"
                 dataKey="emise"
-                stroke="#2563eb"
+                stroke="#0071e3"
                 strokeWidth={2}
-                dot={{ fill: "#2563eb", r: 4 }}
-                name="Facturi Emise (RON)"
+                dot={{ fill: "#0071e3", r: 4 }}
+                name="Facturi emise (RON)"
               />
               <Line
                 type="monotone"
@@ -246,7 +250,7 @@ export default function Reports() {
                 stroke="#e11d48"
                 strokeWidth={2}
                 dot={{ fill: "#e11d48", r: 4 }}
-                name="Facturi Primite (RON)"
+                name="Facturi primite (RON)"
               />
             </LineChart>
           </ResponsiveContainer>
@@ -254,56 +258,60 @@ export default function Reports() {
       )}
 
       {/* Top Clienți */}
-      <div className="bg-white dark:bg-slate-900 rounded-[22px] shadow-sm border border-slate-200 dark:border-slate-800 p-6">
-        <div className="flex items-center gap-2 mb-6">
-          <BarChart3 className="w-5 h-5 text-violet-600" />
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-            Top Clienți după venituri
+      <div className="apple-surface overflow-hidden">
+        <div className="flex items-center gap-2 px-4 sm:px-5 py-3.5 border-b border-black/[0.05] dark:border-white/[0.07]">
+          <span className="w-7 h-7 rounded-[8px] bg-[#f2f4f7] dark:bg-[#2c2c2e] flex items-center justify-center shrink-0">
+            <BarChart3 className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#0a84ff]" />
+          </span>
+          <h2 className="text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+            Top clienți după venituri
           </h2>
         </div>
         {topClients.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-700">
+            <table className="w-full">
+              <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+                <tr>
                   {[
-                    "#",
+                    "Nr.",
                     "Client",
                     "Venituri",
                     "Re-facturi",
-                    "Marjă Medie",
+                    "Marjă medie",
                     "Marjă %",
                   ].map(h => (
                     <th
                       key={h}
-                      className="text-left py-3 px-4 font-semibold text-slate-600 dark:text-slate-400 last:text-right"
+                      className="text-left py-3 px-4 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] last:text-right whitespace-nowrap"
                     >
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
                 {topClients.map((c: any, i: number) => (
                   <tr
                     key={c.clientId}
-                    className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                    className="transition-colors hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035]"
                   >
-                    <td className="py-3 px-4 tabular-nums text-slate-500">{i + 1}</td>
-                    <td className="py-3 px-4 font-medium text-slate-900 dark:text-white">
+                    <td className="py-3 px-4 text-[12px] font-medium tabular-nums text-[#8e8e93]">
+                      {i + 1}
+                    </td>
+                    <td className="py-3 px-4 text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                       {c.clientName}
                     </td>
-                    <td className="py-3 px-4 tabular-nums text-slate-900 dark:text-white">
+                    <td className="py-3 px-4 text-[13.5px] font-medium tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">
                       {formatCurrency(c.totalRevenue, selectedCurrency)}
                     </td>
-                    <td className="py-3 px-4 tabular-nums text-slate-600 dark:text-slate-400">
+                    <td className="py-3 px-4 text-[13px] tabular-nums text-[#6e6e73] dark:text-[#98989d]">
                       {c.reInvoiceCount}
                     </td>
-                    <td className="py-3 px-4 tabular-nums text-slate-900 dark:text-white">
+                    <td className="py-3 px-4 text-[13px] tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">
                       {formatCurrency(c.averageMargin, selectedCurrency)}
                     </td>
                     <td className="py-3 px-4 text-right">
-                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 text-xs font-semibold tabular-nums">
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300 text-[11px] font-medium tabular-nums">
                         {c.marginPercentage.toFixed(1)}%
                       </span>
                     </td>
@@ -313,10 +321,10 @@ export default function Reports() {
             </table>
           </div>
         ) : (
-          <div className="text-center py-12 text-slate-400">
-            <BarChart3 className="w-10 h-10 mx-auto mb-3 opacity-30" />
-            <p className="text-sm">Nicio re-factură înregistrată încă.</p>
-            <p className="text-xs mt-1">
+          <div className="text-center py-12 text-[#6e6e73] dark:text-[#98989d]">
+            <BarChart3 className="w-8 h-8 mx-auto mb-2.5 opacity-30" />
+            <p className="text-[13px]">Nicio re-factură înregistrată încă.</p>
+            <p className="text-[12px] mt-1 opacity-80">
               Datele vor apărea automat după prima re-facturare.
             </p>
           </div>
@@ -325,25 +333,27 @@ export default function Reports() {
 
       {/* Facturi din arhivă */}
       {archiveInvoices.length > 0 && (
-        <div className="bg-white dark:bg-slate-900 rounded-[22px] shadow-sm border border-slate-200 dark:border-slate-800 p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Users className="w-5 h-5 text-blue-600" />
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+        <div className="apple-surface overflow-hidden">
+          <div className="flex items-center gap-2 px-4 sm:px-5 py-3.5 border-b border-black/[0.05] dark:border-white/[0.07]">
+            <span className="w-7 h-7 rounded-[8px] bg-[#f2f4f7] dark:bg-[#2c2c2e] flex items-center justify-center shrink-0">
+              <Users className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#0a84ff]" />
+            </span>
+            <h2 className="text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
               Facturi în arhivă
             </h2>
-            <span className="ml-auto text-xs text-slate-500 tabular-nums">
+            <span className="ml-auto text-[12px] text-[#6e6e73] dark:text-[#98989d] tabular-nums">
               {archiveInvoices.length} total
             </span>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-700">
-                  {["Furnizor", "Nr. Factură", "Dată", "Total", "Sursă"].map(
+            <table className="w-full">
+              <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+                <tr>
+                  {["Furnizor", "Nr. factură", "Dată", "Total", "Sursă"].map(
                     h => (
                       <th
                         key={h}
-                        className="text-left py-2 px-4 font-semibold text-slate-600 dark:text-slate-400"
+                        className="text-left py-3 px-4 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap"
                       >
                         {h}
                       </th>
@@ -351,33 +361,33 @@ export default function Reports() {
                   )}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
                 {(archiveInvoices as any[]).slice(0, 20).map((inv: any) => {
                   const d = inv.issueDate ? new Date(inv.issueDate) : null;
                   return (
                     <tr
                       key={inv.id}
-                      className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                      className="transition-colors hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035]"
                     >
-                      <td className="py-2 px-4 font-medium text-slate-900 dark:text-white">
+                      <td className="py-2.5 px-4 text-[13.5px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">
                         {inv.supplierName || "—"}
                       </td>
-                      <td className="py-2 px-4 tabular-nums text-slate-600 dark:text-slate-300">
+                      <td className="py-2.5 px-4 text-[13px] tabular-nums text-[#6e6e73] dark:text-[#98989d]">
                         {inv.invoiceNumber}
                       </td>
-                      <td className="py-2 px-4 tabular-nums text-slate-500 dark:text-slate-400">
+                      <td className="py-2.5 px-4 text-[13px] tabular-nums text-[#6e6e73] dark:text-[#98989d]">
                         {d && !isNaN(d.getTime())
                           ? d.toLocaleDateString("ro-RO")
                           : "—"}
                       </td>
-                      <td className="py-2 px-4 tabular-nums text-slate-900 dark:text-white">
+                      <td className="py-2.5 px-4 text-[13.5px] font-semibold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">
                         {formatCurrency(
                           Number(inv.total || 0),
                           (inv.currency || "RON") as Currency
                         )}
                       </td>
-                      <td className="py-2 px-4">
-                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300">
+                      <td className="py-2.5 px-4">
+                        <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#ebebf5]">
                           {inv.source}
                         </span>
                       </td>
@@ -407,22 +417,26 @@ function KPICard({
   sub?: string;
 }) {
   return (
-    <div className="bg-white dark:bg-[#1c1c1e] rounded-2xl shadow-2xs border border-black/[0.06] dark:border-white/[0.09] px-3.5 py-2.5">
-      <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <p className="text-[10.5px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] truncate">
-            {title}
-          </p>
-          <p className="text-lg sm:text-[20px] font-bold tabular-nums text-[#1d1d1f] dark:text-white mt-0.5 leading-tight truncate">
-            {value}
-          </p>
-          {sub && <p className="text-[11px] text-[#636366] dark:text-[#98989d] mt-0.5 truncate">{sub}</p>}
-        </div>
-        <div
-          className={`w-8 h-8 rounded-xl ${iconBg} flex items-center justify-center flex-shrink-0`}
+    <div className="apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+      <div className="flex items-center justify-between gap-2 w-full">
+        <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+          {title}
+        </span>
+        <span
+          className={`w-7 h-7 rounded-[8px] ${iconBg} flex items-center justify-center shrink-0`}
         >
           {icon}
-        </div>
+        </span>
+      </div>
+      <div className="min-w-0 tabular-nums">
+        <p className="text-[22px] sm:text-[26px] font-bold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.028em] leading-none truncate">
+          {value}
+        </p>
+        {sub && (
+          <p className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] mt-1.5 truncate">
+            {sub}
+          </p>
+        )}
       </div>
     </div>
   );

@@ -1007,33 +1007,36 @@ export default function ContractCreate() {
   };
 
   return (
-    <div className="w-full max-w-full overflow-x-hidden p-2.5 sm:p-4 space-y-3 pb-12">
-      {/* 1. Header Compact: Titlu, Mod de lucru & Butoane Salvare (FARA spatiu pierdut) */}
-      <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-200 dark:border-slate-800">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            asChild
-            className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
-          >
-            <Link href="/contracte">
+    <div className="w-full max-w-full overflow-x-hidden p-3 sm:p-5 space-y-4 pb-12">
+      {/* 1. Header — Apple macOS Window Title, Mode Switcher & Actions */}
+      <div className="flex flex-wrap items-center justify-between gap-3 px-0.5">
+        <div className="flex items-center gap-3 min-w-0">
+          <Link href="/contracte">
+            <button
+              type="button"
+              aria-label="Înapoi la Contracte"
+              className="apple-btn-glass h-9 w-9 rounded-full flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white transition-all cursor-pointer shrink-0"
+            >
               <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
+            </button>
+          </Link>
 
-          <div className="flex flex-wrap items-center gap-2 min-w-0">
-            <h1 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-              <FileSignature className="h-4 w-4 text-slate-700 dark:text-slate-300 shrink-0" />
-              Redactare & Semnare Contract
-            </h1>
-            <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 truncate max-w-full">
-              {activeTenantName}
-            </span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 min-w-0">
+              <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
+                Redactare & Semnare Contract
+              </h1>
+              <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#ebebf5] truncate max-w-full">
+                {activeTenantName}
+              </span>
+            </div>
+            <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
+              Configurare șablon, clauze comerciale și semnătură electronică sau arhivare PDF
+            </p>
           </div>
         </div>
 
-        {/* Butoane comutare mod & Salvare in coltul din dreapta */}
+        {/* Butoane comutare mod & Salvare */}
         <div className="flex items-center gap-2 flex-wrap max-w-full">
           <div className="apple-segmented flex-wrap sm:flex-nowrap !rounded-2xl sm:!rounded-full max-w-full">
             <button
@@ -1057,54 +1060,52 @@ export default function ContractCreate() {
             </button>
           </div>
 
-          <Button
-            variant="outline"
-            size="sm"
-            asChild
-            className="h-8 rounded-full text-xs border-slate-300 dark:border-slate-700"
+          <Link
+            href="/contracte"
+            className="apple-btn-glass flex items-center justify-center h-9 px-3.5 rounded-full text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]"
           >
-            <Link href="/contracte">Anulează</Link>
-          </Button>
+            Anulează
+          </Link>
 
-          <Button
-            size="sm"
+          <button
+            type="button"
             onClick={handleSave}
             disabled={createMutation.isPending || isUploading}
-            className="h-8 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs shadow-xs dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
+            className="apple-btn-prominent flex items-center justify-center gap-1.5 h-9 px-4 rounded-full text-white font-semibold text-[12.5px] disabled:opacity-50 cursor-pointer"
           >
             {createMutation.isPending ? (
-              <span className="flex items-center gap-1.5">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Se salvează...
-              </span>
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                <span>Se salvează...</span>
+              </>
             ) : (
-              <span className="flex items-center gap-1.5">
-                <Save className="h-3.5 w-3.5" />
-                Salvează Contractul
-              </span>
+              <>
+                <Save className="h-3.5 w-3.5 shrink-0" />
+                <span>Salvează Contractul</span>
+              </>
             )}
-          </Button>
+          </button>
         </div>
       </div>
 
       {/* Mesaj de eroare inline */}
       {errorMsg && (
-        <div className="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 p-2.5 rounded-2xl text-xs text-rose-700 dark:text-rose-300 font-medium flex items-center gap-2">
-          <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
+        <div className="bg-[#ff3b30]/10 border border-[#ff3b30]/25 p-3 rounded-2xl text-xs text-[#ff3b30] dark:text-[#ff6961] font-medium flex items-center gap-2">
+          <AlertCircle className="h-4 w-4 shrink-0" />
           <span>{errorMsg}</span>
         </div>
       )}
 
-      {/* 2. Panou Principal de Configurare (Curat, Modern, Aerisit) */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-[22px] p-4 shadow-xs space-y-3">
+      {/* 2. Panou Principal de Configurare */}
+      <div className="apple-surface p-4 sm:p-5 space-y-3.5">
         {/* Rândul 1: Cele 2 alegeri primare - Model Contract & Client */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start [&>div]:min-w-0">
           {/* Col 1: Model Contract / Șablon */}
           <div>
             <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                <FileText className="h-3.5 w-3.5 text-primary" />
-                Model Contract (Șablon)
+              <label className="text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-1.5">
+                <FileText className="h-3.5 w-3.5 text-[#6e6e73] dark:text-[#98989d]" />
+                Model contract (șablon)
               </label>
               {/* Comutator Rapid Limbă: RO | EN | Bilingv */}
               <div className="apple-segmented">
@@ -1112,7 +1113,7 @@ export default function ContractCreate() {
                   type="button"
                   data-active={docLanguage === "ro"}
                   onClick={() => handleLanguageChange("ro")}
-                  className="apple-segmented-item !h-6 px-2.5 !text-[10.5px]"
+                  className="apple-segmented-item !h-6 px-2.5 !text-[11px]"
                   title="Contract în limba Română"
                 >
                   RO
@@ -1121,7 +1122,7 @@ export default function ContractCreate() {
                   type="button"
                   data-active={docLanguage === "en"}
                   onClick={() => handleLanguageChange("en")}
-                  className="apple-segmented-item !h-6 px-2.5 !text-[10.5px]"
+                  className="apple-segmented-item !h-6 px-2.5 !text-[11px]"
                   title="Agreement in English"
                 >
                   EN
@@ -1130,7 +1131,7 @@ export default function ContractCreate() {
                   type="button"
                   data-active={docLanguage === "ro_en"}
                   onClick={() => handleLanguageChange("ro_en")}
-                  className="apple-segmented-item !h-6 px-2.5 !text-[10.5px]"
+                  className="apple-segmented-item !h-6 px-2.5 !text-[11px]"
                   title="Contract Bilingv: 2 coloane paralele Română și Engleză"
                 >
                   RO + EN (Bilingv)
@@ -1142,26 +1143,26 @@ export default function ContractCreate() {
               value={selectedTemplateId}
               onValueChange={(val) => handleApplyTemplate(val)}
             >
-              <SelectTrigger className="w-full min-w-0 max-w-full h-9 rounded-xl text-xs font-semibold border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/70 overflow-hidden text-left">
-                <span className="truncate block min-w-0 flex-1 font-semibold text-slate-900 dark:text-white">
+              <SelectTrigger className="apple-input w-full min-w-0 max-w-full h-10 px-3 text-[13px] font-medium overflow-hidden text-left">
+                <span className="truncate block min-w-0 flex-1 font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">
                   {templates.find((t) => t.id === selectedTemplateId)?.name ||
                     (selectedTemplateId === "empty"
                       ? "Document Liber (Pagină albă / Ciornă)"
                       : "Alege model de contract...")}
                 </span>
               </SelectTrigger>
-              <SelectContent className="rounded-xl text-xs max-w-[500px]">
+              <SelectContent className="rounded-2xl text-xs max-w-[500px]">
                 {templates.map((t) => (
                   <SelectItem key={t.id} value={t.id} className="text-xs py-2 cursor-pointer">
-                    <div className="font-semibold text-slate-900 dark:text-white">{t.name}</div>
+                    <div className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">{t.name}</div>
                     {t.description && (
-                      <div className="text-[11px] text-slate-500 whitespace-normal mt-0.5 leading-snug">
+                      <div className="text-[11px] text-[#6e6e73] dark:text-[#98989d] whitespace-normal mt-0.5 leading-snug">
                         {t.description}
                       </div>
                     )}
                   </SelectItem>
                 ))}
-                <SelectItem value="empty" className="text-xs py-2 text-slate-500 cursor-pointer">
+                <SelectItem value="empty" className="text-xs py-2 text-[#6e6e73] dark:text-[#98989d] cursor-pointer">
                   Document Liber (Pagină albă / Ciornă)
                 </SelectItem>
               </SelectContent>
@@ -1171,16 +1172,20 @@ export default function ContractCreate() {
           {/* Col 2: Partener Contractual SAGA */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                <Building2 className="h-3.5 w-3.5 text-primary" />
+              <label className="text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-1.5">
+                <Building2 className="h-3.5 w-3.5 text-[#6e6e73] dark:text-[#98989d]" />
                 Partener (SAGA)
               </label>
               {selectedPartner ? (
-                <span className="text-[11px] text-slate-500 tabular-nums">
-                  CUI: {selectedPartner.cui || "-"} {selectedPartner.regCom ? `• Reg. Com: ${selectedPartner.regCom}` : ""} {selectedPartner.city ? `• ${selectedPartner.city}` : ""}
+                <span className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] tabular-nums truncate max-w-[260px]">
+                  CUI: {selectedPartner.cui || "-"}
+                  {selectedPartner.regCom ? ` · ${selectedPartner.regCom}` : ""}
+                  {selectedPartner.city ? ` · ${selectedPartner.city}` : ""}
                 </span>
               ) : (
-                <span className="text-[10px] text-slate-400">{partners.length} parteneri disponibili</span>
+                <span className="text-[11.5px] text-[#8e8e93] tabular-nums">
+                  {partners.length} parteneri disponibili
+                </span>
               )}
             </div>
 
@@ -1193,40 +1198,40 @@ export default function ContractCreate() {
               placeholder="Caută client sau furnizor după nume, CUI sau cod SAGA..."
             />
 
-            {/* Date Contact Client - Apar ordonat și discret DOAR dacă partenerul este ales */}
+            {/* Date Contact Client */}
             {selectedPartner && (
-              <div className="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2.5 pt-2.5 border-t border-black/[0.05] dark:border-white/[0.07]">
                 <div>
-                  <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block mb-0.5">
-                    Reprezentant:
+                  <label className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
+                    Reprezentant
                   </label>
-                  <Input
+                  <input
                     value={partnerContactName}
                     onChange={(e) => handleContactChange("contactName", e.target.value)}
                     placeholder="ex: Ion Popescu"
-                    className="h-7 text-xs px-2 rounded-lg bg-slate-50/70 dark:bg-slate-800/60"
+                    className="apple-input w-full h-8 text-xs px-2.5 text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block mb-0.5">
-                    Telefon:
+                  <label className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
+                    Telefon
                   </label>
-                  <Input
+                  <input
                     value={partnerPhone}
                     onChange={(e) => handleContactChange("phone", e.target.value)}
                     placeholder="ex: 0722..."
-                    className="h-7 text-xs px-2 rounded-lg tabular-nums bg-slate-50/70 dark:bg-slate-800/60"
+                    className="apple-input w-full h-8 text-xs px-2.5 tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block mb-0.5">
-                    Email:
+                  <label className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
+                    Email
                   </label>
-                  <Input
+                  <input
                     value={partnerEmail}
                     onChange={(e) => handleContactChange("email", e.target.value)}
                     placeholder="ex: client@..."
-                    className="h-7 text-xs px-2 rounded-lg bg-slate-50/70 dark:bg-slate-800/60"
+                    className="apple-input w-full h-8 text-xs px-2.5 text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
                   />
                 </div>
               </div>
@@ -1234,14 +1239,16 @@ export default function ContractCreate() {
           </div>
         </div>
 
-        {/* Rândul 2: Bară de Opțiuni (Dedicată 100% Wood Glass pt Tenant 4 vs Rezumat Standard pt ceilalți tenanți) */}
+        {/* Rândul 2: Bară de Opțiuni (Dedicată Wood Glass vs Rezumat Standard) */}
         {isWoodGlassTenant ? (
-          <div className="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2.5 text-xs">
-            {/* Linia 1 din Bara de Opțiuni Wood Glass: 1. Data Contractului, 2. Fără valabilitate, 3. Nr. Contract Crescător, 4. Suma, 5. Valuta EUR/LEI, 6. Transport Inclus Da/Nu */}
-            <div className="flex flex-wrap items-center gap-2 bg-slate-50/90 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200/90 dark:border-slate-700/80">
-              {/* 3. Număr contract crescător */}
-              <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-2xs">
-                <span className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">Nr. Contract:</span>
+          <div className="pt-3 border-t border-black/[0.05] dark:border-white/[0.07] space-y-2.5 text-xs">
+            {/* Linia 1 Wood Glass */}
+            <div className="flex flex-wrap items-center gap-2 bg-[#f2f2f7] dark:bg-[#2c2c2e] p-2.5 rounded-2xl">
+              {/* Număr contract crescător */}
+              <div className="flex items-center gap-1.5 bg-white dark:bg-[#1c1c1e] px-2.5 py-1 rounded-full border border-black/[0.06] dark:border-white/[0.08]">
+                <span className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                  Nr. contract:
+                </span>
                 <button
                   type="button"
                   onClick={() => {
@@ -1249,16 +1256,16 @@ export default function ContractCreate() {
                     const prev = !isNaN(n) && n > 1 ? String(n - 1) : docNumber;
                     handleCommercialChange({ docNumber: prev });
                   }}
-                  className="h-7 w-7 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center transition-colors"
+                  className="apple-btn-glass h-6 w-6 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] font-bold text-xs flex items-center justify-center cursor-pointer"
                   title="Scade numărul contractului"
                 >
                   -
                 </button>
-                <Input
+                <input
                   type="text"
                   value={docNumber}
                   onChange={(e) => handleCommercialChange({ docNumber: e.target.value })}
-                  className="h-6 w-16 rounded-lg text-xs tabular-nums font-bold text-center px-1 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700"
+                  className="apple-input h-6 w-16 text-xs tabular-nums font-semibold text-center px-1.5 text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
                 />
                 <button
                   type="button"
@@ -1267,83 +1274,77 @@ export default function ContractCreate() {
                     const next = !isNaN(n) ? String(n + 1) : "365";
                     handleCommercialChange({ docNumber: next });
                   }}
-                  className="h-7 w-7 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center transition-colors"
+                  className="apple-btn-glass h-6 w-6 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] font-bold text-xs flex items-center justify-center cursor-pointer"
                   title="Crește numărul contractului (+1)"
                 >
                   +
                 </button>
               </div>
 
-              {/* 1. Data contractului (2. Fără valabilitate) */}
-              <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-2xs">
-                <span className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">Data Contract:</span>
-                <Input
+              {/* Data contractului */}
+              <div className="flex items-center gap-1.5 bg-white dark:bg-[#1c1c1e] px-2.5 py-1 rounded-full border border-black/[0.06] dark:border-white/[0.08]">
+                <span className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                  Dată:
+                </span>
+                <input
                   type="date"
                   value={docDate}
                   onChange={(e) => handleCommercialChange({ docDate: e.target.value })}
-                  className="h-6 w-32 rounded-lg text-xs tabular-nums px-1.5 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 font-medium"
+                  className="h-6 w-32 text-xs tabular-nums px-1 bg-transparent text-[#1d1d1f] dark:text-[#f5f5f7] font-medium outline-none"
                 />
               </div>
 
-              {/* 4. Suma & 5. Valuta EUR / LEI */}
-              <div className="flex items-center gap-1.5 bg-emerald-50/90 dark:bg-emerald-950/40 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800 shadow-2xs">
-                <span className="text-[10px] font-bold uppercase text-emerald-800 dark:text-emerald-300">Suma:</span>
-                <Input
+              {/* Suma & Valuta EUR / LEI */}
+              <div className="flex items-center gap-1.5 bg-white dark:bg-[#1c1c1e] px-2.5 py-1 rounded-full border border-black/[0.06] dark:border-white/[0.08]">
+                <span className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                  Sumă:
+                </span>
+                <input
                   type="text"
                   value={docValue}
                   onChange={(e) => handleCommercialChange({ docValue: e.target.value })}
                   placeholder="ex: 28.305,71"
-                  className="h-6 w-28 rounded-lg text-xs tabular-nums font-bold text-right px-1.5 bg-white dark:bg-slate-900 border-emerald-300 dark:border-emerald-700"
+                  className="apple-input h-6 w-28 text-xs tabular-nums font-semibold text-right px-2 text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
                 />
-                <div className="inline-flex items-center p-0.5 rounded-full bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700">
+                <div className="apple-segmented">
                   <button
                     type="button"
+                    data-active={docCurrency === "EUR"}
                     onClick={() => handleCommercialChange({ docCurrency: "EUR" })}
-                    className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full transition-colors ${
-                      docCurrency === "EUR"
-                        ? "bg-emerald-600 text-white"
-                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                    }`}
+                    className="apple-segmented-item !h-6 px-2.5 !text-[10.5px]"
                   >
                     EUR
                   </button>
                   <button
                     type="button"
+                    data-active={docCurrency === "LEI" || docCurrency === "RON"}
                     onClick={() => handleCommercialChange({ docCurrency: "LEI" })}
-                    className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full transition-colors ${
-                      docCurrency === "LEI" || docCurrency === "RON"
-                        ? "bg-emerald-600 text-white"
-                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                    }`}
+                    className="apple-segmented-item !h-6 px-2.5 !text-[10.5px]"
                   >
                     LEI
                   </button>
                 </div>
               </div>
 
-              {/* 6. Transport inclus: Da / Nu */}
-              <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-2xs">
-                <span className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-400">Transport inclus:</span>
-                <div className="inline-flex items-center p-0.5 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              {/* Transport inclus: Da / Nu */}
+              <div className="flex items-center gap-1.5 bg-white dark:bg-[#1c1c1e] px-2.5 py-1 rounded-full border border-black/[0.06] dark:border-white/[0.08]">
+                <span className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                  Transport inclus:
+                </span>
+                <div className="apple-segmented">
                   <button
                     type="button"
+                    data-active={wgTransportIncluded === "da"}
                     onClick={() => handleCommercialChange({ wgTransportIncluded: "da" })}
-                    className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full transition-colors ${
-                      wgTransportIncluded === "da"
-                        ? "bg-blue-600 text-white shadow-2xs"
-                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                    }`}
+                    className="apple-segmented-item !h-6 px-2.5 !text-[10.5px]"
                   >
                     DA
                   </button>
                   <button
                     type="button"
+                    data-active={wgTransportIncluded === "nu"}
                     onClick={() => handleCommercialChange({ wgTransportIncluded: "nu" })}
-                    className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full transition-colors ${
-                      wgTransportIncluded === "nu"
-                        ? "bg-amber-600 text-white shadow-2xs"
-                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                    }`}
+                    className="apple-segmented-item !h-6 px-2.5 !text-[10.5px]"
                   >
                     NU
                   </button>
@@ -1351,37 +1352,39 @@ export default function ContractCreate() {
               </div>
 
               {/* Ofertă de preț nr. / dată */}
-              <div className="flex items-center gap-1.5 bg-blue-50/70 dark:bg-blue-950/30 px-2.5 py-1 rounded-full border border-blue-200/80 dark:border-blue-800">
-                <span className="text-[10px] font-bold uppercase text-blue-800 dark:text-blue-300">Oferta (OFR):</span>
-                <Input
+              <div className="flex items-center gap-1.5 bg-white dark:bg-[#1c1c1e] px-2.5 py-1 rounded-full border border-black/[0.06] dark:border-white/[0.08]">
+                <span className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                  Oferta (OFR):
+                </span>
+                <input
                   type="text"
                   value={offerNumber}
                   onChange={(e) => handleCommercialChange({ offerNumber: e.target.value })}
                   placeholder="4089"
-                  className="h-6 w-16 rounded-lg text-xs tabular-nums px-1.5 bg-white dark:bg-slate-900 border-blue-300 dark:border-blue-700"
+                  className="apple-input h-6 w-16 text-xs tabular-nums px-1.5 text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
                 />
-                <span className="text-slate-400">/</span>
-                <Input
+                <span className="text-[#8e8e93]">/</span>
+                <input
                   type="date"
                   value={offerDate}
                   onChange={(e) => handleCommercialChange({ offerDate: e.target.value })}
-                  className="h-6 w-30 rounded-lg text-xs tabular-nums px-1 bg-white dark:bg-slate-900 border-blue-300 dark:border-blue-700"
+                  className="h-6 w-30 text-xs tabular-nums px-1 bg-transparent text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
                 />
               </div>
             </div>
 
-            {/* Linia 2 din Bara de Opțiuni Wood Glass: 7. Tip Tâmplărie (Lemn A/B/C/D, Aluminiu + text, PVC cu geam termoizolant) & 8. Tip Intern/Extern + PF/PJ */}
-            <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-50/90 dark:bg-slate-800/60 p-2.5 rounded-2xl border border-slate-200/90 dark:border-slate-700/80">
-              {/* 7. Tip Tâmplărie */}
+            {/* Linia 2 Wood Glass */}
+            <div className="flex flex-wrap items-center justify-between gap-2 bg-[#f2f2f7] dark:bg-[#2c2c2e] p-2.5 rounded-2xl">
+              {/* Tip Tâmplărie */}
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-300 mr-0.5">
-                  Tip Tâmplărie:
+                <span className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d] mr-0.5">
+                  Tip tâmplărie:
                 </span>
 
-                {/* Selector Categorie: Lemn | Aluminiu | PVC */}
-                <div className="inline-flex items-center p-1 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                <div className="apple-segmented flex-wrap sm:flex-nowrap !rounded-2xl sm:!rounded-full">
                   <button
                     type="button"
+                    data-active={wgCarpentryCategory === "lemn"}
                     onClick={() => {
                       setWgCarpentryCategory("lemn");
                       const mapPreset: Record<string, string> = {
@@ -1398,16 +1401,13 @@ export default function ContractCreate() {
                           : mapPreset[wgWoodOption] || "Tâmplărie lemn stratificat, esență meranti, 68 mm";
                       handleCommercialChange({ woodEssence: nextEssence });
                     }}
-                    className={`px-3 py-1 text-[11px] font-bold rounded-full transition-colors ${
-                      wgCarpentryCategory === "lemn"
-                        ? "bg-amber-700 text-white shadow-2xs"
-                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                    }`}
+                    className="apple-segmented-item !h-7 px-3 !text-[11px]"
                   >
                     Lemn
                   </button>
                   <button
                     type="button"
+                    data-active={wgCarpentryCategory === "aluminiu"}
                     onClick={() => {
                       setWgCarpentryCategory("aluminiu");
                       const nextEssence = wgCustomCarpentryText.trim()
@@ -1418,16 +1418,13 @@ export default function ContractCreate() {
                         : "Tâmplărie aluminiu";
                       handleCommercialChange({ woodEssence: nextEssence });
                     }}
-                    className={`px-3 py-1 text-[11px] font-bold rounded-full transition-colors ${
-                      wgCarpentryCategory === "aluminiu"
-                        ? "bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 shadow-2xs"
-                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                    }`}
+                    className="apple-segmented-item !h-7 px-3 !text-[11px]"
                   >
                     Aluminiu
                   </button>
                   <button
                     type="button"
+                    data-active={wgCarpentryCategory === "pvc"}
                     onClick={() => {
                       setWgCarpentryCategory("pvc");
                       const nextEssence = wgCustomCarpentryText.trim()
@@ -1435,17 +1432,12 @@ export default function ContractCreate() {
                         : "Tâmplărie PVC cu geam termoizolant";
                       handleCommercialChange({ woodEssence: nextEssence });
                     }}
-                    className={`px-3 py-1 text-[11px] font-bold rounded-full transition-colors ${
-                      wgCarpentryCategory === "pvc"
-                        ? "bg-sky-600 text-white shadow-2xs"
-                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                    }`}
+                    className="apple-segmented-item !h-7 px-3 !text-[11px]"
                   >
                     PVC cu geam termoizolant
                   </button>
                 </div>
 
-                {/* Sub-opțiuni Lemn: A. Meranti 68/92, B. Stejar 68/92, C. Pin 68/92, D. Opțiune de text */}
                 {wgCarpentryCategory === "lemn" && (
                   <select
                     value={wgWoodOption}
@@ -1468,7 +1460,7 @@ export default function ContractCreate() {
                         handleCommercialChange({ woodEssence: customVal });
                       }
                     }}
-                    className="h-8 leading-normal rounded-lg text-xs font-semibold px-2 bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 text-slate-900 dark:text-white"
+                    className="apple-input h-8 text-xs font-medium px-2.5 bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
                   >
                     <optgroup label="A. Meranti">
                       <option value="meranti_68">A. Meranti 68</option>
@@ -1488,11 +1480,10 @@ export default function ContractCreate() {
                   </select>
                 )}
 
-                {/* Câmp text pentru Lemn (D. Opțiune de text), Aluminiu (+ câmp text), sau detalii PVC */}
                 {(wgCarpentryCategory === "aluminiu" ||
                   wgCarpentryCategory === "pvc" ||
                   (wgCarpentryCategory === "lemn" && wgWoodOption === "custom")) && (
-                  <Input
+                  <input
                     type="text"
                     value={wgCustomCarpentryText}
                     onChange={(e) => {
@@ -1519,89 +1510,78 @@ export default function ContractCreate() {
                       wgCarpentryCategory === "aluminiu"
                         ? "Detalii aluminiu (ex: cu geam termoizolant, profil Schüco / Reynaers...)"
                         : wgCarpentryCategory === "pvc"
-                        ? "Detalii opționale PVC..."
-                        : "Introduceți textul pentru tâmplărie lemn..."
+                          ? "Detalii opționale PVC..."
+                          : "Introduceți textul pentru tâmplărie lemn..."
                     }
-                    className="h-7 w-64 rounded-lg text-xs px-2 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700"
+                    className="apple-input h-8 w-64 text-xs px-2.5 bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
                   />
                 )}
               </div>
 
-              {/* 8. Tip: Intern sau Extern + Persoană Fizică (PF) sau Juridică (PJ) */}
+              {/* Intern / Extern + PF / PJ */}
               <div className="flex flex-wrap items-center gap-2">
-                {/* Intern / Extern */}
-                <div className="flex items-center gap-1 bg-white dark:bg-slate-900 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700">
-                  <span className="text-[10px] font-bold uppercase text-slate-500">Tip:</span>
-                  <button
-                    type="button"
-                    onClick={() => handleCommercialChange({ wgMarketType: "intern", paymentTranches: "50-40-10" })}
-                    className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full transition-colors ${
-                      wgMarketType === "intern"
-                        ? "bg-indigo-600 text-white shadow-2xs"
-                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                    }`}
-                    title="Contract Intern (Model 393) — Recepția lucrării prin Proces-Verbal de predare-primire, inclusiv TVA"
-                  >
-                    Intern (PV)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleCommercialChange({ wgMarketType: "extern", paymentTranches: "50-50" })}
-                    className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full transition-colors ${
-                      wgMarketType === "extern"
-                        ? "bg-indigo-600 text-white shadow-2xs"
-                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                    }`}
-                    title="Contract Extern (Model 324 PF / 392 PJ) — Recepția lucrării prin CMR"
-                  >
-                    Extern (CMR)
-                  </button>
+                <div className="flex items-center gap-1.5 bg-white dark:bg-[#1c1c1e] px-2.5 py-1 rounded-full border border-black/[0.06] dark:border-white/[0.08]">
+                  <span className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                    Tip:
+                  </span>
+                  <div className="apple-segmented">
+                    <button
+                      type="button"
+                      data-active={wgMarketType === "intern"}
+                      onClick={() => handleCommercialChange({ wgMarketType: "intern", paymentTranches: "50-40-10" })}
+                      className="apple-segmented-item !h-6 px-2.5 !text-[10.5px]"
+                      title="Contract Intern (Model 393) — Recepția lucrării prin Proces-Verbal de predare-primire, inclusiv TVA"
+                    >
+                      Intern (PV)
+                    </button>
+                    <button
+                      type="button"
+                      data-active={wgMarketType === "extern"}
+                      onClick={() => handleCommercialChange({ wgMarketType: "extern", paymentTranches: "50-50" })}
+                      className="apple-segmented-item !h-6 px-2.5 !text-[10.5px]"
+                      title="Contract Extern (Model 324 PF / 392 PJ) — Recepția lucrării prin CMR"
+                    >
+                      Extern (CMR)
+                    </button>
+                  </div>
                 </div>
 
-                {/* Persoană Fizică / Persoană Juridică */}
-                <div className="flex items-center gap-1 bg-white dark:bg-slate-900 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700">
-                  <span className="text-[10px] font-bold uppercase text-slate-500">Beneficiar:</span>
-                  <button
-                    type="button"
-                    onClick={() => handleCommercialChange({ wgBeneficiaryType: "pf" })}
-                    className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full transition-colors ${
-                      wgBeneficiaryType === "pf"
-                        ? "bg-violet-600 text-white shadow-2xs"
-                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                    }`}
-                  >
-                    Pers. Fizică (PF)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleCommercialChange({ wgBeneficiaryType: "pj" })}
-                    className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full transition-colors ${
-                      wgBeneficiaryType === "pj"
-                        ? "bg-violet-600 text-white shadow-2xs"
-                        : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                    }`}
-                  >
-                    Pers. Juridică (PJ)
-                  </button>
+                <div className="flex items-center gap-1.5 bg-white dark:bg-[#1c1c1e] px-2.5 py-1 rounded-full border border-black/[0.06] dark:border-white/[0.08]">
+                  <span className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                    Beneficiar:
+                  </span>
+                  <div className="apple-segmented">
+                    <button
+                      type="button"
+                      data-active={wgBeneficiaryType === "pf"}
+                      onClick={() => handleCommercialChange({ wgBeneficiaryType: "pf" })}
+                      className="apple-segmented-item !h-6 px-2.5 !text-[10.5px]"
+                    >
+                      Pers. Fizică (PF)
+                    </button>
+                    <button
+                      type="button"
+                      data-active={wgBeneficiaryType === "pj"}
+                      onClick={() => handleCommercialChange({ wgBeneficiaryType: "pj" })}
+                      className="apple-segmented-item !h-6 px-2.5 !text-[10.5px]"
+                    >
+                      Pers. Juridică (PJ)
+                    </button>
+                  </div>
                 </div>
 
-                {/* Badge Regim Recepție & TVA */}
-                <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-200/80 dark:bg-slate-700 text-slate-800 dark:text-slate-200">
+                <span className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-white dark:bg-[#1c1c1e] text-[#3a3a3c] dark:text-[#ebebf5] border border-black/[0.06] dark:border-white/[0.08]">
                   {wgMarketType === "intern"
-                    ? "Recepție: PV Predare-Primire • + TVA"
+                    ? "Recepție: PV Predare-Primire · + TVA"
                     : wgBeneficiaryType === "pf"
-                    ? "Recepție: CMR • + TVA (PF)"
-                    : "Recepție: CMR • Fără TVA (PJ Extern)"}
+                      ? "Recepție: CMR · + TVA (PF)"
+                      : "Recepție: CMR · Fără TVA (PJ Extern)"}
                 </span>
 
                 <button
                   type="button"
                   onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
-                  className={`text-[11px] font-semibold flex items-center gap-1 px-3 py-1 rounded-full border transition-all ${
-                    showAdvancedSettings
-                      ? "bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900"
-                      : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50"
-                  }`}
+                  className="apple-btn-glass text-[11.5px] font-semibold flex items-center gap-1.5 px-3 h-8 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
                 >
                   <SlidersHorizontal className="h-3 w-3" />
                   <span>Tranșe & Livrare</span>
@@ -1611,38 +1591,40 @@ export default function ContractCreate() {
             </div>
           </div>
         ) : (
-          <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="pt-3 border-t border-black/[0.05] dark:border-white/[0.07] flex flex-wrap items-center justify-between gap-2 text-xs">
             {/* Rezumat Rapid pentru ceilalți tenanți */}
             <div className="flex flex-wrap items-center gap-2">
-              <span className="tabular-nums text-xs font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700">
+              <span className="tabular-nums text-[12px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] bg-[#f2f2f7] dark:bg-[#2c2c2e] px-3 py-1 rounded-full">
                 Nr. {docNumber}
               </span>
-              <span className="tabular-nums text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 px-2.5 py-1 rounded-full border border-slate-200/60 dark:border-slate-700/60">
+              <span className="tabular-nums text-[12px] text-[#6e6e73] dark:text-[#98989d] bg-[#f2f2f7] dark:bg-[#2c2c2e] px-3 py-1 rounded-full">
                 Data: {docDate}
               </span>
 
               {!selectedTemplateId.includes("saas") ? (
-                <div className="flex items-center gap-1.5 bg-emerald-50/80 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
-                  <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300">Valoare:</span>
-                  <Input
+                <div className="flex items-center gap-1.5 bg-[#f2f2f7] dark:bg-[#2c2c2e] px-2.5 py-0.5 rounded-full">
+                  <span className="text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                    Valoare:
+                  </span>
+                  <input
                     type="text"
                     value={docValue}
                     onChange={(e) => handleCommercialChange({ docValue: e.target.value })}
                     placeholder="ex: 2.864,65"
-                    className="h-6 w-24 rounded-lg text-xs tabular-nums font-bold text-right px-1.5 bg-white dark:bg-slate-900 border-emerald-300 dark:border-emerald-700"
+                    className="apple-input h-6 w-24 text-xs tabular-nums font-semibold text-right px-2 bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
                   />
                   <select
                     value={docCurrency}
                     onChange={(e) => handleCommercialChange({ docCurrency: e.target.value })}
-                    className="h-6 rounded-full text-[11px] font-bold px-2 bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200"
+                    className="h-6 rounded-full text-[11px] font-semibold px-2 bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
                   >
                     <option value="EUR">EUR</option>
                     <option value="RON">RON</option>
                   </select>
                 </div>
               ) : (
-                <span className="tabular-nums text-xs font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800">
-                  {hasTrial ? `Probă ${trialMonths}m • ` : ""}
+                <span className="tabular-nums text-[12px] font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 dark:bg-emerald-500/18 px-3 py-1 rounded-full">
+                  {hasTrial ? `Probă ${trialMonths}m · ` : ""}
                   {hasPromo
                     ? `Promo €${promoPrice} (${promoMonths}m) + Bază €${basePrice} (${Math.max(1, totalDurationMonths - promoMonths)}m)`
                     : `Tarif €${basePrice} (${totalDurationMonths}m)`}
@@ -1656,21 +1638,18 @@ export default function ContractCreate() {
                 <button
                   type="button"
                   onClick={() => handleApplyTemplate(selectedTemplateId)}
-                  className="text-[11px] text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 px-2.5 py-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-medium"
+                  className="apple-btn-glass text-[12px] text-[#6e6e73] hover:text-[#1d1d1f] dark:text-[#98989d] dark:hover:text-[#f5f5f7] flex items-center gap-1.5 px-3 h-8 rounded-full font-semibold cursor-pointer"
                   title="Reîncarcă șablonul original în editor"
                 >
-                  <RefreshCw className="h-3 w-3" /> Reîncarcă
+                  <RefreshCw className="h-3 w-3" />
+                  <span>Reîncarcă</span>
                 </button>
               )}
 
               <button
                 type="button"
                 onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
-                className={`text-xs font-semibold flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border transition-all ${
-                  showAdvancedSettings
-                    ? "bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 shadow-xs"
-                    : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
-                }`}
+                className="apple-btn-glass text-[12px] font-semibold flex items-center gap-1.5 px-3.5 h-8 rounded-full text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
               >
                 <SlidersHorizontal className="h-3.5 w-3.5" />
                 <span>Personalizează Clauze & Detalii</span>
@@ -1680,24 +1659,22 @@ export default function ContractCreate() {
           </div>
         )}
 
-        {/* Panou Extensibil de Setări & Parametri (Adaptat automat pe specificul Tenantului activ) */}
+        {/* Panou Extensibil de Setări & Parametri */}
         {showAdvancedSettings && (
-          <div className="pt-3 border-t border-slate-200 dark:border-slate-800 mt-2 space-y-3 bg-slate-50/70 dark:bg-slate-900/60 p-3.5 rounded-xl border border-slate-200/80 dark:border-slate-800">
-            {/* Secțiunea A: Parametri specifici Wood Glass vs Parametri SaaS Trade Invest */}
+          <div className="pt-3 border-t border-black/[0.05] dark:border-white/[0.07] mt-2 space-y-3 bg-[#f2f2f7] dark:bg-[#2c2c2e] p-4 rounded-2xl">
             {isWoodGlassTenant || !selectedTemplateId.includes("saas") ? (
               <div>
-                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-2">
+                <div className="text-[12px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] mb-2.5">
                   {isWoodGlassTenant
-                    ? "Clauze Comerciale & Tehnice Wood Glass (Tâmplărie Lemn Stratificat):"
-                    : "Parametri Comerciali Contract:"}
+                    ? "Clauze comerciale și tehnice Wood Glass (Tâmplărie Lemn Stratificat)"
+                    : "Parametri comerciali contract"}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                   {isWoodGlassTenant && (
                     <>
-                      {/* Esență / Obiect Tâmplărie */}
                       <div className="sm:col-span-2">
-                        <label className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">
-                          Produs / Esență Tâmplărie (Cap. A - Obiectul Contractului):
+                        <label className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
+                          Produs / Esență tâmplărie (Cap. A — Obiectul contractului)
                         </label>
                         <div className="flex items-center gap-1.5">
                           <select
@@ -1716,7 +1693,7 @@ export default function ContractCreate() {
                                 handleCommercialChange({ woodEssence: e.target.value });
                               }
                             }}
-                            className="h-8 rounded-lg text-xs px-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-medium shrink-0"
+                            className="apple-input h-8 text-xs px-2.5 bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] font-medium shrink-0 outline-none"
                           >
                             <option value="Tâmplărie Lemn Stratificat, esență Pin 68 mm">Pin 68 mm (Standard 387)</option>
                             <option value="Tâmplărie din lemn stratificat, esență Stejar 68 mm">Stejar 68 mm (Standard 388)</option>
@@ -1724,26 +1701,25 @@ export default function ContractCreate() {
                             <option value="Tâmplărie Lemn Stratificat, esență Meranti 68 mm">Meranti 68 mm</option>
                             <option value="custom">Personalizat...</option>
                           </select>
-                          <Input
+                          <input
                             value={woodEssence}
                             onChange={(e) => handleCommercialChange({ woodEssence: e.target.value })}
-                            className="h-8 rounded-lg text-xs px-2 bg-white dark:bg-slate-800"
+                            className="apple-input w-full h-8 text-xs px-2.5 bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
                             placeholder="Ex: Tâmplărie Lemn Stratificat, esență Pin 68 mm"
                           />
                         </div>
                       </div>
 
-                      {/* Tranșe de Plată (Cap. D) */}
                       <div className="sm:col-span-2">
-                        <label className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">
-                          Modalități de Plată / Tranșe (Cap. D):
+                        <label className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
+                          Modalități de plată / tranșe (Cap. D)
                         </label>
                         <select
                           value={paymentTranches}
                           onChange={(e) =>
                             handleCommercialChange({ paymentTranches: e.target.value as "50-40-10" | "50-50" })
                           }
-                          className="w-full h-8 rounded-lg text-xs px-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-semibold text-slate-800 dark:text-slate-200"
+                          className="apple-input w-full h-8 text-xs px-2.5 bg-white dark:bg-[#1c1c1e] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
                         >
                           <option value="50-40-10">
                             3 Tranșe: 50% la semnare • 40% cu 5 zile înainte de livrare • 10% la recepție (Model 387)
@@ -1754,61 +1730,61 @@ export default function ContractCreate() {
                         </select>
                       </div>
 
-                      {/* Nr. Ofertă de Preț */}
                       <div>
-                        <label className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">
-                          Nr. Ofertă de Preț (Anexă):
+                        <label className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
+                          Nr. ofertă de preț (Anexă)
                         </label>
-                        <Input
+                        <input
                           value={offerNumber}
                           onChange={(e) => handleCommercialChange({ offerNumber: e.target.value })}
                           placeholder="Ex: 4650 sau OFR 4761"
-                          className="h-8 rounded-lg text-xs tabular-nums px-2 bg-white dark:bg-slate-800"
+                          className="apple-input w-full h-8 text-xs tabular-nums px-2.5 bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
                         />
                       </div>
 
-                      {/* Data Ofertei de Preț */}
                       <div>
-                        <label className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">
-                          Data Ofertei de Preț:
+                        <label className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
+                          Data ofertei de preț
                         </label>
-                        <Input
+                        <input
                           type="date"
                           value={offerDate}
                           onChange={(e) => handleCommercialChange({ offerDate: e.target.value })}
-                          className="h-8 rounded-lg text-xs px-2 bg-white dark:bg-slate-800"
+                          className="apple-input w-full h-8 text-xs px-2.5 bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums outline-none"
                         />
                       </div>
 
-                      {/* Termen Producție / Livrare */}
                       <div>
-                        <label className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">
-                          Termen Livrare (Cap. E):
+                        <label className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
+                          Termen livrare (Cap. E)
                         </label>
                         <div className="flex items-center gap-1.5">
-                          <Input
+                          <input
                             type="text"
                             value={deliveryDays}
                             onChange={(e) => handleCommercialChange({ deliveryDays: e.target.value })}
-                            className="h-8 rounded-lg text-xs tabular-nums text-center px-2 bg-white dark:bg-slate-800"
+                            className="apple-input w-full h-8 text-xs tabular-nums text-center px-2 bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
                           />
-                          <span className="text-[11px] text-slate-500 font-medium shrink-0">zile cal.</span>
+                          <span className="text-[11px] text-[#6e6e73] dark:text-[#98989d] font-medium shrink-0">
+                            zile cal.
+                          </span>
                         </div>
                       </div>
 
-                      {/* Garanție (Cap. B) */}
                       <div>
-                        <label className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">
-                          Garanție Oferită (Cap. B):
+                        <label className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
+                          Garanție oferită (Cap. B)
                         </label>
                         <div className="flex items-center gap-1.5">
-                          <Input
+                          <input
                             type="text"
                             value={warrantyYears}
                             onChange={(e) => handleCommercialChange({ warrantyYears: e.target.value })}
-                            className="h-8 rounded-lg text-xs tabular-nums text-center px-2 bg-white dark:bg-slate-800"
+                            className="apple-input w-full h-8 text-xs tabular-nums text-center px-2 bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
                           />
-                          <span className="text-[11px] text-slate-500 font-medium shrink-0">ani</span>
+                          <span className="text-[11px] text-[#6e6e73] dark:text-[#98989d] font-medium shrink-0">
+                            ani
+                          </span>
                         </div>
                       </div>
                     </>
@@ -1817,136 +1793,149 @@ export default function ContractCreate() {
               </div>
             ) : (
               <div>
-                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-2">
-                  Clauze Comerciale, Tarife & Durată:
+                <div className="text-[12px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] mb-2.5">
+                  Clauze comerciale, tarife și durată
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {/* Preț Bază */}
-                  <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
-                    <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase">Preț Bază:</span>
-                    <Input
+                  <div className="flex items-center gap-1.5 bg-white dark:bg-[#1c1c1e] px-3 py-1 rounded-full border border-black/[0.06] dark:border-white/[0.08]">
+                    <span className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                      Preț bază:
+                    </span>
+                    <input
                       type="text"
                       value={basePrice}
                       onChange={(e) => handleCommercialChange({ basePrice: e.target.value })}
-                      className="h-6 w-14 rounded text-xs tabular-nums text-center px-1"
+                      className="apple-input h-6 w-14 text-xs tabular-nums text-center px-1 text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
                     />
-                    <span className="text-[10px] text-slate-500 font-medium">{docCurrency} / lună</span>
+                    <span className="text-[11px] text-[#6e6e73] dark:text-[#98989d] font-medium">
+                      {docCurrency} / lună
+                    </span>
                   </div>
 
                   {/* Probă Gratuită */}
-                  <div
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-colors ${
-                      hasTrial
-                        ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800"
-                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
-                    }`}
-                  >
+                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1c1c1e]">
                     <label className="flex items-center gap-1.5 cursor-pointer select-none">
                       <input
                         type="checkbox"
                         checked={hasTrial}
                         onChange={(e) => handleCommercialChange({ hasTrial: e.target.checked })}
-                        className="rounded border-slate-300 dark:border-slate-600 text-slate-900 focus:ring-0 h-3.5 w-3.5"
+                        className="rounded border-black/20 dark:border-white/20 text-primary h-3.5 w-3.5"
                       />
-                      <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">Probă Gratuită</span>
+                      <span className="text-xs font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">
+                        Probă gratuită
+                      </span>
                     </label>
                     {hasTrial && (
-                      <div className="flex items-center gap-1 ml-1 pl-1.5 border-l border-emerald-200 dark:border-emerald-800">
-                        <Input
+                      <div className="flex items-center gap-1 ml-1 pl-1.5 border-l border-black/[0.08] dark:border-white/[0.1]">
+                        <input
                           type="number"
                           min="1"
                           max="12"
                           value={trialMonths}
                           onChange={(e) => handleCommercialChange({ trialMonths: parseInt(e.target.value) || 1 })}
-                          className="h-6 w-11 rounded text-xs tabular-nums text-center px-1"
+                          className="apple-input h-6 w-11 text-xs tabular-nums text-center px-1 text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
                         />
-                        <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-medium">luni</span>
+                        <span className="text-[11px] text-emerald-700 dark:text-emerald-300 font-medium">
+                          luni
+                        </span>
                       </div>
                     )}
                   </div>
 
                   {/* Tarif Promo */}
-                  <div
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-colors ${
-                      hasPromo
-                        ? "bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-800"
-                        : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
-                    }`}
-                  >
+                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-black/[0.06] dark:border-white/[0.08] bg-white dark:bg-[#1c1c1e]">
                     <label className="flex items-center gap-1.5 cursor-pointer select-none">
                       <input
                         type="checkbox"
                         checked={hasPromo}
                         onChange={(e) => handleCommercialChange({ hasPromo: e.target.checked })}
-                        className="rounded border-slate-300 dark:border-slate-600 text-slate-900 focus:ring-0 h-3.5 w-3.5"
+                        className="rounded border-black/20 dark:border-white/20 text-primary h-3.5 w-3.5"
                       />
-                      <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">Tarif Promo</span>
+                      <span className="text-xs font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">
+                        Tarif promo
+                      </span>
                     </label>
                     {hasPromo && (
-                      <div className="flex items-center gap-1 ml-1 pl-1.5 border-l border-blue-200 dark:border-blue-800">
-                        <Input
+                      <div className="flex items-center gap-1 ml-1 pl-1.5 border-l border-black/[0.08] dark:border-white/[0.1]">
+                        <input
                           type="text"
                           value={promoPrice}
                           onChange={(e) => handleCommercialChange({ promoPrice: e.target.value })}
-                          className="h-6 w-14 rounded text-xs tabular-nums text-center px-1"
+                          className="apple-input h-6 w-14 text-xs tabular-nums text-center px-1 text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
                         />
-                        <span className="text-[10px] text-blue-700 dark:text-blue-400 font-medium">{docCurrency} primele</span>
-                        <Input
+                        <span className="text-[11px] text-[#6e6e73] dark:text-[#98989d] font-medium">
+                          {docCurrency} primele
+                        </span>
+                        <input
                           type="number"
                           min="1"
                           max="12"
                           value={promoMonths}
                           onChange={(e) => handleCommercialChange({ promoMonths: parseInt(e.target.value) || 1 })}
-                          className="h-6 w-11 rounded text-xs tabular-nums text-center px-1"
+                          className="apple-input h-6 w-11 text-xs tabular-nums text-center px-1 text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
                         />
-                        <span className="text-[10px] text-blue-700 dark:text-blue-400 font-medium">luni</span>
+                        <span className="text-[11px] text-[#6e6e73] dark:text-[#98989d] font-medium">
+                          luni
+                        </span>
                       </div>
                     )}
                   </div>
 
                   {/* Durată & Prelungire */}
-                  <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
-                    <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase">Durată:</span>
-                    <Input
+                  <div className="flex items-center gap-1.5 bg-white dark:bg-[#1c1c1e] px-3 py-1 rounded-full border border-black/[0.06] dark:border-white/[0.08]">
+                    <span className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                      Durată:
+                    </span>
+                    <input
                       type="number"
                       min="1"
                       max="60"
                       value={totalDurationMonths}
                       onChange={(e) => handleCommercialChange({ totalDurationMonths: parseInt(e.target.value) || 12 })}
-                      className="h-6 w-12 rounded text-xs tabular-nums text-center px-1"
+                      className="apple-input h-6 w-12 text-xs tabular-nums text-center px-1 text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
                     />
-                    <span className="text-[10px] text-slate-500 font-medium">luni</span>
-                    <span className="text-slate-300 dark:text-slate-600">|</span>
-                    <span className="text-[10px] text-slate-500 font-medium">Prelungire:</span>
-                    <Input
+                    <span className="text-[11px] text-[#6e6e73] dark:text-[#98989d] font-medium">
+                      luni
+                    </span>
+                    <span className="text-[#8e8e93]">|</span>
+                    <span className="text-[11px] text-[#6e6e73] dark:text-[#98989d] font-medium">
+                      Prelungire:
+                    </span>
+                    <input
                       type="number"
                       min="1"
                       max="36"
                       value={autoRenewalMonths}
                       onChange={(e) => handleCommercialChange({ autoRenewalMonths: parseInt(e.target.value) || 12 })}
-                      className="h-6 w-12 rounded text-xs tabular-nums text-center px-1"
+                      className="apple-input h-6 w-12 text-xs tabular-nums text-center px-1 text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
                     />
-                    <span className="text-[10px] text-slate-500 font-medium">luni</span>
+                    <span className="text-[11px] text-[#6e6e73] dark:text-[#98989d] font-medium">
+                      luni
+                    </span>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => handleCommercialChange({})}
-                    className="text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 border border-slate-300 dark:border-slate-700 px-3 py-1 rounded-full bg-white dark:bg-slate-900 hover:bg-slate-50 transition-colors ml-auto shadow-xs"
+                    className="apple-btn-glass text-xs font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-1.5 px-3 h-8 rounded-full ml-auto cursor-pointer"
                     title="Sincronizează clauzele din contract cu noile valori"
                   >
-                    <RefreshCw className="h-3 w-3" /> Sincronizează Clauze
+                    <RefreshCw className="h-3 w-3" />
+                    <span>Sincronizează Clauze</span>
                   </button>
                 </div>
               </div>
             )}
 
             {/* Secțiunea B: Detalii Trasabilitate & Document */}
-            <div className="pt-2 border-t border-slate-200/80 dark:border-slate-800 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
+            <div className="pt-3 border-t border-black/[0.06] dark:border-white/[0.08] grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
               <div>
-                <label className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">Tip Document:</label>
+                <label className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
+                  Tip document
+                </label>
                 <Select value={docType} onValueChange={setDocType}>
-                  <SelectTrigger className="h-8 rounded-lg text-xs bg-white dark:bg-slate-800">
+                  <SelectTrigger className="apple-input h-8 text-xs bg-white dark:bg-[#1c1c1e]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl text-xs">
@@ -1960,56 +1949,68 @@ export default function ContractCreate() {
               </div>
 
               <div>
-                <label className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">Număr Document:</label>
-                <Input
+                <label className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
+                  Număr document
+                </label>
+                <input
                   value={docNumber}
                   onChange={(e) => handleCommercialChange({ docNumber: e.target.value })}
-                  className="h-8 rounded-lg text-xs tabular-nums px-2 bg-white dark:bg-slate-800"
+                  className="apple-input w-full h-8 text-xs tabular-nums px-2.5 bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
                 />
               </div>
 
               <div>
-                <label className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">Dată Încheiere:</label>
-                <Input
+                <label className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
+                  Dată încheiere
+                </label>
+                <input
                   type="date"
                   value={docDate}
                   onChange={(e) => {
                     const val = e.target.value;
                     handleCommercialChange({ docDate: val });
                   }}
-                  className="h-8 rounded-lg text-xs px-2 bg-white dark:bg-slate-800"
+                  className="apple-input w-full h-8 text-xs px-2.5 bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums outline-none"
                 />
               </div>
 
               {!isWoodGlassTenant && (
                 <div>
-                  <label className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">Valabil Până La:</label>
-                  <Input
+                  <label className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
+                    Valabil până la
+                  </label>
+                  <input
                     type="date"
                     value={validUntil}
                     onChange={(e) => setValidUntil(e.target.value)}
-                    className="h-8 rounded-lg text-xs px-2 bg-white dark:bg-slate-800"
+                    className="apple-input w-full h-8 text-xs px-2.5 bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums outline-none"
                   />
                 </div>
               )}
 
               <div>
-                <label className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">Termen Plată Factură:</label>
-                <div className="flex items-center gap-1">
-                  <Input
+                <label className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
+                  Termen plată factură
+                </label>
+                <div className="flex items-center gap-1.5">
+                  <input
                     type="text"
                     value={paymentTermDays}
                     onChange={(e) => setPaymentTermDays(e.target.value)}
-                    className="h-8 rounded-lg text-xs tabular-nums px-2 text-center bg-white dark:bg-slate-800"
+                    className="apple-input w-full h-8 text-xs tabular-nums px-2 text-center bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
                   />
-                  <span className="text-[11px] text-slate-500 font-medium">zile</span>
+                  <span className="text-[11px] text-[#6e6e73] dark:text-[#98989d] font-medium">
+                    zile
+                  </span>
                 </div>
               </div>
 
               <div>
-                <label className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">Status:</label>
+                <label className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
+                  Status
+                </label>
                 <Select value={docStatus} onValueChange={(v) => setDocStatus(v as any)}>
-                  <SelectTrigger className="h-8 rounded-lg text-xs bg-white dark:bg-slate-800">
+                  <SelectTrigger className="apple-input h-8 text-xs bg-white dark:bg-[#1c1c1e]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl text-xs">
@@ -2022,29 +2023,35 @@ export default function ContractCreate() {
               </div>
 
               <div className="col-span-2 sm:col-span-3 md:col-span-6">
-                <label className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 block mb-1">Notă / Explicație în Jurnal:</label>
-                <Input
+                <label className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d] block mb-1">
+                  Notă / Explicație în jurnal
+                </label>
+                <input
                   value={explanation}
                   onChange={(e) => setExplanation(e.target.value)}
-                  className="h-8 rounded-lg text-xs px-2 bg-white dark:bg-slate-800"
-                  placeholder={isWoodGlassTenant ? "Ex: Contract Vânzare-Cumpărare Tâmplărie Lemn Stratificat..." : "Ex: Contract comercial agreat..."}
+                  className="apple-input w-full h-8 text-xs px-2.5 bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
+                  placeholder={
+                    isWoodGlassTenant
+                      ? "Ex: Contract Vânzare-Cumpărare Tâmplărie Lemn Stratificat..."
+                      : "Ex: Contract comercial agreat..."
+                  }
                 />
               </div>
             </div>
           </div>
         )}
 
-        {/* Rând adițional doar dacă este Act Adițional (Legați de Contractul Principal) */}
+        {/* Rând adițional doar dacă este Act Adițional */}
         {docType === "act_aditional" && (
-          <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 text-xs">
-            <span className="font-semibold text-slate-600 dark:text-slate-400 shrink-0">
-              Contract Principal de Bază:
+          <div className="mt-2 pt-2.5 border-t border-black/[0.05] dark:border-white/[0.07] flex items-center gap-2 text-xs flex-wrap">
+            <span className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] shrink-0">
+              Contract principal de bază:
             </span>
             <Select
               value={parentContractId ? String(parentContractId) : ""}
               onValueChange={(val) => setParentContractId(val ? parseInt(val) : null)}
             >
-              <SelectTrigger className="h-7 rounded-lg text-xs max-w-md">
+              <SelectTrigger className="apple-input h-8 text-xs max-w-md">
                 <SelectValue placeholder="Alege contractul principal..." />
               </SelectTrigger>
               <SelectContent className="rounded-xl text-xs">
@@ -2067,7 +2074,6 @@ export default function ContractCreate() {
 
       {/* 3. Conținut principal în funcție de mod */}
       {activeMode === "editor" ? (
-        /* Modul 1: Editor Vizual Contract & Semnături (Imediat sub bara de comandă, fără spațiu pierdut) */
         <div className="space-y-3">
           <ContractVisualEditor
             key={selectedTemplateId}
@@ -2104,15 +2110,15 @@ export default function ContractCreate() {
           />
 
           {/* Notă Înregistrare Jurnal de Audit */}
-          <div className="rounded-[22px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 shadow-xs flex items-center gap-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 shrink-0">
-              Notă Audit:
+          <div className="apple-surface p-3.5 flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+            <span className="text-[12px] font-semibold text-[#6e6e73] dark:text-[#98989d] shrink-0">
+              Notă audit:
             </span>
-            <Input
+            <input
               value={explanation}
               onChange={(e) => setExplanation(e.target.value)}
               placeholder="Ex: Contract agreat și semnat cu specificații complete..."
-              className="h-7 rounded-lg text-xs"
+              className="apple-input w-full h-8 px-3 text-xs text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
             />
           </div>
         </div>
@@ -2126,12 +2132,12 @@ export default function ContractCreate() {
             }}
             onDragLeave={() => setIsDragging(false)}
             onDrop={handleDrop}
-            className={`rounded-[22px] border-2 border-dashed transition-all p-6 text-center ${
+            className={`apple-surface border-2 border-dashed transition-all p-6 text-center ${
               isDragging
-                ? "border-slate-900 bg-slate-50 dark:bg-slate-800"
+                ? "border-primary bg-primary/5"
                 : uploadedFile
-                ? "border-emerald-300 dark:border-emerald-800 bg-emerald-50/20"
-                : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-slate-400"
+                  ? "border-emerald-500/40"
+                  : "border-black/[0.12] dark:border-white/[0.14]"
             }`}
           >
             <input
@@ -2148,40 +2154,40 @@ export default function ContractCreate() {
 
             {isUploading ? (
               <div className="flex items-center justify-center gap-3 py-4 text-center">
-                <Loader2 className="h-5 w-5 animate-spin text-slate-700 dark:text-slate-300 shrink-0" />
+                <Loader2 className="h-5 w-5 animate-spin text-[#6e6e73] shrink-0" />
                 <div className="text-left">
-                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">
+                  <h4 className="text-xs font-bold text-[#1d1d1f] dark:text-[#f5f5f7]">
                     Se încarcă și se analizează contractul...
                   </h4>
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d]">
                     Detectare automată număr, dată, valoare, monedă și partener
                   </p>
                 </div>
               </div>
             ) : uploadedFile ? (
               <div className="space-y-3 text-left">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 rounded-2xl bg-[#f2f2f7] dark:bg-[#2c2c2e]">
                   <div className="flex items-center gap-3 min-w-0 text-left">
-                    <div className="h-9 w-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                    <div className="h-9 w-9 rounded-xl bg-emerald-500/15 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
                       <FileCheck className="h-5 w-5" />
                     </div>
                     <div className="min-w-0">
-                      <div className="font-bold text-xs text-slate-900 dark:text-white truncate">
+                      <div className="font-semibold text-[13px] text-[#1d1d1f] dark:text-[#f5f5f7] truncate">
                         {uploadedFile.fileName}
                       </div>
-                      <div className="text-[11px] text-slate-500 flex flex-wrap items-center gap-2 mt-0.5 tabular-nums">
+                      <div className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] flex flex-wrap items-center gap-2 mt-0.5 tabular-nums">
                         <span>Dimensiune: {formatFileSize(uploadedFile.fileSize)}</span>
                         {uploadedFile.detectedPartnerName && (
-                          <span className="text-blue-700 dark:text-blue-300 font-semibold">
-                            • Partener: {uploadedFile.detectedPartnerName}
+                          <span className="text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold">
+                            · Partener: {uploadedFile.detectedPartnerName}
                           </span>
                         )}
                         {uploadedFile.detectedValue && (
                           <span className="text-emerald-700 dark:text-emerald-300 font-semibold">
-                            • Valoare: {uploadedFile.detectedValue} {uploadedFile.detectedCurrency || docCurrency}
+                            · Valoare: {uploadedFile.detectedValue} {uploadedFile.detectedCurrency || docCurrency}
                           </span>
                         )}
-                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                        <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
                           <CheckCircle2 className="h-3 w-3" />
                           Date extrase din document
                         </span>
@@ -2189,69 +2195,65 @@ export default function ContractCreate() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <Button
+                    <button
                       type="button"
-                      variant="outline"
-                      size="sm"
                       onClick={() => fileInputRef.current?.click()}
-                      className="rounded-full text-xs"
+                      className="apple-btn-glass px-3.5 h-8 rounded-full text-xs font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
                     >
                       Înlocuiește fișier
-                    </Button>
-                    <Button
+                    </button>
+                    <button
                       type="button"
-                      size="sm"
                       onClick={handleSave}
                       disabled={createMutation.isPending}
-                      className="rounded-full text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                      className="apple-btn-prominent flex items-center gap-1.5 px-4 h-8 rounded-full text-xs text-white font-semibold disabled:opacity-50 cursor-pointer"
                     >
-                      <Save className="h-3.5 w-3.5 mr-1.5" />
-                      Salvează Contractul Importat
-                    </Button>
+                      <Save className="h-3.5 w-3.5" />
+                      <span>Salvează Contractul Importat</span>
+                    </button>
                   </div>
                 </div>
 
                 {uploadedFile.fileUrl && /\.pdf$/i.test(uploadedFile.fileName || "") && (
-                  <div className="rounded-[22px] border border-slate-200 dark:border-slate-800 overflow-hidden bg-slate-900">
+                  <div className="apple-doc-stage p-2 sm:p-3 rounded-2xl overflow-hidden">
                     <iframe
                       src={`${uploadedFile.fileUrl}#view=FitH`}
-                      className="w-full h-[650px] border-0 bg-white"
+                      className="w-full h-[650px] border-0 bg-white rounded-xl"
                       title={uploadedFile.fileName}
                     />
                   </div>
                 )}
               </div>
             ) : (
-              <div className="py-6 space-y-2">
-                <Upload className="h-8 w-8 mx-auto text-slate-400" />
-                <h4 className="text-xs font-bold text-slate-900 dark:text-white">
+              <div className="py-6 space-y-2.5">
+                <Upload className="h-8 w-8 mx-auto text-[#8e8e93]" />
+                <h4 className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                   Trageți fișierul PDF sau Word (.docx) al contractului aici sau faceți click pentru a selecta
                 </h4>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d]">
                   Acceptat: PDF sau Word (.docx) — extragere automată număr, dată, valoare și partener (max 25 MB)
                 </p>
-                <Button
+                <button
                   type="button"
-                  size="sm"
                   onClick={() => fileInputRef.current?.click()}
-                  className="rounded-full text-xs bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-100 dark:text-slate-900 mt-2"
+                  className="apple-btn-prominent inline-flex items-center justify-center rounded-full text-[12.5px] font-semibold text-white px-4 h-9 mt-2 cursor-pointer"
                 >
                   Selectează Fișier PDF / Word
-                </Button>
+                </button>
               </div>
             )}
           </div>
 
           {/* Notă Înregistrare Jurnal de Audit */}
-          <div className="rounded-[22px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 shadow-xs flex items-center gap-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 shrink-0">
-              Notă Arhivare:
+          <div className="apple-surface p-3.5 flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+            <span className="text-[12px] font-semibold text-[#6e6e73] dark:text-[#98989d] shrink-0">
+              Notă arhivare:
             </span>
-            <Input
+            <input
               value={explanation}
               onChange={(e) => setExplanation(e.target.value)}
               placeholder="Ex: Contract semnat fizic, scanat și arhivat..."
-              className="h-7 rounded-lg text-xs"
+              className="apple-input w-full h-8 px-3 text-xs text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
             />
           </div>
         </div>

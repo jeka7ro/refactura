@@ -109,11 +109,11 @@ function computeLineVAT(line: Line) {
 }
 
 const inputCls =
-  "w-full h-9 px-3 text-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 !rounded-md text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500";
+  "w-full h-9 px-3 text-[16px] sm:text-[13px] border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] !rounded-xl text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] focus:outline-none focus:border-[#0071e3] transition-colors";
 const selectCls =
-  "w-full h-9 px-3 text-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 !rounded-md text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500";
+  "w-full h-9 px-3 text-[16px] sm:text-[13px] border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] !rounded-xl text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none focus:border-[#0071e3] cursor-pointer transition-colors";
 const labelCls =
-  "block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1";
+  "block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1";
 
 export default function EmitInvoice() {
   const [, navigate] = useLocation();
@@ -1320,22 +1320,22 @@ export default function EmitInvoice() {
   };
 
   return (
-    <div className="p-3 sm:p-5 max-w-full space-y-4 pb-20 sm:pb-28">
+    <div className="p-3 sm:p-5 max-w-full space-y-4 pb-20 sm:pb-28 overflow-x-hidden">
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <button
             type="button"
             onClick={() => navigate("/facturi-emise-nou")}
-            className="w-8 h-8 flex items-center justify-center rounded-full apple-btn-glass border border-black/[0.06] dark:border-white/[0.09] hover:bg-black/[0.04] dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
+            className="w-8 h-8 flex items-center justify-center rounded-full apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7] transition-colors cursor-pointer shrink-0"
           >
-            <ArrowLeft className="w-4 h-4 text-[#3a3a3c] dark:text-[#ebebf5]" />
+            <ArrowLeft className="w-4 h-4" />
           </button>
-          <div>
-            <h1 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">
+          <div className="min-w-0">
+            <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
               Emite Factură Nouă
             </h1>
             {tenant && (
-              <p className="text-xs text-slate-500">
+              <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5 tabular-nums truncate">
                 {tenant.name}
                 {tenant.cui ? ` • CUI: ${tenant.cui}` : ""}
               </p>
@@ -1345,23 +1345,23 @@ export default function EmitInvoice() {
       </div>
 
       {isSpvValidated && (
-        <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 flex items-center justify-between gap-4 flex-wrap shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/60 flex items-center justify-center shrink-0">
-              <Lock className="w-5 h-5 text-amber-700 dark:text-amber-300" />
+        <div className="apple-surface border-amber-500/30 dark:border-amber-500/30 p-4 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/12 dark:bg-amber-500/18 flex items-center justify-center shrink-0">
+              <Lock className="w-5 h-5 text-amber-600 dark:text-amber-400" />
             </div>
-            <div>
-              <p className="font-bold text-sm">Factură blocată la editare (Document oficial înregistrat în SPV)</p>
-              <p className="text-xs text-amber-800 dark:text-amber-300 mt-0.5">
+            <div className="min-w-0">
+              <p className="font-semibold text-[13.5px] text-[#1d1d1f] dark:text-[#f5f5f7]">Factură blocată la editare (Document oficial înregistrat în SPV)</p>
+              <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d] mt-0.5 leading-relaxed">
                 Această factură a fost deja transmisă și validată în RO e-Factura / SPV{(originalInvoice as any)?.spvIndex ? ` (Index: ${(originalInvoice as any)?.spvIndex})` : ""}. Conform legislației fiscale (OUG 120/2021 și Codul Fiscal art. 330), documentul original oficial nu mai poate fi modificat direct. Pentru corecții, emiteți o factură de stornare.
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <Link href={`/facturi-emise-nou/view/${editId}`}>
               <button
                 type="button"
-                className="px-3.5 h-8 rounded-lg border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-900 text-amber-900 dark:text-amber-200 text-xs font-semibold hover:bg-amber-50 dark:hover:bg-slate-800 transition-colors shadow-xs"
+                className="px-3.5 h-8 rounded-full apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-medium transition-colors cursor-pointer"
               >
                 Vezi Factura
               </button>
@@ -1369,7 +1369,7 @@ export default function EmitInvoice() {
             <Link href={`/facturi-emise-nou/storno/${editId}`}>
               <button
                 type="button"
-                className="flex items-center gap-1.5 px-3.5 h-8 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm transition-all active:scale-[0.97]"
+                className="flex items-center gap-1.5 px-3.5 h-8 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-[12.5px] font-semibold transition-all active:scale-[0.97] cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 Stornează Factura
@@ -1379,9 +1379,9 @@ export default function EmitInvoice() {
         </div>
       )}
 
-      <div className="bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] rounded-[22px] p-4 sm:p-5 space-y-4 shadow-xs">
+      <div className="apple-surface p-4 sm:p-5 space-y-4 !overflow-visible">
         {/* Date Factură: Serie, Număr, Data Emiterii, Data Scadenței, Monedă, Cont Bancar */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end pb-3.5 border-b border-slate-100 dark:border-slate-800">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end pb-3.5 border-b border-black/[0.05] dark:border-white/[0.07]">
           <div className="lg:col-span-1">
             <div className="h-6 flex items-center mb-1">
               <label className={labelCls + " !mb-0"}>Serie</label>
@@ -1404,13 +1404,13 @@ export default function EmitInvoice() {
             <div className="relative flex items-center">
               {series.trim() ? (
                 <div className="flex w-full items-center">
-                  <span className="inline-flex items-center h-9 px-2.5 !rounded-l-md border border-r-0 border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold tracking-wider select-none shrink-0">
+                  <span className="inline-flex items-center h-9 px-2.5 !rounded-l-xl border border-r-0 border-black/[0.06] dark:border-white/[0.08] bg-[#e5e5ea] dark:bg-[#3a3a3c] text-[#1d1d1f] dark:text-[#f5f5f7] text-xs font-semibold tracking-wider select-none shrink-0 tabular-nums">
                     {series.trim()}{series.trim().startsWith("WOOD") ? "" : " -"}
                   </span>
                   <input
                     value={invoiceNumDigits}
                     onChange={e => handleNumDigitsChange(e.target.value)}
-                    className={cn(inputCls, "!rounded-l-none")}
+                    className={cn(inputCls, "!rounded-l-none tabular-nums")}
                     placeholder="0001"
                     autoComplete="off"
                   />
@@ -1419,20 +1419,20 @@ export default function EmitInvoice() {
                 <input
                   value={invoiceNumDigits}
                   onChange={e => handleNumDigitsChange(e.target.value)}
-                  className={inputCls}
+                  className={cn(inputCls, "tabular-nums")}
                   placeholder="0001"
                   autoComplete="off"
                 />
               )}
               {nextNumberLoading && (
-                <Loader2 className="w-3.5 h-3.5 animate-spin absolute right-2.5 top-2.5 text-blue-500" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin absolute right-2.5 top-2.5 text-[#6e6e73]" />
               )}
             </div>
           </div>
 
           <div className="lg:col-span-2">
             <div className="h-6 flex items-center mb-1">
-              <label className={labelCls + " !mb-0"}>Data Emiterii *</label>
+              <label className={labelCls + " !mb-0"}>Data emiterii *</label>
             </div>
             <input
               type="date"
@@ -1448,19 +1448,19 @@ export default function EmitInvoice() {
                   }
                 }
               }}
-              className={inputCls}
+              className={cn(inputCls, "tabular-nums")}
             />
           </div>
 
           <div className="lg:col-span-2">
             <div className="h-6 flex items-center mb-1">
-              <label className={labelCls + " !mb-0"}>Data Scadenței</label>
+              <label className={labelCls + " !mb-0"}>Data scadenței</label>
             </div>
             <input
               type="date"
               value={dueDate}
               onChange={e => setDueDate(e.target.value)}
-              className={inputCls}
+              className={cn(inputCls, "tabular-nums")}
             />
           </div>
 
@@ -1486,11 +1486,11 @@ export default function EmitInvoice() {
           {currency !== "RON" && (
             <div className="sm:col-span-1 lg:col-span-2">
               <div className="h-6 flex items-center justify-between mb-1">
-                <label className={labelCls + " !mb-0 text-amber-700 dark:text-amber-400 font-bold flex items-center gap-1 truncate"}>
+                <label className={labelCls + " !mb-0 text-amber-700 dark:text-amber-400 font-semibold flex items-center gap-1 truncate"}>
                   Curs BNR ({currency})
                 </label>
                 {effectiveBnrRateDate && (
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500 tabular-nums" title="Data oficială a cursului BNR">
+                  <span className="text-[11px] text-[#8e8e93] tabular-nums" title="Data oficială a cursului BNR">
                     {effectiveBnrRateDate.split("-").reverse().join(".")}
                   </span>
                 )}
@@ -1505,10 +1505,10 @@ export default function EmitInvoice() {
                     const v = parseFloat(e.target.value);
                     setInvoiceBnrRate(isNaN(v) ? null : v);
                   }}
-                  className={`${inputCls} font-bold text-amber-700 dark:text-amber-300 pr-10`}
+                  className={`${inputCls} font-semibold tabular-nums text-amber-700 dark:text-amber-300 pr-10`}
                   placeholder="5.3370"
                 />
-                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-400 pointer-events-none">
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-semibold text-[#8e8e93] pointer-events-none">
                   Lei
                 </span>
               </div>
@@ -1517,7 +1517,7 @@ export default function EmitInvoice() {
 
           <div className={currency !== "RON" ? "sm:col-span-2 lg:col-span-2" : "sm:col-span-2 lg:col-span-3"}>
             <div className="h-6 flex items-center mb-1">
-              <label className={labelCls + " !mb-0 truncate"}>Cont Bancar (IBAN Factură)</label>
+              <label className={labelCls + " !mb-0 truncate"}>Cont bancar (IBAN factură)</label>
             </div>
             <select
               value={selectedIban}
@@ -1546,13 +1546,13 @@ export default function EmitInvoice() {
 
         {/* Date Client (CUI, Nume, Reg Com, Cod SAGA, Țară, Adresă, Localitate, Contact) — ÎNTOTDEAUNA VIZIBIL DIRECT */}
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-              Date Client / Cumpărător
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <span className="text-[14px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+              Date client / cumpărător
             </span>
             {clientCode && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-[11px] font-medium border border-amber-200 dark:border-amber-800">
-                Cod SAGA: <strong className="tabular-nums font-bold">{clientCode}</strong>
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 text-[11.5px] font-medium border border-amber-500/20">
+                Cod SAGA: <strong className="tabular-nums font-semibold">{clientCode}</strong>
               </span>
             )}
           </div>
@@ -1563,7 +1563,7 @@ export default function EmitInvoice() {
               <label className={labelCls}>
                 CUI / CIF *
                 {cuiLoading && (
-                  <Loader2 className="w-3 h-3 ml-1 inline animate-spin text-blue-500" />
+                  <Loader2 className="w-3 h-3 ml-1 inline animate-spin text-[#6e6e73]" />
                 )}
               </label>
               <input
@@ -1591,7 +1591,7 @@ export default function EmitInvoice() {
             </div>
 
             <div className="sm:col-span-2 lg:col-span-4 relative">
-              <label className={labelCls}>Nume Client / Companie *</label>
+              <label className={labelCls}>Nume client / companie *</label>
               <div className="relative">
                 <input
                   type="text"
@@ -1612,30 +1612,30 @@ export default function EmitInvoice() {
                   spellCheck={false}
                 />
                 {showClientDropdown && (
-                  <div className="absolute z-20 w-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md shadow-lg max-h-64 overflow-y-auto">
+                  <div className="absolute z-20 w-full mt-1.5 bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.10] rounded-2xl shadow-xl max-h-64 overflow-y-auto">
                     {filteredClients.length > 0 &&
                       filteredClients.map((c: any) => (
                         <button
                           key={`${c.source || 'c'}-${c.id}`}
                           type="button"
                           onMouseDown={() => selectClient(c)}
-                          className="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm border-b border-slate-100 dark:border-slate-800 last:border-0"
+                          className="apple-card-btn w-full text-left px-3.5 py-2.5 hover:bg-[#f2f2f7] dark:hover:bg-[#2c2c2e] text-[13px] border-b border-black/[0.045] dark:border-white/[0.06] last:border-0 transition-colors cursor-pointer"
                         >
                           <div className="flex items-center justify-between gap-2">
-                            <span className="font-medium text-slate-900 dark:text-white truncate">
+                            <span className="font-medium text-[#1d1d1f] dark:text-[#f5f5f7] truncate">
                               {c.name}
                             </span>
                             {(c.sagaCode || c.code) && (
-                              <span className="shrink-0 px-1.5 py-0.5 text-[10px] tabular-nums font-semibold rounded bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                              <span className="shrink-0 px-1.5 py-0.5 text-[10.5px] tabular-nums font-medium rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
                                 Cod: {c.sagaCode || c.code}
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                          <div className="flex items-center gap-2 text-[11.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5 tabular-nums">
                             {c.cui && <span>CUI: {c.cui}</span>}
                             {c.city && <span>• {c.city}</span>}
                             {c.source === "saga_furnizor" && (
-                              <span className="text-[10px] font-semibold text-blue-500 bg-blue-50 dark:bg-blue-900/30 px-1 rounded">SAGA</span>
+                              <span className="text-[10px] font-semibold text-[#0071e3] dark:text-[#409cff] bg-[#0071e3]/10 px-1.5 py-0.5 rounded">SAGA</span>
                             )}
                           </div>
                         </button>
@@ -1654,7 +1654,7 @@ export default function EmitInvoice() {
                               e.preventDefault();
                               lookupCuiFromSearch(raw);
                             }}
-                            className="w-full flex items-center gap-2 px-3 py-2.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-sm font-semibold transition-colors"
+                            className="apple-card-btn w-full flex items-center gap-2 px-3.5 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 text-[13px] font-semibold transition-colors cursor-pointer"
                           >
                             <Search className="w-4 h-4" />
                             <span>
@@ -1675,7 +1675,7 @@ export default function EmitInvoice() {
                               e.preventDefault();
                               lookupCuiFromSearch(raw);
                             }}
-                            className="w-full flex items-center gap-2 px-3 py-2.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-sm font-semibold transition-colors"
+                            className="apple-card-btn w-full flex items-center gap-2 px-3.5 py-2.5 bg-[#0071e3]/10 hover:bg-[#0071e3]/15 text-[#0071e3] dark:text-[#409cff] text-[13px] font-semibold transition-colors cursor-pointer"
                           >
                             <Search className="w-4 h-4" />
                             <span>
@@ -1753,7 +1753,7 @@ export default function EmitInvoice() {
               />
             </div>
             <div className="lg:col-span-2">
-              <label className={labelCls}>Telefon Client</label>
+              <label className={labelCls}>Telefon client</label>
               <input
                 value={clientPhone}
                 onChange={e => setClientPhone(e.target.value)}
@@ -1777,12 +1777,12 @@ export default function EmitInvoice() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] rounded-[22px] shadow-xs overflow-visible">
-        <div className="p-3.5 bg-[#f8f9fc]/90 dark:bg-white/[0.02] rounded-t-[22px] border-b border-black/[0.06] dark:border-white/[0.08] flex justify-between items-center">
-          <h3 className="text-sm font-semibold text-[#1d1d1f] dark:text-white">
-            Linii Factură
+      <div className="apple-surface !overflow-visible">
+        <div className="p-3.5 sm:px-4 bg-[#fafafa] dark:bg-white/[0.025] rounded-t-[16px] border-b border-black/[0.05] dark:border-white/[0.07] flex justify-between items-center flex-wrap gap-2">
+          <h3 className="text-[14px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+            Linii factură
           </h3>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <InvoiceCurrencyCalculator
               currentCurrency={currency}
               activeExchangeRate={effectiveInvoiceBnrRate}
@@ -1817,7 +1817,7 @@ export default function EmitInvoice() {
               trigger={
                 <button
                   type="button"
-                  className="flex items-center gap-1.5 px-3.5 h-8 rounded-full apple-btn-glass text-[#3a3a3c] dark:text-[#ebebf5] text-xs font-medium transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 px-3.5 h-8 rounded-full apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-medium transition-colors cursor-pointer"
                   title="Calculator Valutar BNR"
                 >
                   <Calculator className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
@@ -1828,7 +1828,7 @@ export default function EmitInvoice() {
             <button
               type="button"
               onClick={() => setShowCodes(!showCodes)}
-              className="flex items-center gap-1.5 px-3.5 h-8 rounded-full apple-btn-glass text-[#3a3a3c] dark:text-[#ebebf5] text-xs font-medium transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 h-8 rounded-full apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-medium transition-colors cursor-pointer"
             >
               {showCodes ? (
                 <EyeOff className="w-3.5 h-3.5" />
@@ -1839,49 +1839,49 @@ export default function EmitInvoice() {
             </button>
           </div>
         </div>
-        <div className="hidden md:grid grid-cols-12 gap-0 bg-[#f8f9fc]/90 dark:bg-white/[0.03] border-b border-black/[0.06] dark:border-white/[0.08] text-[#636366] dark:text-[#98989d] text-[11px] font-semibold uppercase tracking-wider">
+        <div className="hidden md:grid grid-cols-12 gap-0 bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07] text-[#6e6e73] dark:text-[#98989d] text-[12px] font-medium">
           {showCodes ? (
             <>
               <div className="col-span-1 px-3 py-2.5">Cod</div>
-              <div className="col-span-3 px-3 py-2.5 border-l border-black/[0.06] dark:border-white/[0.08]">
-                Denumire Produs sau Serviciu
+              <div className="col-span-3 px-3 py-2.5 border-l border-black/[0.05] dark:border-white/[0.07]">
+                Denumire produs sau serviciu
               </div>
             </>
           ) : (
             <div className="col-span-4 px-4 py-2.5">
-              Denumire Produs sau Serviciu
+              Denumire produs sau serviciu
             </div>
           )}
-          <div className="col-span-1 px-2 py-2.5 text-center border-l border-black/[0.06] dark:border-white/[0.08]">
+          <div className="col-span-1 px-2 py-2.5 text-center border-l border-black/[0.05] dark:border-white/[0.07]">
             U.M.
           </div>
-          <div className="col-span-1 px-2 py-2.5 text-center border-l border-black/[0.06] dark:border-white/[0.08]">
+          <div className="col-span-1 px-2 py-2.5 text-center border-l border-black/[0.05] dark:border-white/[0.07]">
             Cant.
           </div>
-          <div className="col-span-1 px-2 py-2.5 text-center border-l border-black/[0.06] dark:border-white/[0.08]">
+          <div className="col-span-1 px-2 py-2.5 text-center border-l border-black/[0.05] dark:border-white/[0.07]">
             Cotă TVA
           </div>
-          <div className="col-span-2 px-3 py-2.5 text-right border-l border-black/[0.06] dark:border-white/[0.08]">
+          <div className="col-span-2 px-3 py-2.5 text-right border-l border-black/[0.05] dark:border-white/[0.07]">
             Preț (fără TVA)
           </div>
-          <div className="col-span-2 px-3 py-2.5 text-right border-l border-black/[0.06] dark:border-white/[0.08]">
+          <div className="col-span-2 px-3 py-2.5 text-right border-l border-black/[0.05] dark:border-white/[0.07]">
             Valoare
           </div>
-          <div className="col-span-1 px-2 py-2.5 text-center border-l border-black/[0.06] dark:border-white/[0.08]"></div>
+          <div className="col-span-1 px-2 py-2.5 text-center border-l border-black/[0.05] dark:border-white/[0.07]"></div>
         </div>
 
-        <div className="divide-y divide-slate-100 dark:divide-slate-800">
+        <div className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
           {lines.map((line, idx) => (
             <div
               key={line.id}
               className={cn(
-                "grid grid-cols-2 sm:grid-cols-4 md:grid-cols-12 gap-3 md:gap-0 items-start md:items-center hover:bg-slate-50 dark:hover:bg-slate-800/30 p-4 md:p-0 border-b border-slate-200 dark:border-slate-800 md:border-b-0",
+                "grid grid-cols-2 sm:grid-cols-4 md:grid-cols-12 gap-3 md:gap-0 items-start md:items-center hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] p-4 md:p-0 border-b border-black/[0.045] dark:border-white/[0.06] md:border-b-0 transition-colors",
                 focusedLineId === line.id ? "relative z-30" : "relative z-0"
               )}
             >
               {showCodes && (
                 <div className="col-span-2 sm:col-span-4 md:col-span-1 px-0 md:px-3 py-1 md:py-2 h-full flex flex-col md:flex-row md:items-center">
-                  <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">Cod</label>
+                  <label className="md:hidden text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">Cod</label>
                   <input
                     type="text"
                     placeholder="Cod..."
@@ -1889,7 +1889,7 @@ export default function EmitInvoice() {
                     onChange={e =>
                       updateLine(line.id, "devizCode", e.target.value)
                     }
-                    className="w-full h-8 px-2 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-full h-8 px-2.5 text-[16px] md:text-[13px] border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] rounded-xl text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] focus:outline-none focus:border-[#0071e3] transition-colors"
                   />
                 </div>
               )}
@@ -1898,11 +1898,11 @@ export default function EmitInvoice() {
                   "px-0 md:px-3 py-1 md:py-2 relative h-full flex flex-col justify-center col-span-2 sm:col-span-4",
                   focusedLineId === line.id ? "z-40" : "z-0",
                   showCodes
-                    ? "md:col-span-3 md:border-l border-slate-100 dark:border-slate-800"
+                    ? "md:col-span-3 md:border-l border-black/[0.045] dark:border-white/[0.06]"
                     : "md:col-span-4"
                 )}
               >
-                <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">Denumire Produs / Serviciu</label>
+                <label className="md:hidden text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">Denumire produs / serviciu</label>
                 <input
                   type="text"
                   placeholder={`Căutare sau denumire liberă...`}
@@ -1945,33 +1945,33 @@ export default function EmitInvoice() {
                       setHighlightedIdx(-1);
                     }, 200)
                   }
-                  className="w-full h-8 px-2 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full h-8 px-2.5 text-[16px] md:text-[13px] border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] rounded-xl text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] focus:outline-none focus:border-[#0071e3] transition-colors"
                 />
                 {focusedLineId === line.id && (
                   <div
                     onMouseDown={e => {
                       e.stopPropagation();
                     }}
-                    className="absolute top-11 left-0 z-50 w-[580px] max-w-[92vw] sm:min-w-[480px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-2xl rounded-lg overflow-hidden flex flex-col"
+                    className="absolute top-11 left-0 z-50 w-[580px] max-w-[92vw] sm:min-w-[480px] bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.10] shadow-2xl rounded-2xl overflow-hidden flex flex-col"
                   >
                     {filteredSavedProducts.length > 0 && (
                       <div className="flex flex-col">
-                        <div className="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 flex items-center justify-between border-b border-slate-200 dark:border-slate-700 select-none">
+                        <div className="px-3.5 py-2 bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] flex items-center justify-between border-b border-black/[0.06] dark:border-white/[0.08] select-none">
                           <span className="flex items-center gap-1.5">
-                            <span>Produsele Tale Salvate ({filteredSavedProducts.length})</span>
+                            <span className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">Produsele tale salvate ({filteredSavedProducts.length})</span>
                             {totalProductPages > 1 && (
-                              <span className="text-slate-500 font-normal lowercase text-[10px]">
+                              <span className="text-[#8e8e93] font-normal text-[11px] tabular-nums">
                                 (pag. {productPage}/{totalProductPages})
                               </span>
                             )}
                           </span>
-                          <span className="text-[10px] text-blue-600 dark:text-blue-400 font-normal lowercase">
+                          <span className="text-[11px] text-[#0071e3] dark:text-[#409cff] font-normal">
                             completează automat U.M. și prețul
                           </span>
                         </div>
 
                         {/* Lista de produse (câte 10 pe pagină), cu text întreg fără trunchiere */}
-                        <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-80 overflow-y-auto">
+                        <div className="divide-y divide-black/[0.045] dark:divide-white/[0.06] max-h-80 overflow-y-auto">
                           {paginatedProducts.map((p: any) => (
                             <button
                               key={`prod-${p.id}`}
@@ -1980,32 +1980,32 @@ export default function EmitInvoice() {
                                 e.preventDefault();
                                 handleSelectProduct(line.id, p);
                               }}
-                              className="w-full text-left px-3.5 py-2.5 hover:bg-blue-50/80 dark:hover:bg-blue-900/30 transition-colors flex items-center justify-between gap-3 group cursor-pointer"
+                              className="apple-card-btn w-full text-left px-3.5 py-2.5 hover:bg-[#f2f2f7] dark:hover:bg-[#2c2c2e] transition-colors flex items-center justify-between gap-3 group cursor-pointer"
                             >
                               <div className="flex-1 min-w-0">
-                                <div className="text-sm font-semibold text-slate-900 dark:text-white whitespace-normal break-words leading-snug">
+                                <div className="text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] whitespace-normal break-words leading-snug">
                                   {p.name}
                                 </div>
-                                <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 dark:text-slate-400 flex-wrap">
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                                <div className="flex items-center gap-2 mt-1 text-[11.5px] text-[#6e6e73] dark:text-[#98989d] flex-wrap tabular-nums">
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10.5px] font-medium bg-[#0071e3]/10 text-[#0071e3] dark:text-[#409cff] border border-[#0071e3]/20">
                                     U.M: {p.unit || "buc"}
                                   </span>
-                                  <span className="font-medium text-slate-700 dark:text-slate-200">
+                                  <span className="font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">
                                     Preț: {p.defaultPrice} {currency}
                                   </span>
                                   {p.defaultVatRate !== undefined && (
-                                    <span className="text-slate-500">
+                                    <span>
                                       TVA: {p.defaultVatRate}%
                                     </span>
                                   )}
                                   {p.category && (
-                                    <span className="text-[10px] text-slate-400">
+                                    <span className="text-[11px] text-[#8e8e93]">
                                       [{p.category}]
                                     </span>
                                   )}
                                 </div>
                               </div>
-                              <span className="text-xs text-blue-600 dark:text-blue-400 font-semibold whitespace-nowrap px-2 py-1 rounded bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 group-hover:bg-blue-600 group-hover:text-white transition-colors shrink-0">
+                              <span className="text-[11.5px] text-[#0071e3] dark:text-[#409cff] font-semibold whitespace-nowrap px-2.5 py-1 rounded-full bg-[#0071e3]/10 border border-[#0071e3]/20 group-hover:bg-[#0071e3] group-hover:text-white transition-colors shrink-0">
                                 Selectează &rarr;
                               </span>
                             </button>
@@ -2014,9 +2014,9 @@ export default function EmitInvoice() {
 
                         {/* Bara de paginare câte 10 cu Precedenta și Următoarea */}
                         {filteredSavedProducts.length > PRODUCTS_PER_PAGE && (
-                          <div className="px-3.5 py-2 bg-slate-50 dark:bg-slate-800/90 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between text-xs text-slate-700 dark:text-slate-200 select-none">
-                            <span className="font-medium text-[11px] text-slate-500 dark:text-slate-400">
-                              Afișare {(productPage - 1) * PRODUCTS_PER_PAGE + 1} - {Math.min(productPage * PRODUCTS_PER_PAGE, filteredSavedProducts.length)} din {filteredSavedProducts.length}
+                          <div className="px-3.5 py-2 bg-[#fafafa] dark:bg-white/[0.025] border-t border-black/[0.06] dark:border-white/[0.08] flex items-center justify-between text-xs text-[#6e6e73] dark:text-[#98989d] select-none tabular-nums">
+                            <span className="font-medium text-[11.5px]">
+                              Afișare {(productPage - 1) * PRODUCTS_PER_PAGE + 1} – {Math.min(productPage * PRODUCTS_PER_PAGE, filteredSavedProducts.length)} din {filteredSavedProducts.length}
                             </span>
                             <div className="flex items-center gap-1.5">
                               <button
@@ -2026,11 +2026,11 @@ export default function EmitInvoice() {
                                   e.preventDefault();
                                   setProductPage(p => Math.max(1, p - 1));
                                 }}
-                                className="px-2.5 py-1 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 font-semibold text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs transition-colors cursor-pointer"
+                                className="px-2.5 h-7 rounded-full apple-btn-glass font-medium text-[11.5px] text-[#1d1d1f] dark:text-[#f5f5f7] disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
                               >
                                 ← Precedenta
                               </button>
-                              <span className="px-1.5 text-xs font-bold text-slate-800 dark:text-slate-100">
+                              <span className="px-1.5 text-[11.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                                 {productPage} / {totalProductPages}
                               </span>
                               <button
@@ -2040,7 +2040,7 @@ export default function EmitInvoice() {
                                   e.preventDefault();
                                   setProductPage(p => Math.min(totalProductPages, p + 1));
                                 }}
-                                className="px-2.5 py-1 rounded bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 font-semibold text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed shadow-2xs transition-colors cursor-pointer"
+                                className="px-2.5 h-7 rounded-full apple-btn-glass font-medium text-[11.5px] text-[#1d1d1f] dark:text-[#f5f5f7] disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
                               >
                                 Următoarea →
                               </button>
@@ -2051,11 +2051,11 @@ export default function EmitInvoice() {
                     )}
 
                     {catalogData?.items && catalogData.items.length > 0 && (
-                      <div className="border-t border-slate-200 dark:border-slate-700">
-                        <div className="px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
-                          Catalog Devize & Norme
+                      <div className="border-t border-black/[0.06] dark:border-white/[0.08]">
+                        <div className="px-3.5 py-2 bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] border-b border-black/[0.06] dark:border-white/[0.08]">
+                          Catalog devize & norme
                         </div>
-                        <div className="max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                        <div className="max-h-56 overflow-y-auto divide-y divide-black/[0.045] dark:divide-white/[0.06]">
                           {catalogData.items.map((item: any, i: number) => (
                             <button
                               key={`cat-${i}`}
@@ -2064,17 +2064,17 @@ export default function EmitInvoice() {
                                 e.preventDefault();
                                 handleSelectFromCatalog(line.id, item);
                               }}
-                              className="w-full text-left px-3.5 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                              className="apple-card-btn w-full text-left px-3.5 py-2 hover:bg-[#f2f2f7] dark:hover:bg-[#2c2c2e] transition-colors cursor-pointer"
                             >
                               <div className="flex items-center gap-2 mb-0.5">
-                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                <span className="text-[10.5px] font-medium px-1.5 py-0.5 rounded-md bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#6e6e73] dark:text-[#98989d] border border-black/[0.06] dark:border-white/[0.08]">
                                   {item.tip}
                                 </span>
-                                <span className="text-xs font-medium text-slate-500">
+                                <span className="text-xs font-medium text-[#6e6e73] dark:text-[#98989d] tabular-nums">
                                   {item.cod}
                                 </span>
                               </div>
-                              <div className="text-sm font-medium text-slate-900 dark:text-slate-100 whitespace-normal break-words leading-tight">
+                              <div className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] whitespace-normal break-words leading-tight">
                                 {item.denumire}
                               </div>
                             </button>
@@ -2086,19 +2086,19 @@ export default function EmitInvoice() {
                     {filteredSavedProducts.length === 0 &&
                       (!catalogData?.items || catalogData.items.length === 0) &&
                       catalogQuery.trim().length > 0 && (
-                        <div className="p-3 text-xs text-slate-500 text-center">
+                        <div className="p-3.5 text-[12.5px] text-[#6e6e73] dark:text-[#98989d] text-center">
                           Produs nou. Va fi salvat automat în nomenclator cu U.M. și prețul ales la emitere.
                         </div>
                       )}
                   </div>
                 )}
               </div>
-              <div className="col-span-1 md:col-span-1 px-0 md:px-2 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 h-full flex flex-col justify-center">
-                <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">U.M.</label>
+              <div className="col-span-1 md:col-span-1 px-0 md:px-2 py-1 md:py-2 md:border-l border-black/[0.045] dark:border-white/[0.06] h-full flex flex-col justify-center">
+                <label className="md:hidden text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">U.M.</label>
                 <select
                   value={line.unit}
                   onChange={e => updateLine(line.id, "unit", e.target.value)}
-                  className="w-full h-8 px-1 text-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full h-8 px-1.5 text-[16px] md:text-[12.5px] border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] rounded-xl text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none focus:border-[#0071e3] cursor-pointer transition-colors"
                 >
                   {!UNITS.includes(line.unit) && (
                     <option value={line.unit}>{line.unit}</option>
@@ -2110,8 +2110,8 @@ export default function EmitInvoice() {
                   ))}
                 </select>
               </div>
-              <div className="col-span-1 md:col-span-1 px-0 md:px-2 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 flex flex-col justify-center">
-                <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">Cant.</label>
+              <div className="col-span-1 md:col-span-1 px-0 md:px-2 py-1 md:py-2 md:border-l border-black/[0.045] dark:border-white/[0.06] flex flex-col justify-center">
+                <label className="md:hidden text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">Cant.</label>
                 <input
                   type="number"
                   min="0"
@@ -2138,11 +2138,11 @@ export default function EmitInvoice() {
                     }
                     updateLine(line.id, "quantity", e.target.value);
                   }}
-                  className="w-full h-8 px-2 text-sm tabular-nums text-center md:text-center border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full h-8 px-2 text-[16px] md:text-[13px] tabular-nums text-center md:text-center border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] rounded-xl text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none focus:border-[#0071e3] transition-colors"
                 />
               </div>
-              <div className="col-span-1 md:col-span-1 px-0 md:px-2 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 flex flex-col justify-center">
-                <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">TVA (%)</label>
+              <div className="col-span-1 md:col-span-1 px-0 md:px-2 py-1 md:py-2 md:border-l border-black/[0.045] dark:border-white/[0.06] flex flex-col justify-center">
+                <label className="md:hidden text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">TVA (%)</label>
                 <select
                   value={
                     !isNaN(parseFloat(String(line.vatRate)))
@@ -2152,7 +2152,7 @@ export default function EmitInvoice() {
                   onChange={e =>
                     updateLine(line.id, "vatRate", parseFloat(e.target.value))
                   }
-                  className="w-full h-8 px-1 text-xs tabular-nums border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full h-8 px-1.5 text-[16px] md:text-[12.5px] tabular-nums border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] rounded-xl text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none focus:border-[#0071e3] cursor-pointer transition-colors"
                 >
                   {VAT_RATES.map(r => (
                     <option key={r} value={r}>
@@ -2161,8 +2161,8 @@ export default function EmitInvoice() {
                   ))}
                 </select>
               </div>
-              <div className="col-span-1 md:col-span-2 px-0 md:px-2 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 flex flex-col justify-center">
-                <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">Preț (fără TVA)</label>
+              <div className="col-span-1 md:col-span-2 px-0 md:px-2 py-1 md:py-2 md:border-l border-black/[0.045] dark:border-white/[0.06] flex flex-col justify-center">
+                <label className="md:hidden text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">Preț (fără TVA)</label>
                 <input
                   type="number"
                   min="0"
@@ -2171,22 +2171,22 @@ export default function EmitInvoice() {
                   onChange={e =>
                     updateLine(line.id, "unitPrice", e.target.value)
                   }
-                  className="w-full h-8 px-2 text-sm tabular-nums text-left md:text-right border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full h-8 px-2.5 text-[16px] md:text-[13px] tabular-nums text-left md:text-right border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] rounded-xl text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none focus:border-[#0071e3] transition-colors"
                 />
               </div>
-              <div className="col-span-1 md:col-span-2 px-0 md:px-3 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 flex flex-col justify-center md:items-end">
-                <label className="md:hidden text-[10px] font-bold text-slate-500 uppercase mb-1">Valoare</label>
-                <span className="text-sm font-semibold tabular-nums text-slate-900 dark:text-white h-8 flex items-center justify-end whitespace-nowrap text-right">
+              <div className="col-span-1 md:col-span-2 px-0 md:px-3 py-1 md:py-2 md:border-l border-black/[0.045] dark:border-white/[0.06] flex flex-col justify-center md:items-end">
+                <label className="md:hidden text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">Valoare</label>
+                <span className="text-[13.5px] font-semibold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7] h-8 flex items-center justify-end whitespace-nowrap text-right">
                   {formatCurrency(computeLineTotal(line), currency)}
                 </span>
               </div>
-              <div className="col-span-1 md:col-span-1 px-0 md:px-2 py-1 md:py-2 md:border-l border-slate-100 dark:border-slate-800 flex items-center justify-end md:justify-center">
+              <div className="col-span-1 md:col-span-1 px-0 md:px-2 py-1 md:py-2 md:border-l border-black/[0.045] dark:border-white/[0.06] flex items-center justify-end md:justify-center">
                 {lines.length > 1 && (
                   <button
                     type="button"
                     aria-label="Șterge linia"
                     onClick={() => removeLine(line.id)}
-                    className="w-8 h-8 md:w-7 md:h-7 flex items-center justify-center rounded-full text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 hover:text-rose-600 transition-colors cursor-pointer"
+                    className="w-8 h-8 md:w-7 md:h-7 flex items-center justify-center rounded-full text-[#8e8e93] hover:bg-rose-500/12 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4 md:w-3.5 md:h-3.5" />
                   </button>
@@ -2196,95 +2196,95 @@ export default function EmitInvoice() {
           ))}
         </div>
 
-        <div className="border-t border-black/[0.06] dark:border-white/[0.08] grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-0">
-          <div className="lg:col-span-7 px-4 py-3 flex flex-col justify-between">
+        <div className="border-t border-black/[0.05] dark:border-white/[0.07] grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-0">
+          <div className="lg:col-span-7 px-4 py-3.5 flex flex-col justify-between">
             <div className="flex gap-2 flex-wrap">
               <button
                 type="button"
                 onClick={addLine}
-                className="flex items-center gap-1.5 px-3.5 h-8 text-xs font-semibold text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-full transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-3.5 h-8 text-[12.5px] font-medium apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7] rounded-full transition-colors cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" /> Adaugă rând
               </button>
             </div>
 
             {bnrNoteMatch && (
-              <div className="mt-3 p-2.5 rounded-lg bg-slate-50/80 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 text-xs">
-                <p className="tabular-nums text-slate-800 dark:text-slate-200 leading-relaxed font-semibold text-xs">
+              <div className="mt-3 p-3 rounded-xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.05] dark:border-white/[0.07] text-xs">
+                <p className="tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7] leading-relaxed font-medium text-[12px]">
                   {bnrNoteMatch}
                 </p>
               </div>
             )}
 
             {isReverseCharge && (
-              <div className="mt-2.5 p-2.5 rounded-lg bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-xs">
-                <div className="flex items-center gap-1.5 font-semibold text-blue-900 dark:text-blue-200 mb-0.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              <div className="mt-2.5 p-3 rounded-xl bg-[#0071e3]/[0.06] dark:bg-[#0071e3]/[0.12] border border-[#0071e3]/20 text-xs">
+                <div className="flex items-center gap-1.5 font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] mb-0.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#409cff]" />
                   <span>Taxare Inversă / VAT Reverse Charge (Art. 196):</span>
                 </div>
-                <p className="tabular-nums text-slate-800 dark:text-slate-200 leading-relaxed text-[11px]">
+                <p className="tabular-nums text-[#6e6e73] dark:text-[#98989d] leading-relaxed text-[11.5px]">
                   {REVERSE_CHARGE_LEGAL_TEXT}
                 </p>
               </div>
             )}
           </div>
-          <div className="lg:col-span-5 px-4 py-3 lg:border-l border-black/[0.06] dark:border-white/[0.08] space-y-1 bg-slate-50/50 dark:bg-slate-800/20 lg:bg-transparent tabular-nums">
+          <div className="lg:col-span-5 px-4 py-3.5 lg:border-l border-black/[0.05] dark:border-white/[0.07] space-y-1.5 bg-[#fafafa] dark:bg-white/[0.02] lg:bg-transparent tabular-nums rounded-b-[16px] lg:rounded-bl-none">
             {vatBreakdown.map(({ rate, base, vat }) => (
               <div
                 key={rate}
-                className="flex justify-between items-center text-xs text-slate-500"
+                className="flex justify-between items-center text-[12px] text-[#6e6e73] dark:text-[#98989d]"
               >
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span>
                     TVA {rate}% × {formatCurrency(base, currency)}
                   </span>
                   {rate === 0 && isReverseCharge && (
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300">
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10.5px] font-medium bg-[#0071e3]/10 text-[#0071e3] dark:text-[#409cff]">
                       Reverse Charge (Art. 196)
                     </span>
                   )}
                 </div>
-                <span className="font-medium">
+                <span className="font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">
                   {formatCurrency(vat, currency)}
                 </span>
               </div>
             ))}
             {isReverseCharge && (
-              <div className="text-[11px] font-medium text-blue-600 dark:text-blue-400 bg-blue-50/60 dark:bg-blue-950/30 px-2 py-1 rounded border border-blue-100 dark:border-blue-900/50 leading-tight">
+              <div className="text-[11.5px] font-medium text-[#0071e3] dark:text-[#409cff] bg-[#0071e3]/[0.06] dark:bg-[#0071e3]/[0.12] px-2.5 py-1 rounded-lg border border-[#0071e3]/15 leading-tight">
                 VAT reverse charge – Directiva 2006/112/CE Art. 196
               </div>
             )}
-            <div className="flex justify-between text-sm text-slate-600 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
+            <div className="flex justify-between text-[13px] text-[#6e6e73] dark:text-[#98989d] pt-1.5 border-t border-black/[0.05] dark:border-white/[0.07]">
               <span>Total fără TVA:</span>
-              <span className="font-semibold">
+              <span className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                 {formatCurrency(subtotal, currency)}
               </span>
             </div>
-            <div className="flex justify-between text-sm text-slate-600 dark:text-slate-400">
-              <span>TVA Total:</span>
-              <span className="font-semibold">
+            <div className="flex justify-between text-[13px] text-[#6e6e73] dark:text-[#98989d]">
+              <span>TVA total:</span>
+              <span className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                 {formatCurrency(totalVAT, currency)}
               </span>
             </div>
-            <div className="flex justify-between text-base font-black text-slate-900 dark:text-white border-t border-slate-200 dark:border-slate-700 pt-2 mt-1">
-              <span>TOTAL DE PLATĂ:</span>
-              <span className="text-blue-600">
+            <div className="flex justify-between text-[16px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] border-t border-black/[0.06] dark:border-white/[0.08] pt-2 mt-1">
+              <span>Total de plată:</span>
+              <span className="text-[#1d1d1f] dark:text-[#f5f5f7]">
                 {formatCurrency(total, currency)}
               </span>
             </div>
 
             {currency !== "RON" && (
-              <div className="mt-2.5 pt-2 border-t border-dashed border-amber-300 dark:border-amber-800/80 bg-amber-50/80 dark:bg-amber-950/40 p-2.5 rounded-lg flex items-center justify-between">
+              <div className="mt-2.5 pt-2.5 border border-amber-500/25 bg-amber-500/[0.06] dark:bg-amber-500/[0.10] p-3 rounded-xl flex items-center justify-between gap-2">
                 <div>
-                  <p className="text-[11px] font-bold text-amber-900 dark:text-amber-300 uppercase tracking-wider">
+                  <p className="text-[12px] font-semibold text-amber-800 dark:text-amber-300">
                     Echivalent Lei (Curs BNR)
                   </p>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                  <p className="text-[11px] text-[#6e6e73] dark:text-[#98989d]">
                     1 {currency} = {effectiveInvoiceBnrRate.toFixed(4)} Lei ({effectiveBnrRateDate || issueDate})
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-base sm:text-lg font-black text-amber-700 dark:text-amber-400">
+                  <p className="text-[15px] sm:text-[16px] font-bold text-amber-700 dark:text-amber-400">
                     ≈ {formatCurrency(total * effectiveInvoiceBnrRate, "RON")}
                   </p>
                 </div>
@@ -2294,26 +2294,27 @@ export default function EmitInvoice() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-[#1c1c1e] border border-black/[0.06] dark:border-white/[0.09] rounded-[22px] overflow-hidden">
+      <div className="apple-surface overflow-hidden">
         <button
+          type="button"
           onClick={() => setShowOptional(o => !o)}
-          className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+          className="apple-card-btn w-full flex items-center justify-between px-4 py-3 text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.03] transition-colors cursor-pointer"
         >
           <span>
-            Câmpuri Opționale{" "}
-            <span className="text-slate-400 font-normal">
+            Câmpuri opționale{" "}
+            <span className="text-[#6e6e73] dark:text-[#98989d] font-normal">
               (Delegat, Aviz, Comandă, Mențiuni...)
             </span>
           </span>
           {showOptional ? (
-            <ChevronUp className="w-4 h-4 text-slate-400" />
+            <ChevronUp className="w-4 h-4 text-[#8e8e93]" />
           ) : (
-            <ChevronDown className="w-4 h-4 text-slate-400" />
+            <ChevronDown className="w-4 h-4 text-[#8e8e93]" />
           )}
         </button>
         {showOptional && (
-          <div className="border-t border-slate-100 dark:border-slate-800 p-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="border-t border-black/[0.05] dark:border-white/[0.07] p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               <div>
                 <label className={labelCls}>Întocmit de</label>
                 <input
@@ -2331,7 +2332,7 @@ export default function EmitInvoice() {
                 />
               </div>
               <div>
-                <label className={labelCls}>Carte Identitate</label>
+                <label className={labelCls}>Carte identitate</label>
                 <input
                   value={carteIdentitate}
                   onChange={e => setCarteIdentitate(e.target.value)}
@@ -2339,7 +2340,7 @@ export default function EmitInvoice() {
                 />
               </div>
               <div>
-                <label className={labelCls}>Nr. Aviz Însoțire</label>
+                <label className={labelCls}>Nr. aviz însoțire</label>
                 <input
                   value={numarAviz}
                   onChange={e => setNumarAviz(e.target.value)}
@@ -2355,7 +2356,7 @@ export default function EmitInvoice() {
                 />
               </div>
               <div>
-                <label className={labelCls}>Agent Vânzări</label>
+                <label className={labelCls}>Agent vânzări</label>
                 <input
                   value={agentVanzari}
                   onChange={e => setAgentVanzari(e.target.value)}
@@ -2363,7 +2364,7 @@ export default function EmitInvoice() {
                 />
               </div>
               <div>
-                <label className={labelCls}>Punct de Lucru Client</label>
+                <label className={labelCls}>Punct de lucru client</label>
                 <input
                   value={punctLucru}
                   onChange={e => setPunctLucru(e.target.value)}
@@ -2371,7 +2372,7 @@ export default function EmitInvoice() {
                 />
               </div>
               <div>
-                <label className={labelCls}>Nr. Comandă</label>
+                <label className={labelCls}>Nr. comandă</label>
                 <input
                   value={numarComanda}
                   onChange={e => setNumarComanda(e.target.value)}
@@ -2379,7 +2380,7 @@ export default function EmitInvoice() {
                 />
               </div>
               <div>
-                <label className={labelCls}>Nr. Contract</label>
+                <label className={labelCls}>Nr. contract</label>
                 <input
                   value={numarContract}
                   onChange={e => setNumarContract(e.target.value)}
@@ -2388,12 +2389,12 @@ export default function EmitInvoice() {
                 />
               </div>
               <div>
-                <label className={labelCls}>Data Contract</label>
+                <label className={labelCls}>Data contract</label>
                 <input
                   type="date"
                   value={dataContract}
                   onChange={e => setDataContract(e.target.value)}
-                  className={inputCls}
+                  className={cn(inputCls, "tabular-nums")}
                 />
               </div>
             </div>
@@ -2404,7 +2405,7 @@ export default function EmitInvoice() {
                 onChange={e => setMentiuni(e.target.value)}
                 rows={3}
                 placeholder={`Exemplu: "Aceasta factură circulă fără semnătură și ștampilă."`}
-                className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+                className="w-full px-3 py-2 text-[16px] sm:text-[13px] border border-black/[0.06] dark:border-white/[0.08] bg-[#f2f2f7] dark:bg-[#2c2c2e] rounded-xl text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] focus:outline-none focus:border-[#0071e3] resize-none transition-colors"
               />
             </div>
           </div>
@@ -2414,7 +2415,7 @@ export default function EmitInvoice() {
       {/* Panou Opțiuni & Acțiuni Salvare Factură */}
       <div className="space-y-4 pt-2">
         {/* Card Toggles & Opțiuni (Curs BNR, Taxare Inversă, Email, Deviz, Smart QR) */}
-        <div className="p-3.5 sm:p-4 bg-white dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.06] dark:border-white/[0.09] shadow-xs flex flex-col gap-3">
+        <div className="apple-surface p-3.5 sm:p-4 flex flex-col gap-3">
           {/* Rând Unificat de Comutatoare (Toggles) */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5 text-xs">
             {/* Toggle Curs BNR */}
@@ -2428,7 +2429,7 @@ export default function EmitInvoice() {
               onRateChange={(rate) => setInvoiceBnrRate(rate)}
             />
 
-            <span className="hidden sm:inline-block w-px h-4 bg-slate-200 dark:bg-slate-700" />
+            <span className="hidden sm:inline-block w-px h-4 bg-black/[0.08] dark:bg-white/[0.10]" />
 
             {/* Toggle Contract (Nr. și Dată) */}
             <ContractInvoiceToggle
@@ -2442,14 +2443,14 @@ export default function EmitInvoice() {
               onContractDateChange={setDataContract}
             />
 
-            <span className="hidden sm:inline-block w-px h-4 bg-slate-200 dark:bg-slate-700" />
+            <span className="hidden sm:inline-block w-px h-4 bg-black/[0.08] dark:bg-white/[0.10]" />
 
             {/* Toggle Taxare Inversă / VAT Reverse Charge */}
             <label className="inline-flex items-center gap-2 cursor-pointer select-none whitespace-nowrap">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap flex items-center gap-1.5">
+              <span className="text-[12.5px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] whitespace-nowrap flex items-center gap-1.5">
                 <span
                   className={`w-2 h-2 rounded-full ${
-                    isReverseCharge ? "bg-blue-600 animate-pulse" : "bg-slate-300 dark:bg-slate-600"
+                    isReverseCharge ? "bg-[#0071e3] animate-pulse" : "bg-black/20 dark:bg-white/20"
                   }`}
                 />
                 Taxare Inversă
@@ -2460,11 +2461,11 @@ export default function EmitInvoice() {
               />
             </label>
 
-            <span className="hidden sm:inline-block w-px h-4 bg-slate-200 dark:bg-slate-700" />
+            <span className="hidden sm:inline-block w-px h-4 bg-black/[0.08] dark:bg-white/[0.10]" />
 
             {/* Toggle Creare Deviz */}
             <label className="inline-flex items-center gap-2 cursor-pointer select-none whitespace-nowrap">
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+              <span className="text-[12.5px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] whitespace-nowrap">
                 Creare Deviz
               </span>
               <Switch
@@ -2473,13 +2474,13 @@ export default function EmitInvoice() {
               />
             </label>
 
-            <span className="hidden sm:inline-block w-px h-4 bg-slate-200 dark:bg-slate-700" />
+            <span className="hidden sm:inline-block w-px h-4 bg-black/[0.08] dark:bg-white/[0.10]" />
 
             {/* Toggle Trimite Factura pe Email */}
             <div className="inline-flex items-center gap-2 flex-wrap">
               <label className="inline-flex items-center gap-2 cursor-pointer select-none whitespace-nowrap">
-                <Mail className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                <Mail className="w-4 h-4 text-[#6e6e73] dark:text-[#98989d]" />
+                <span className="text-[12.5px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] whitespace-nowrap">
                   Trimite pe Email
                 </span>
                 <Switch
@@ -2493,14 +2494,14 @@ export default function EmitInvoice() {
                 />
               </label>
               {sendEmailToClient && (
-                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-xs">
-                  <span className="text-[11px] text-blue-600 dark:text-blue-400 font-medium">La:</span>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.06] dark:border-white/[0.08] text-xs">
+                  <span className="text-[11px] text-[#6e6e73] dark:text-[#98989d] font-medium">La:</span>
                   <input
                     type="email"
                     value={clientEmail}
                     onChange={e => setClientEmail(e.target.value)}
                     placeholder="adresa@client.ro"
-                    className="bg-transparent text-xs text-slate-800 dark:text-slate-200 outline-none w-32 placeholder:text-slate-400"
+                    className="bg-transparent text-xs text-[#1d1d1f] dark:text-[#f5f5f7] outline-none w-36 placeholder:text-[#8e8e93]"
                   />
                 </div>
               )}
@@ -2508,14 +2509,14 @@ export default function EmitInvoice() {
 
             {tenant?.id === 1 && (
               <>
-                <span className="hidden sm:inline-block w-px h-4 bg-slate-200 dark:bg-slate-700" />
+                <span className="hidden sm:inline-block w-px h-4 bg-black/[0.08] dark:bg-white/[0.10]" />
 
                 {/* Toggle Preluare Deviz Smart QR — strict Tenant 1 */}
                 <label className="inline-flex items-center gap-2 cursor-pointer select-none whitespace-nowrap">
-                  <QrCode className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap flex items-center gap-1.5">
+                  <QrCode className="w-4 h-4 text-[#0071e3] dark:text-[#409cff]" />
+                  <span className="text-[12.5px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] whitespace-nowrap flex items-center gap-1.5">
                     Preluare Deviz Smart QR
-                    {loadingQrPontaj && <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />}
+                    {loadingQrPontaj && <Loader2 className="w-3.5 h-3.5 animate-spin text-[#0071e3]" />}
                   </span>
                   <Switch
                     checked={isQrPontajActive}
@@ -2529,75 +2530,75 @@ export default function EmitInvoice() {
 
           {/* Sub-bar Parametri Smart QR (Afișat pe rând dedicat când comutatorul este activ) */}
           {tenant?.id === 1 && isQrPontajActive && (
-            <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 flex-wrap text-xs">
-              <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-blue-100/70 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 font-bold text-[11px] shrink-0">
-                <QrCode className="w-3 h-3 text-blue-600" />
+            <div className="pt-2.5 border-t border-black/[0.05] dark:border-white/[0.07] flex items-center gap-2 flex-wrap text-xs">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0071e3]/10 text-[#0071e3] dark:text-[#409cff] font-semibold text-[11.5px] shrink-0">
+                <QrCode className="w-3 h-3" />
                 <span>Parametri Smart QR:</span>
               </div>
 
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-xs flex-wrap">
-                <span className="text-[11px] text-blue-700 dark:text-blue-300 font-medium">Client:</span>
+              <div className="flex items-center gap-2 px-3 py-1 rounded-xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.06] dark:border-white/[0.08] text-xs flex-wrap tabular-nums">
+                <span className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] font-medium">Client:</span>
                 <select
                   value={qrTenantId}
                   onChange={e => handleQrParamChange(Number(e.target.value), qrMonth, qrYear)}
                   disabled={loadingQrPontaj}
-                  className="bg-transparent text-xs text-slate-800 dark:text-slate-200 font-semibold outline-none cursor-pointer pr-1"
+                  className="bg-transparent text-xs text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold outline-none cursor-pointer pr-1"
                 >
                   {qrTenantsList.map((t: any) => (
-                    <option key={t.id} value={t.id} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">
+                    <option key={t.id} value={t.id} className="text-[#1d1d1f] dark:text-[#f5f5f7] bg-white dark:bg-[#1c1c1e]">
                       {t.nume} {t.active_employees_count !== undefined ? `(${t.active_employees_count} pers)` : ""}
                     </option>
                   ))}
                 </select>
 
-                <span className="text-blue-300 dark:text-blue-700">|</span>
+                <span className="text-black/[0.15] dark:text-white/[0.15]">|</span>
 
-                <span className="text-[11px] text-blue-700 dark:text-blue-300 font-medium">Luna:</span>
+                <span className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] font-medium">Luna:</span>
                 <select
                   value={qrMonth}
                   onChange={e => handleQrParamChange(qrTenantId, Number(e.target.value), qrYear)}
                   disabled={loadingQrPontaj}
-                  className="bg-transparent text-xs text-slate-800 dark:text-slate-200 font-semibold outline-none cursor-pointer pr-1"
+                  className="bg-transparent text-xs text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold outline-none cursor-pointer pr-1"
                 >
-                  <option value={1} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Ianuarie</option>
-                  <option value={2} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Februarie</option>
-                  <option value={3} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Martie</option>
-                  <option value={4} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Aprilie</option>
-                  <option value={5} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Mai</option>
-                  <option value={6} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Iunie</option>
-                  <option value={7} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Iulie</option>
-                  <option value={8} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">August</option>
-                  <option value={9} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Septembrie</option>
-                  <option value={10} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Octombrie</option>
-                  <option value={11} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Noiembrie</option>
-                  <option value={12} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">Decembrie</option>
+                  <option value={1} className="text-[#1d1d1f] dark:text-[#f5f5f7] bg-white dark:bg-[#1c1c1e]">Ianuarie</option>
+                  <option value={2} className="text-[#1d1d1f] dark:text-[#f5f5f7] bg-white dark:bg-[#1c1c1e]">Februarie</option>
+                  <option value={3} className="text-[#1d1d1f] dark:text-[#f5f5f7] bg-white dark:bg-[#1c1c1e]">Martie</option>
+                  <option value={4} className="text-[#1d1d1f] dark:text-[#f5f5f7] bg-white dark:bg-[#1c1c1e]">Aprilie</option>
+                  <option value={5} className="text-[#1d1d1f] dark:text-[#f5f5f7] bg-white dark:bg-[#1c1c1e]">Mai</option>
+                  <option value={6} className="text-[#1d1d1f] dark:text-[#f5f5f7] bg-white dark:bg-[#1c1c1e]">Iunie</option>
+                  <option value={7} className="text-[#1d1d1f] dark:text-[#f5f5f7] bg-white dark:bg-[#1c1c1e]">Iulie</option>
+                  <option value={8} className="text-[#1d1d1f] dark:text-[#f5f5f7] bg-white dark:bg-[#1c1c1e]">August</option>
+                  <option value={9} className="text-[#1d1d1f] dark:text-[#f5f5f7] bg-white dark:bg-[#1c1c1e]">Septembrie</option>
+                  <option value={10} className="text-[#1d1d1f] dark:text-[#f5f5f7] bg-white dark:bg-[#1c1c1e]">Octombrie</option>
+                  <option value={11} className="text-[#1d1d1f] dark:text-[#f5f5f7] bg-white dark:bg-[#1c1c1e]">Noiembrie</option>
+                  <option value={12} className="text-[#1d1d1f] dark:text-[#f5f5f7] bg-white dark:bg-[#1c1c1e]">Decembrie</option>
                 </select>
 
                 <select
                   value={qrYear}
                   onChange={e => handleQrParamChange(qrTenantId, qrMonth, Number(e.target.value))}
                   disabled={loadingQrPontaj}
-                  className="bg-transparent text-xs text-slate-800 dark:text-slate-200 font-semibold outline-none cursor-pointer"
+                  className="bg-transparent text-xs text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold outline-none cursor-pointer"
                 >
-                  <option value={2025} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">2025</option>
-                  <option value={2026} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">2026</option>
-                  <option value={2027} className="text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800">2027</option>
+                  <option value={2025} className="text-[#1d1d1f] dark:text-[#f5f5f7] bg-white dark:bg-[#1c1c1e]">2025</option>
+                  <option value={2026} className="text-[#1d1d1f] dark:text-[#f5f5f7] bg-white dark:bg-[#1c1c1e]">2026</option>
+                  <option value={2027} className="text-[#1d1d1f] dark:text-[#f5f5f7] bg-white dark:bg-[#1c1c1e]">2027</option>
                 </select>
 
-                <span className="text-blue-300 dark:text-blue-700">|</span>
+                <span className="text-black/[0.15] dark:text-white/[0.15]">|</span>
 
                 <div className="flex items-center gap-1">
-                  <span className="text-[11px] text-blue-700 dark:text-blue-300 font-medium">Preț:</span>
-                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                  <span className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] font-medium">Preț:</span>
+                  <span className="text-xs font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                     {qrPricePerUser} EUR
                   </span>
                 </div>
 
-                <span className="text-blue-300 dark:text-blue-700">|</span>
+                <span className="text-black/[0.15] dark:text-white/[0.15]">|</span>
 
                 <div className="flex items-center gap-1">
-                  <span className="text-[11px] text-blue-700 dark:text-blue-300 font-medium">Curs BNR:</span>
-                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                  <span className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] font-medium">Curs BNR:</span>
+                  <span className="text-xs font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
                     {appliedQrExchangeRate ? appliedQrExchangeRate.toFixed(4) : (currentBnrRateForInvoice ? currentBnrRateForInvoice.toFixed(4) : "5.3370")}
                   </span>
                 </div>
@@ -2608,7 +2609,7 @@ export default function EmitInvoice() {
                   onClick={() => fetchAndApplyQrData(qrTenantId, qrMonth, qrYear)}
                   disabled={loadingQrPontaj}
                   title="Reîncarcă datele din Smart QR"
-                  className="ml-1 w-7 h-7 rounded-full inline-flex items-center justify-center text-blue-600 hover:text-blue-800 hover:bg-blue-100/70 dark:text-blue-400 dark:hover:text-blue-200 dark:hover:bg-blue-900/40 transition-colors cursor-pointer"
+                  className="ml-1 w-7 h-7 rounded-full inline-flex items-center justify-center text-[#0071e3] hover:bg-[#0071e3]/10 dark:text-[#409cff] transition-colors cursor-pointer"
                 >
                   <RotateCcw className={`w-3.5 h-3.5 ${loadingQrPontaj ? "animate-spin" : ""}`} />
                 </button>
@@ -2619,21 +2620,21 @@ export default function EmitInvoice() {
 
         {/* Butoane Salvare & Emitere Factură */}
         <div className="flex items-center justify-between flex-wrap gap-4 pt-1">
-          <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-            Factură în <strong className="text-slate-800 dark:text-slate-200">{currency}</strong> · Serie & Număr: <span className="tabular-nums font-bold text-slate-800 dark:text-slate-200">{fullInvoiceNumber || series}</span>
+          <div className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] font-medium">
+            Factură în <strong className="text-[#1d1d1f] dark:text-[#f5f5f7]">{currency}</strong> · Serie & Număr: <span className="tabular-nums font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">{fullInvoiceNumber || series}</span>
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
             {isSpvValidated ? (
               <div className="flex items-center gap-3 flex-wrap">
-                <div className="flex items-center gap-1.5 px-4 h-10 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs font-bold">
+                <div className="flex items-center gap-1.5 px-4 h-10 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-800 dark:text-amber-300 text-xs font-semibold">
                   <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                   <span>Factură blocată la editare (Validată în SPV)</span>
                 </div>
                 <Link href={`/facturi-emise-nou/storno/${editId}`}>
                   <button
                     type="button"
-                    className="flex items-center gap-1.5 px-6 h-10 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold shadow-md transition-all active:scale-[0.98] cursor-pointer"
+                    className="flex items-center gap-1.5 px-6 h-10 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-[13.5px] font-semibold shadow-sm transition-all active:scale-[0.98] cursor-pointer"
                   >
                     <RotateCcw className="w-4 h-4" />
                     Emite Factură Storno
@@ -2646,7 +2647,7 @@ export default function EmitInvoice() {
                   type="button"
                   onClick={() => handleSave("draft")}
                   disabled={saving}
-                  className="flex items-center gap-1.5 px-6 h-10 rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors disabled:opacity-60 whitespace-nowrap cursor-pointer shadow-2xs"
+                  className="flex items-center gap-1.5 px-6 h-10 rounded-full apple-btn-glass text-[#1d1d1f] dark:text-[#f5f5f7] text-[13.5px] font-semibold transition-colors disabled:opacity-60 whitespace-nowrap cursor-pointer"
                 >
                   {saving ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -2659,7 +2660,7 @@ export default function EmitInvoice() {
                   type="button"
                   onClick={() => handleSave("sent")}
                   disabled={saving}
-                  className="flex items-center gap-1.5 px-8 h-10 rounded-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-bold transition-all disabled:opacity-60 whitespace-nowrap cursor-pointer shadow-md hover:shadow-lg active:scale-[0.99]"
+                  className="flex items-center gap-1.5 px-8 h-10 rounded-full apple-btn-prominent text-[13.5px] font-semibold transition-all disabled:opacity-60 whitespace-nowrap cursor-pointer active:scale-[0.99]"
                 >
                   {saving ? (
                     <Loader2 className="w-4 h-4 animate-spin" />

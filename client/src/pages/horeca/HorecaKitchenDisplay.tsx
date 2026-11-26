@@ -144,32 +144,33 @@ export default function HorecaKitchenDisplay() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm">
+    <div className="flex flex-col h-full space-y-4 max-w-full overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
-            <ChefHat className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white">
-              Kitchen Display
-            </h1>
-            <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-sm font-medium">
-              <span>{kitchenOrders.length} comenzi active</span>
-              {isFetching && (
-                <RefreshCw className="w-3 h-3 animate-spin text-slate-400" />
-              )}
-            </div>
+      <div className="flex items-center justify-between gap-3 flex-wrap px-0.5">
+        <div>
+          <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
+            Kitchen Display
+          </h1>
+          <div className="flex items-center gap-2 text-[#6e6e73] dark:text-[#98989d] text-[12.5px] mt-0.5 tabular-nums">
+            <span>
+              <strong className="text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold">
+                {kitchenOrders.length}
+              </strong>{" "}
+              comenzi active
+            </span>
+            {isFetching && (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#8e8e93]" />
+            )}
           </div>
         </div>
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-center flex-wrap">
           <div className="apple-segmented">
             <button
               type="button"
               data-active={viewMode === "grid"}
               onClick={() => setViewMode("grid")}
               className="apple-segmented-item px-2.5"
+              title="Vizualizare coloane"
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
@@ -178,6 +179,7 @@ export default function HorecaKitchenDisplay() {
               data-active={viewMode === "list"}
               onClick={() => setViewMode("list")}
               className="apple-segmented-item px-2.5"
+              title="Vizualizare grilă"
             >
               <ListIcon className="w-4 h-4" />
             </button>
@@ -186,14 +188,14 @@ export default function HorecaKitchenDisplay() {
             <select
               value={limit}
               onChange={e => setLimit(Number(e.target.value))}
-              className="appearance-none pr-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-3 py-2 rounded-full text-sm font-medium focus:outline-none focus:border-blue-500 shadow-sm"
+              className="apple-pill-control appearance-none pl-3.5 pr-8 h-[34px] text-[12.5px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none cursor-pointer"
             >
               <option value={10}>10 carduri</option>
               <option value={20}>20 carduri</option>
               <option value={50}>50 carduri</option>
               <option value={9999}>Toate</option>
             </select>
-            <ChevronDown className="w-4 h-4 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <ChevronDown className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
           {locations.length > 1 && (
             <div className="relative">
@@ -201,9 +203,9 @@ export default function HorecaKitchenDisplay() {
                 value={locationId || ""}
                 onChange={e => {
                   const val = e.target.value;
-                  setSelectedLocationId(val.startsWith('bridge-') ? val as any : Number(val));
+                  setSelectedLocationId(val.startsWith("bridge-") ? (val as any) : Number(val));
                 }}
-                className="appearance-none pr-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-3 py-2 rounded-full text-sm font-medium focus:outline-none focus:border-blue-500 shadow-sm"
+                className="apple-pill-control appearance-none pl-3.5 pr-8 h-[34px] text-[12.5px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none cursor-pointer"
               >
                 {locations.map(l => (
                   <option key={l.id} value={l.id}>
@@ -211,7 +213,7 @@ export default function HorecaKitchenDisplay() {
                   </option>
                 ))}
               </select>
-              <ChevronDown className="w-4 h-4 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           )}
         </div>
@@ -219,53 +221,66 @@ export default function HorecaKitchenDisplay() {
 
       {/* Grid/List de comenzi */}
       <div
-        className={`flex-1 overflow-x-auto p-5 gap-5 bg-slate-100 dark:bg-slate-900 ${viewMode === "grid" ? "flex overflow-y-hidden" : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 overflow-y-auto"}`}
+        className={`flex-1 overflow-x-auto p-4 gap-4 apple-surface ${
+          viewMode === "grid"
+            ? "flex overflow-y-hidden min-h-[460px]"
+            : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 overflow-y-auto min-h-[460px]"
+        }`}
       >
         {isLoading ? (
-          <div className="w-full flex justify-center items-center">
-            <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+          <div className="w-full flex justify-center items-center py-16">
+            <Loader2 className="w-7 h-7 text-primary animate-spin" />
           </div>
         ) : kitchenOrders.length === 0 ? (
-          <div className="w-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
-            <ChefHat className="w-20 h-20 mb-4 opacity-30 text-slate-400" />
-            <p className="text-2xl font-bold">Bucătăria este liberă</p>
-            <p className="text-slate-500 mt-2">
+          <div className="w-full flex flex-col items-center justify-center text-[#6e6e73] dark:text-[#98989d] py-16">
+            <ChefHat className="w-16 h-16 mb-3 opacity-25 text-[#8e8e93]" />
+            <p className="text-xl font-bold text-[#1d1d1f] dark:text-[#f5f5f7]">Bucătăria este liberă</p>
+            <p className="text-[#6e6e73] dark:text-[#98989d] text-[13px] mt-1">
               Nu există comenzi active în așteptare
             </p>
           </div>
         ) : (
           kitchenOrders.map((order: any) => {
             const isPreparing = order.status === "preparing";
-            // Timpul scurs de la creare
             const createdTime = order.createdAt
               ? new Date(order.createdAt)
               : new Date();
             const timeDiffMin = Math.floor(
               (new Date().getTime() - createdTime.getTime()) / 60000
             );
-            const isDelayed = timeDiffMin > 15; // peste 15 min = roșu
+            const isDelayed = timeDiffMin > 15;
 
             return (
               <div
                 key={order.id}
-                className={`flex flex-col flex-shrink-0 h-full rounded-3xl border-2 overflow-hidden shadow-sm transition-all ${viewMode === "grid" ? "w-80" : "w-full min-h-[400px]"} ${isPreparing ? "bg-white dark:bg-slate-800 border-blue-400 dark:border-blue-500/50" : "bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700"}`}
+                className={`flex flex-col flex-shrink-0 h-full rounded-2xl border overflow-hidden transition-all ${
+                  viewMode === "grid" ? "w-80" : "w-full min-h-[380px]"
+                } ${
+                  isPreparing
+                    ? "bg-[#f2f2f7]/60 dark:bg-[#2c2c2e] border-primary/50"
+                    : "bg-[#f2f2f7]/40 dark:bg-[#242426] border-black/[0.06] dark:border-white/[0.08]"
+                }`}
               >
                 {/* Order Header */}
                 <div
-                  className={`p-4 border-b flex-shrink-0 ${isPreparing ? "bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/30" : "bg-slate-50 dark:bg-slate-700/50 border-slate-100 dark:border-slate-700"}`}
+                  className={`p-4 border-b flex-shrink-0 ${
+                    isPreparing
+                      ? "bg-primary/[0.08] dark:bg-primary/[0.14] border-primary/20"
+                      : "bg-[#fafafa] dark:bg-white/[0.03] border-black/[0.05] dark:border-white/[0.07]"
+                  }`}
                 >
-                  <div className="flex justify-between items-start mb-2">
+                  <div className="flex justify-between items-start mb-1.5">
                     <div>
-                      <p className="text-slate-900 dark:text-white font-black text-xl leading-none tracking-tight">
+                      <p className="text-[#1d1d1f] dark:text-[#f5f5f7] font-bold text-xl leading-none tracking-tight tabular-nums">
                         #{order.orderNumber}
                       </p>
-                      <p className="text-slate-500 dark:text-slate-400 text-xs font-semibold mt-1.5 flex items-center gap-1">
+                      <p className="text-[#6e6e73] dark:text-[#98989d] text-xs font-medium mt-1.5 flex items-center gap-1 tabular-nums">
                         {order.type === "dine_in"
                           ? `Masă: ${order.tableNumber || "?"}`
                           : order.type === "takeaway"
                             ? "Ridicare"
                             : "Delivery"}
-                        <span className="opacity-50 mx-1">•</span>
+                        <span className="opacity-50 mx-0.5">·</span>
                         <Calendar className="w-3 h-3" />
                         {createdTime.toLocaleDateString("ro-RO", {
                           day: "2-digit",
@@ -278,14 +293,18 @@ export default function HorecaKitchenDisplay() {
                       </p>
                     </div>
                     <div
-                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold shadow-sm ${isDelayed ? "bg-red-500 text-white animate-pulse" : "bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300"}`}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold tabular-nums ${
+                        isDelayed
+                          ? "bg-[#ff3b30] text-white animate-pulse"
+                          : "bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#ebebf5] border border-black/[0.06] dark:border-white/[0.08]"
+                      }`}
                     >
                       <Clock className="w-3.5 h-3.5" />
                       {timeDiffMin} min
                     </div>
                   </div>
                   {order.notes && (
-                    <div className="mt-3 bg-amber-50 dark:bg-yellow-500/10 border border-amber-200 dark:border-yellow-500/20 text-amber-800 dark:text-yellow-400 px-3 py-2 rounded-md text-xs font-medium flex items-start gap-2">
+                    <div className="mt-2.5 bg-amber-500/12 border border-amber-500/20 text-amber-800 dark:text-amber-300 px-3 py-2 rounded-xl text-xs font-medium flex items-start gap-2">
                       <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
                       <span className="leading-snug">{order.notes}</span>
                     </div>
@@ -293,7 +312,7 @@ export default function HorecaKitchenDisplay() {
                 </div>
 
                 {/* Items */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto p-4 space-y-3">
                   {(
                     (order as any).lines ||
                     (order as any)._items ||
@@ -302,18 +321,18 @@ export default function HorecaKitchenDisplay() {
                   )?.map((line: any) => (
                     <div
                       key={line.id || Math.random()}
-                      className="border-b border-slate-100 dark:border-slate-700/50 pb-3 last:border-0 last:pb-0"
+                      className="border-b border-black/[0.05] dark:border-white/[0.07] pb-3 last:border-0 last:pb-0"
                     >
                       <div className="flex gap-3">
-                        <span className="text-blue-600 dark:text-blue-400 font-bold text-lg leading-tight w-6">
+                        <span className="text-primary font-bold text-base leading-tight w-6 tabular-nums">
                           {line.quantity}x
                         </span>
-                        <div className="flex-1 pt-0.5">
-                          <p className="text-slate-900 dark:text-white text-base leading-snug font-bold">
+                        <div className="flex-1">
+                          <p className="text-[#1d1d1f] dark:text-[#f5f5f7] text-[15px] leading-snug font-semibold">
                             {line.name || line.productName}
                           </p>
                           {line.notes && (
-                            <p className="text-amber-600 dark:text-yellow-400 text-sm mt-1 ml-1 flex items-start gap-1.5 font-medium">
+                            <p className="text-amber-700 dark:text-amber-300 text-xs mt-1 ml-1 flex items-start gap-1.5 font-medium">
                               <span className="opacity-50">↳</span> {line.notes}
                             </p>
                           )}
@@ -327,7 +346,7 @@ export default function HorecaKitchenDisplay() {
                     (order as any).items ||
                     []
                   ).length === 0 && (
-                    <div className="text-center text-slate-400 text-sm mt-4 font-medium italic">
+                    <div className="text-center text-[#8e8e93] text-xs mt-4 italic">
                       Nu s-au putut încărca produsele. Verificați conexiunea cu
                       Aggregator-ul.
                     </div>
@@ -335,24 +354,26 @@ export default function HorecaKitchenDisplay() {
                 </div>
 
                 {/* Actions */}
-                <div className="p-3 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-700 mt-auto flex-shrink-0">
+                <div className="p-3 bg-white dark:bg-[#1c1c1e] border-t border-black/[0.05] dark:border-white/[0.07] mt-auto flex-shrink-0">
                   {!isPreparing ? (
                     <button
+                      type="button"
                       onClick={() => handleStart(order.id)}
                       disabled={updateStatusMut.isPending}
-                      className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-full font-bold text-base transition-colors shadow-sm"
+                      className="apple-btn-prominent w-full flex items-center justify-center gap-2 text-white h-11 font-semibold text-sm cursor-pointer"
                     >
-                      <Play className="w-5 h-5 fill-current" />
+                      <Play className="w-4 h-4 fill-current" />
                       Începe prepararea
                     </button>
                   ) : (
                     <button
+                      type="button"
                       onClick={() => handleFinish(order.id)}
                       disabled={updateStatusMut.isPending}
-                      className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white py-3.5 rounded-full font-bold text-base transition-colors shadow-sm"
+                      className="apple-btn-prominent w-full flex items-center justify-center gap-2 text-white h-11 font-semibold text-sm cursor-pointer"
                     >
-                      <CheckCircle2 className="w-6 h-6" />
-                      GATA
+                      <CheckCircle2 className="w-5 h-5" />
+                      Gata
                     </button>
                   )}
                 </div>

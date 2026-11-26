@@ -1,15 +1,34 @@
 import { useState, useMemo } from "react";
-import { Package, Search, Filter, RotateCcw } from "lucide-react";
+import {
+  Package,
+  Search,
+  Layers,
+  Building2,
+  Coins,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+} from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { formatNumber } from "@/lib/utils";
+import { usePersistentRowsPerPage } from "@/hooks/usePersistentRowsPerPage";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function Inventory() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
   const [gestiuneFilter, setGestiuneFilter] = useState("all");
   const [supplierFilter, setSupplierFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = usePersistentRowsPerPage("inventory_list", 25);
 
-  const { data: items, isLoading } = trpc.inventory.list.useQuery();
+  const { data: items = [], isLoading } = trpc.inventory.list.useQuery();
 
   const gestiuni = useMemo(() => {
     const set = new Set<string>();
@@ -27,183 +46,386 @@ export default function Inventory() {
     return Array.from(set).sort();
   }, [items]);
 
-  const hasActiveFilters = gestiuneFilter !== "all" || supplierFilter !== "all";
+  const hasActiveFilters =
+    gestiuneFilter !== "all" || supplierFilter !== "all" || searchTerm.trim() !== "";
 
-  const filteredItems = items?.filter(item => {
-    if (gestiuneFilter !== "all" && item.gestiune !== gestiuneFilter) return false;
-    if (supplierFilter !== "all" && item.supplierName !== supplierFilter) return false;
-    if (!searchTerm) return true;
-    const q = searchTerm.toLowerCase();
-    return (
-      item.description.toLowerCase().includes(q) ||
-      item.supplierName?.toLowerCase().includes(q) ||
-      item.gestiune?.toLowerCase().includes(q)
+  const filteredItems = useMemo(() => {
+    return (items || []).filter(item => {
+      if (gestiuneFilter !== "all" && item.gestiune !== gestiuneFilter) return false;
+      if (supplierFilter !== "all" && item.supplierName !== supplierFilter) return false;
+      if (!searchTerm.trim()) return true;
+      const q = searchTerm.toLowerCase().trim();
+      return (
+        item.description.toLowerCase().includes(q) ||
+        item.supplierName?.toLowerCase().includes(q) ||
+        item.gestiune?.toLowerCase().includes(q) ||
+        item.nirNumber?.toLowerCase().includes(q)
+      );
+    });
+  }, [items, gestiuneFilter, supplierFilter, searchTerm]);
+
+  const totalStockValue = useMemo(() => {
+    return filteredItems.reduce(
+      (sum, item) => sum + (Number(item.availableQty) || 0) * (Number(item.unitPrice) || 0),
+      0
     );
-  });
+  }, [filteredItems]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / rowsPerPage));
+  const safePage = Math.min(page, totalPages);
+  const paginatedItems = filteredItems.slice(
+    (safePage - 1) * rowsPerPage,
+    safePage * rowsPerPage
+  );
 
   return (
-    <div className="flex-1 w-full p-4 lg:p-8 flex flex-col items-center">
-      <div className="w-full max-w-7xl space-y-6">
-        {/* Header Section */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-900 p-6 rounded-[22px] border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center border border-indigo-100 dark:border-indigo-800/50">
-              <Package className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Inventar Curent</h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                Gestiunea stocurilor pe baza intrărilor (NIR) și ieșirilor (Bonuri Consum)
-              </p>
-            </div>
+    <div className="p-3 sm:p-5 max-w-full space-y-4 overflow-x-hidden">
+      {/* Header — Apple macOS Window Title */}
+      <div className="flex items-center justify-between gap-3 flex-wrap px-0.5">
+        <div>
+          <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
+            Inventar Curent
+          </h1>
+          <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5 tabular-nums">
+            Gestiunea stocurilor pe baza intrărilor (NIR) și ieșirilor (Bonuri Consum) ·{" "}
+            <strong className="text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold">
+              {items.length}
+            </strong>{" "}
+            poziții cu stoc activ
+            {filteredItems.length !== items.length && (
+              <span className="ml-1.5 text-[#1d1d1f] dark:text-white font-medium">
+                ({filteredItems.length} afișate)
+              </span>
+            )}
+          </p>
+        </div>
+      </div>
+
+      {/* KPI Cards Strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="apple-surface outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+          <div className="flex items-center justify-between gap-2 w-full">
+            <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+              Poziții în stoc
+            </span>
+            <span className="w-7 h-7 rounded-[8px] bg-[#f2f4f7] dark:bg-[#2c2c2e] flex items-center justify-center shrink-0">
+              <Package className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#0a84ff]" />
+            </span>
           </div>
+          <span className="text-[22px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none tabular-nums">
+            {filteredItems.length}
+          </span>
         </div>
 
-        {/* Toolbar Section */}
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <div className="apple-surface outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+          <div className="flex items-center justify-between gap-2 w-full">
+            <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+              Gestiuni active
+            </span>
+            <span className="w-7 h-7 rounded-[8px] bg-[#eefbf3] dark:bg-emerald-500/18 flex items-center justify-center shrink-0">
+              <Layers className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            </span>
+          </div>
+          <span className="text-[22px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none tabular-nums">
+            {gestiuni.length}
+          </span>
+        </div>
+
+        <div className="apple-surface outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+          <div className="flex items-center justify-between gap-2 w-full">
+            <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+              Furnizori
+            </span>
+            <span className="w-7 h-7 rounded-[8px] bg-[#fff6eb] dark:bg-amber-500/18 flex items-center justify-center shrink-0">
+              <Building2 className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+            </span>
+          </div>
+          <span className="text-[22px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none tabular-nums">
+            {suppliers.length}
+          </span>
+        </div>
+
+        <div className="apple-surface outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+          <div className="flex items-center justify-between gap-2 w-full">
+            <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+              Valoare stoc (fără TVA)
+            </span>
+            <span className="w-7 h-7 rounded-[8px] bg-[#eefbf3] dark:bg-emerald-500/18 flex items-center justify-center shrink-0">
+              <Coins className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            </span>
+          </div>
+          <span className="text-[20px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none tabular-nums truncate">
+            {formatNumber(totalStockValue, 2)} RON
+          </span>
+        </div>
+      </div>
+
+      {/* Unified Filter & Search Toolbar */}
+      <div className="apple-surface px-3 py-2.5">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 2xl:gap-2 w-full min-w-0">
+          <Select
+            value={gestiuneFilter}
+            onValueChange={val => {
+              setGestiuneFilter(val);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger
+              data-filtered={gestiuneFilter !== "all"}
+              className="apple-pill-control h-[34px] w-auto shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3"
+            >
+              <Layers className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
+              <SelectValue placeholder="Gestiune" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Gestiune: Toate ({gestiuni.length})</SelectItem>
+              {gestiuni.map(g => (
+                <SelectItem key={g} value={g}>
+                  {g}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={supplierFilter}
+            onValueChange={val => {
+              setSupplierFilter(val);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger
+              data-filtered={supplierFilter !== "all"}
+              className="apple-pill-control h-[34px] w-auto max-w-[220px] shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3"
+            >
+              <Building2 className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
+              <SelectValue placeholder="Furnizor" />
+            </SelectTrigger>
+            <SelectContent className="max-h-64">
+              <SelectItem value="all">Furnizor: Toți ({suppliers.length})</SelectItem>
+              {suppliers.map(s => (
+                <SelectItem key={s} value={s}>
+                  {s}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <div className="sm:ml-auto flex items-center gap-1.5 w-full sm:w-auto sm:flex-1 justify-end min-w-0">
+            <div className="relative flex-1 min-w-[160px] max-w-full sm:max-w-[300px]">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#8e8e93] pointer-events-none" />
               <input
                 type="text"
-                placeholder="Caută după produs, furnizor sau gestiune..."
+                placeholder="Caută produs, furnizor, NIR sau gestiune..."
                 value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all dark:text-white"
+                onChange={e => {
+                  setSearchTerm(e.target.value);
+                  setPage(1);
+                }}
+                style={{ paddingLeft: 34, paddingRight: searchTerm ? 72 : 14 }}
+                className="apple-pill-control rounded-full w-full h-[34px] outline-none text-[13px] text-[#1d1d1f] dark:text-white placeholder:text-[#8e8e93] focus:bg-white dark:focus:bg-[#2c2c2e] focus:border-black/15 dark:focus:border-white/20"
               />
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowFilters(v => !v)}
-              className={`flex items-center justify-center gap-2 px-4 py-2 border rounded-full text-sm font-medium transition-colors cursor-pointer ${
-                showFilters || hasActiveFilters
-                  ? "bg-primary text-white border-transparent shadow-xs font-semibold"
-                  : "apple-pill-control"
-              }`}
-            >
-              <Filter className="w-4 h-4" />
-              Filtre
-              {hasActiveFilters && (
-                <span className="w-2 h-2 rounded-full bg-white" />
+              {searchTerm && (
+                <>
+                  <span className="absolute right-7 top-1/2 -translate-y-1/2 bg-black/[0.07] dark:bg-white/[0.14] text-[#1d1d1f] dark:text-white rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums">
+                    {filteredItems.length}/{items.length}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchTerm("");
+                      setPage(1);
+                    }}
+                    aria-label="Șterge căutarea"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center hover:bg-black/[0.07] dark:hover:bg-white/[0.12] cursor-pointer"
+                  >
+                    <X className="w-3 h-3 text-[#6e6e73] dark:text-[#98989d]" />
+                  </button>
+                </>
               )}
-            </button>
+            </div>
+
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={() => {
+                  setGestiuneFilter("all");
+                  setSupplierFilter("all");
+                  setSearchTerm("");
+                  setPage(1);
+                }}
+                title="Elimină toate filtrele"
+                aria-label="Elimină toate filtrele"
+                className="apple-pill-control w-[34px] h-[34px] shrink-0 flex items-center justify-center text-[#6e6e73] hover:text-[#1d1d1f] dark:text-[#98989d] dark:hover:text-white cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
+        </div>
+      </div>
 
-          {showFilters && (
-            <div className="flex flex-wrap items-center gap-3 p-3.5 rounded-[22px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-              <select
-                value={gestiuneFilter}
-                onChange={e => setGestiuneFilter(e.target.value)}
-                className="h-9 px-3.5 rounded-full text-xs font-semibold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
-              >
-                <option value="all">Gestiune: Toate ({gestiuni.length})</option>
-                {gestiuni.map(g => (
-                  <option key={g} value={g}>
-                    {g}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={supplierFilter}
-                onChange={e => setSupplierFilter(e.target.value)}
-                className="h-9 px-3.5 rounded-full text-xs font-semibold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 max-w-[260px]"
-              >
-                <option value="all">Furnizor: Toți ({suppliers.length})</option>
-                {suppliers.map(s => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-
-              {hasActiveFilters && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setGestiuneFilter("all");
-                    setSupplierFilter("all");
-                  }}
-                  className="h-9 px-3.5 rounded-full text-xs font-semibold text-rose-600 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-900/50 inline-flex items-center gap-1.5 transition-colors"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  Resetează
-                </button>
+      {/* Table Section */}
+      <div className="apple-surface overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left whitespace-nowrap table-auto min-w-[900px]">
+            <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+              <tr>
+                <th className="px-3 py-3 w-12 text-center text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                  Nr.
+                </th>
+                <th className="px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                  Denumire produs / serviciu
+                </th>
+                <th className="px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                  Dată recepție
+                </th>
+                <th className="px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                  Furnizor
+                </th>
+                <th className="px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                  Nr. NIR
+                </th>
+                <th className="px-4 py-3 text-center text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                  U/M
+                </th>
+                <th className="px-4 py-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                  Preț unitar
+                </th>
+                <th className="px-4 py-3 text-center text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                  TVA %
+                </th>
+                <th className="px-4 py-3 text-center text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                  Stoc curent
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
+              {isLoading ? (
+                <tr>
+                  <td colSpan={9} className="px-4 py-14 text-center">
+                    <Loader2 className="w-6 h-6 animate-spin text-[#6e6e73] mx-auto" />
+                  </td>
+                </tr>
+              ) : paginatedItems.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={9}
+                    className="px-4 py-12 text-center text-[13px] text-[#6e6e73] dark:text-[#98989d]"
+                  >
+                    Niciun produs în stoc curent. Toate produsele au fost consumate sau nu există intrări.
+                  </td>
+                </tr>
+              ) : (
+                paginatedItems.map((item, idx) => (
+                  <tr
+                    key={item.lineId}
+                    className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors"
+                  >
+                    <td className="px-3 py-3 text-center tabular-nums text-[12px] text-[#8e8e93] font-medium">
+                      {(safePage - 1) * rowsPerPage + idx + 1}
+                    </td>
+                    <td
+                      className="px-4 py-3 text-[13.5px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] max-w-[260px] truncate"
+                      title={item.description}
+                    >
+                      {item.description}
+                    </td>
+                    <td className="px-4 py-3 tabular-nums text-[13px] text-[#6e6e73] dark:text-[#98989d]">
+                      {item.receiptDate}
+                    </td>
+                    <td
+                      className="px-4 py-3 text-[13px] text-[#1d1d1f] dark:text-[#ebebf5] max-w-[180px] truncate"
+                      title={item.supplierName || ""}
+                    >
+                      {item.supplierName || "—"}
+                    </td>
+                    <td className="px-4 py-3 tabular-nums text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                      {item.nirNumber || "—"}
+                    </td>
+                    <td className="px-4 py-3 text-center text-[13px] text-[#6e6e73] dark:text-[#98989d]">
+                      {item.unit || "—"}
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums text-[13px] text-[#1d1d1f] dark:text-[#ebebf5]">
+                      {formatNumber(Number(item.unitPrice))}
+                    </td>
+                    <td className="px-4 py-3 text-center tabular-nums text-[13px] text-[#6e6e73] dark:text-[#98989d]">
+                      {item.vatRate}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-[12px] tabular-nums font-semibold bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300 leading-none">
+                        {formatNumber(item.availableQty, 2)}
+                      </span>
+                    </td>
+                  </tr>
+                ))
               )}
-            </div>
-          )}
+            </tbody>
+          </table>
         </div>
 
-        {/* Table Section */}
-        <div className="bg-white dark:bg-slate-900 rounded-[22px] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left whitespace-nowrap table-auto min-w-[1000px]">
-              <thead className="bg-slate-50 dark:bg-slate-800/50 text-[#636366] dark:text-[#98989d] uppercase text-[10px] font-bold tracking-wider">
-                <tr>
-                  <th className="px-4 py-3">Nr. Crt.</th>
-                  <th className="px-4 py-3">Denumire produs/serviciu</th>
-                  <th className="px-4 py-3">Data Recepției</th>
-                  <th className="px-4 py-3">Furnizor</th>
-                  <th className="px-4 py-3">Nr. NIR</th>
-                  <th className="px-4 py-3 text-center">U/M</th>
-                  <th className="px-4 py-3 text-right">Preț unit.</th>
-                  <th className="px-4 py-3 text-center">TVA %</th>
-                  <th className="px-4 py-3 text-center bg-green-50/50 dark:bg-green-900/10 text-green-700 dark:text-green-500">Stoc Curent</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={9} className="px-4 py-8 text-center text-slate-500">
-                      Se încarcă stocurile...
-                    </td>
-                  </tr>
-                ) : filteredItems?.length === 0 ? (
-                  <tr>
-                    <td colSpan={9} className="px-4 py-8 text-center text-slate-500">
-                      Niciun produs în stoc curent. Toate produsele au fost consumate sau nu există intrări.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredItems?.map((item, idx) => (
-                    <tr key={item.lineId} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                      <td className="px-4 py-3 tabular-nums text-slate-400 font-medium">{idx + 1}</td>
-                      <td className="px-4 py-3 font-medium text-slate-900 dark:text-white max-w-[250px] truncate" title={item.description}>
-                        {item.description}
-                      </td>
-                      <td className="px-4 py-3 tabular-nums text-slate-600 dark:text-slate-300">
-                        {item.receiptDate}
-                      </td>
-                      <td className="px-4 py-3 text-slate-600 dark:text-slate-300 max-w-[150px] truncate" title={item.supplierName || ""}>
-                        {item.supplierName || "-"}
-                      </td>
-                      <td className="px-4 py-3 tabular-nums text-slate-600 dark:text-slate-300">
-                        {item.nirNumber || "-"}
-                      </td>
-                      <td className="px-4 py-3 text-center text-slate-600 dark:text-slate-300">
-                        {item.unit || "-"}
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums text-slate-700 dark:text-slate-300">
-                        {formatNumber(Number(item.unitPrice))}
-                      </td>
-                      <td className="px-4 py-3 text-center tabular-nums text-slate-600 dark:text-slate-300">
-                        {item.vatRate}
-                      </td>
-                      <td className="px-4 py-3 text-center bg-green-50/30 dark:bg-green-900/5">
-                        <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full tabular-nums font-bold text-green-700 bg-green-100 dark:bg-green-500/20 dark:text-green-400">
-                          {formatNumber(item.availableQty, 2)}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-          <div className="px-4 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center text-xs text-slate-500 tabular-nums">
-            <span>
-              Afișare {filteredItems?.length || 0} poziții cu stoc activ
+        {/* Footer Paginare */}
+        <div className="px-4 py-3 border-t border-black/[0.05] dark:border-white/[0.07] bg-[#fafafa]/85 dark:bg-white/[0.02] flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2 text-[12px] text-[#6e6e73] dark:text-[#98989d] tabular-nums">
+            <span className="flex items-center whitespace-nowrap">
+              Afișează
+              <Select
+                value={rowsPerPage.toString()}
+                onValueChange={val => {
+                  setRowsPerPage(Number(val));
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="apple-pill-control h-7 px-2.5 text-[12px] w-[66px] mx-1.5 bg-white dark:bg-[#2c2c2e]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="15">15</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                  <SelectItem value="9999">Toți</SelectItem>
+                </SelectContent>
+              </Select>
             </span>
+            <span className="whitespace-nowrap ml-1">
+              din{" "}
+              <strong className="text-[#1d1d1f] dark:text-white font-semibold">
+                {filteredItems.length}
+              </strong>{" "}
+              poziții active
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 text-[12px] text-[#6e6e73] dark:text-[#98989d] tabular-nums">
+            <span className="whitespace-nowrap mr-1.5">
+              Pagina{" "}
+              <strong className="text-[#1d1d1f] dark:text-white font-semibold">
+                {safePage}
+              </strong>{" "}
+              din{" "}
+              <strong className="text-[#1d1d1f] dark:text-white font-semibold">
+                {totalPages}
+              </strong>
+            </span>
+            <button
+              type="button"
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={safePage === 1}
+              aria-label="Pagina anterioară"
+              className="apple-btn-glass w-8 h-8 rounded-full flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] disabled:opacity-35 transition-all cursor-pointer"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={safePage >= totalPages}
+              aria-label="Pagina următoare"
+              className="apple-btn-glass w-8 h-8 rounded-full flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] disabled:opacity-35 transition-all cursor-pointer"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       </div>

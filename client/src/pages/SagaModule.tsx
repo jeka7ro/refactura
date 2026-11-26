@@ -147,30 +147,39 @@ function MenuDropdown({ label, items, onSelect, activePage }: {
   return (
     <div ref={ref} className="relative">
       <button
+        type="button"
         onClick={() => setOpen(!open)}
-        className={`px-3 py-1.5 text-sm font-medium rounded transition-colors flex items-center gap-1 ${
-          open ? "bg-blue-600 text-white" : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+        style={
+          open
+            ? { backgroundColor: "var(--tenant-theme-color, #0071e3)" }
+            : undefined
+        }
+        className={`px-3 py-1.5 text-[13px] font-medium rounded-full transition-colors flex items-center gap-1 cursor-pointer ${
+          open
+            ? "text-white shadow-xs"
+            : "text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-black/[0.05] dark:hover:bg-white/[0.08]"
         }`}
       >
         {label}
         <ChevronDown className="w-3 h-3" />
       </button>
       {open && (
-        <div className="absolute top-full left-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-50 min-w-[220px] py-1">
-          {items.map((item, i) => (
+        <div className="absolute top-full left-0 mt-1.5 bg-white dark:bg-[#1c1c1e] border border-black/[0.08] dark:border-white/[0.10] rounded-2xl shadow-xl z-50 min-w-[225px] py-1.5">
+          {items.map((item) => (
             <button
               key={item.id}
+              type="button"
               onClick={() => { onSelect(item.id); setOpen(false); }}
-              className={`w-full flex items-center gap-3 px-4 py-2 text-sm transition-colors ${
+              className={`apple-card-btn w-full flex items-center gap-3 px-4 py-2 text-[13px] transition-colors cursor-pointer ${
                 activePage === item.id
-                  ? "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
-                  : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  ? "bg-[#0071e3]/10 dark:bg-[#0a84ff]/18 text-[#0071e3] dark:text-[#64d2ff] font-semibold"
+                  : "text-[#1d1d1f] dark:text-[#f5f5f7] hover:bg-[#f2f2f7] dark:hover:bg-[#2c2c2e]"
               }`}
             >
-              <item.icon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <item.icon className="w-4 h-4 text-[#0071e3] dark:text-[#0a84ff] shrink-0" />
               <span className="flex-1 text-left">{item.label}</span>
               {item.shortcut && (
-                <span className="text-xs text-slate-400">{item.shortcut}</span>
+                <span className="text-[11px] text-[#8e8e93] tabular-nums">{item.shortcut}</span>
               )}
             </button>
           ))}
@@ -180,21 +189,43 @@ function MenuDropdown({ label, items, onSelect, activePage }: {
   );
 }
 
+const PAGE_DISPLAY_TITLES: Record<SagaPage, string> = {
+  articole: "Articole & Nomenclator",
+  gestiuni: "Gestiuni",
+  furnizori: "Furnizori SAGA",
+  clienti: "Clienți SAGA",
+  planConturi: "Plan de conturi",
+  intrari: "Intrări (RON)",
+  intrariValuta: "Intrări valută",
+  comenzi: "Comenzi / Producție",
+  retete: "Rețete (BOM)",
+  situatieStocuri: "Situație stocuri",
+  fiseArticole: "Fișe articole",
+  registruInventar: "Registru inventar",
+  articoleContabile: "Articole contabile",
+  nomenclator: "Articole & Nomenclator",
+  mapare: "Mapare articole",
+  export: "Export SAGA (XML / ZIP)",
+  setari: "Setări modul SAGA",
+};
+
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function SagaModule() {
   const [activePage, setActivePage] = useState<SagaPage>("articole");
 
   return (
-    <div className="flex-1 w-full flex flex-col h-full">
+    <div className="flex-1 w-full flex flex-col h-full overflow-x-hidden">
       {/* SAGA Top Bar */}
-      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-3 sm:px-4 overflow-x-auto no-scrollbar">
-        <div className="flex items-center gap-1 min-w-max py-1">
+      <div className="bg-white dark:bg-[#1c1c1e] border-b border-black/[0.06] dark:border-white/[0.08] px-3 sm:px-4 overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-1 min-w-max py-1.5">
           {/* SAGA Logo */}
-          <div className="flex items-center gap-2 pr-3 sm:pr-4 border-r border-slate-200 dark:border-slate-700 mr-1 sm:mr-2 shrink-0">
-            <div className="w-8 h-8 shrink-0 bg-primary rounded-lg flex items-center justify-center">
+          <div className="flex items-center gap-2 pr-3 sm:pr-4 border-r border-black/[0.08] dark:border-white/[0.10] mr-1 sm:mr-2 shrink-0">
+            <div className="w-7 h-7 shrink-0 bg-primary rounded-[8px] flex items-center justify-center">
               <span className="text-white font-bold text-xs">S</span>
             </div>
-            <span className="text-sm font-bold text-primary hidden sm:block">SAGA</span>
+            <span className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] hidden sm:block">
+              SAGA
+            </span>
           </div>
           {/* Menu Items */}
           {SAGA_MENU.map((menu) => (
@@ -210,16 +241,17 @@ export default function SagaModule() {
           {/* Quick Direct Sync Button */}
           <Link
             href="/saga-sync"
-            className="ml-auto shrink-0 whitespace-nowrap h-9 px-3.5 sm:px-4 text-xs font-bold uppercase tracking-wider rounded-full flex items-center gap-1.5 transition-all shadow-sm bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700"
+            className="apple-btn-glass ml-auto shrink-0 whitespace-nowrap h-8 px-3.5 text-[12px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] inline-flex items-center gap-1.5"
           >
-            <RefreshCw className="w-3.5 h-3.5 text-primary shrink-0" />
-            <span>Sincronizare Nomenclator</span>
+            <RefreshCw className="w-3.5 h-3.5 shrink-0" />
+            <span>Sincronizare nomenclator</span>
           </Link>
 
           {/* Quick Direct Export Button */}
           <button
+            type="button"
             onClick={() => setActivePage("export")}
-            className="apple-btn-prominent shrink-0 whitespace-nowrap h-9 px-3.5 sm:px-4 text-xs font-bold uppercase tracking-wider rounded-full flex items-center gap-1.5 transition-all cursor-pointer"
+            className="apple-btn-prominent shrink-0 whitespace-nowrap h-8 px-3.5 text-[12px] font-semibold inline-flex items-center gap-1.5 cursor-pointer"
           >
             <Download className="w-3.5 h-3.5 shrink-0" />
             <span>Export SAGA (XML / ZIP)</span>
@@ -229,17 +261,24 @@ export default function SagaModule() {
 
       {/* Content Area with Vertical Label */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Vertical Page Label — SAGA style */}
-        <div className="w-8 bg-blue-600 flex items-center justify-center shrink-0">
-          <span className="text-white text-xs font-bold tracking-widest whitespace-nowrap"
-            style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}>
+        {/* Vertical Page Label — SAGA style (neutral Apple obsidian/surface) */}
+        <div className="bg-white dark:bg-[#1c1c1e] border-r border-black/[0.06] dark:border-white/[0.08] w-7 sm:w-8 flex items-center justify-center shrink-0">
+          <span
+            className="text-[#6e6e73] dark:text-[#98989d] text-[10.5px] font-semibold tracking-widest whitespace-nowrap"
+            style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
+          >
             {PAGE_TITLES[activePage]}
           </span>
         </div>
 
         {/* Page Content */}
-        <div className="flex-1 overflow-auto p-4 lg:p-6 bg-slate-50 dark:bg-slate-950">
-          <div className="w-full">
+        <div className="flex-1 overflow-auto p-3 sm:p-5 min-w-0">
+          <div className="w-full space-y-4">
+            <div className="min-w-0">
+              <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
+                {PAGE_DISPLAY_TITLES[activePage]}
+              </h1>
+            </div>
             {activePage === "articole" && <NomenclatorTab />}
             {activePage === "nomenclator" && <NomenclatorTab />}
             {activePage === "gestiuni" && <GestiuniTab />}
@@ -366,62 +405,63 @@ function NomenclatorTab() {
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+      <div className="apple-surface px-3 py-2.5 flex flex-wrap items-center gap-2">
+        <div className="apple-pill-control relative flex items-center flex-1 min-w-[220px] px-3">
+          <Search className="w-3.5 h-3.5 text-[#8e8e93] shrink-0 mr-2" />
           <input
             type="text"
             placeholder="Caută după cod, denumire sau categorie..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all dark:text-white"
+            className="flex-1 min-w-0 bg-transparent text-[13px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none"
           />
         </div>
         <button
+          type="button"
           onClick={() => { setForm({ ...form, code: nextCode || "ART-0001" }); setShowAdd(true); }}
-          className="flex items-center gap-2 h-9 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full text-sm font-medium transition-colors"
+          className="apple-btn-prominent inline-flex items-center gap-1.5 h-8 px-4 text-[12.5px] font-semibold cursor-pointer"
         >
-          <Plus className="w-4 h-4" />
-          Adaugă Articol
+          <Plus className="w-3.5 h-3.5" />
+          Adaugă articol
         </button>
         <Link
           href="/saga-sync"
-          className="flex items-center gap-2 h-9 px-4 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-full text-sm font-medium transition-colors"
+          className="apple-btn-glass inline-flex items-center gap-1.5 h-8 px-3.5 text-[12.5px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7]"
         >
-          <RefreshCw className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-          Sincronizare Asistată (Ghid 1-2-3)
+          <RefreshCw className="w-3.5 h-3.5" />
+          Sincronizare asistată (Ghid 1-2-3)
         </Link>
-        <label className="flex items-center gap-2 h-9 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-medium transition-colors cursor-pointer">
-          <Upload className="w-4 h-4" />
-          Import Rapid
+        <label className="apple-btn-glass inline-flex items-center gap-1.5 h-8 px-3.5 text-[12.5px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer">
+          <Upload className="w-3.5 h-3.5" />
+          Import rapid
           <input type="file" accept=".xml,.csv,.txt,.dbf,.xlsx,.xls" className="hidden" onChange={handleFileImport} />
         </label>
       </div>
 
       {/* Add Dialog */}
       {showAdd && (
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-emerald-200 dark:border-emerald-800/50 p-6 space-y-4">
-          <h3 className="text-sm font-semibold text-slate-800 dark:text-white">Articol Nou</h3>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="apple-surface p-5 space-y-4">
+          <h3 className="text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">Articol nou</h3>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
             <div>
-              <label className="block text-xs text-slate-500 mb-1">Cod *</label>
+              <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">Cod *</label>
               <input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 dark:text-white" />
+                className="w-full px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none tabular-nums" />
             </div>
             <div className="col-span-2">
-              <label className="block text-xs text-slate-500 mb-1">Denumire *</label>
+              <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">Denumire *</label>
               <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 dark:text-white" />
+                className="w-full px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none" />
             </div>
             <div>
-              <label className="block text-xs text-slate-500 mb-1">U/M</label>
+              <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">U/M</label>
               <input value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 dark:text-white" />
+                className="w-full px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none" />
             </div>
             <div>
-              <label className="block text-xs text-slate-500 mb-1">TVA %</label>
+              <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">TVA %</label>
               <select value={form.vatRate} onChange={(e) => setForm({ ...form, vatRate: Number(e.target.value) })}
-                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 dark:text-white">
+                className="w-full px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none cursor-pointer">
                 <option value={21}>21%</option>
                 <option value={11}>11%</option>
                 <option value={19}>19%</option>
@@ -431,29 +471,34 @@ function NomenclatorTab() {
               </select>
             </div>
             <div>
-              <label className="block text-xs text-slate-500 mb-1">Categorie</label>
+              <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">Categorie</label>
               <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 dark:text-white">
+                className="w-full px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none cursor-pointer">
                 {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-slate-500 mb-1">Cont contabil</label>
+              <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">Cont contabil</label>
               <select value={form.accountingAccount} onChange={(e) => setForm({ ...form, accountingAccount: e.target.value })}
-                className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 dark:text-white">
+                className="w-full px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none cursor-pointer">
                 {planConturi.map((c: any) => <option key={c.cod} value={c.cod}>{c.cod} — {c.denumire}</option>)}
               </select>
             </div>
           </div>
           <div className="flex gap-2">
             <button
+              type="button"
               onClick={() => createMut.mutate(form)}
               disabled={!form.code || !form.name || createMut.isPending}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+              className="apple-btn-prominent px-4 h-9 disabled:opacity-50 text-[13px] font-semibold cursor-pointer"
             >
               {createMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvează"}
             </button>
-            <button onClick={() => setShowAdd(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm transition-colors">
+            <button
+              type="button"
+              onClick={() => setShowAdd(false)}
+              className="apple-btn-glass px-4 h-9 text-[#1d1d1f] dark:text-[#f5f5f7] text-[13px] font-medium cursor-pointer"
+            >
               Anulează
             </button>
           </div>
@@ -461,49 +506,50 @@ function NomenclatorTab() {
       )}
 
       {/* Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+      <div className="apple-surface overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left whitespace-nowrap table-auto min-w-[900px]">
-            <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 uppercase text-[10px] font-bold tracking-wider">
+          <table className="w-full text-left whitespace-nowrap table-auto">
+            <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07] text-[#6e6e73] dark:text-[#98989d] text-[12px] font-medium">
               <tr>
-                <th className="px-4 py-3">Nr.</th>
-                <th className="px-4 py-3">Cod</th>
-                <th className="px-4 py-3">Denumire</th>
-                <th className="px-4 py-3 text-center">U/M</th>
-                <th className="px-4 py-3 text-center">TVA</th>
-                <th className="px-4 py-3">Categorie</th>
-                <th className="px-4 py-3">Cont</th>
-                <th className="px-4 py-3 text-center">Acțiuni</th>
+                <th className="px-3 py-3 font-medium">Nr.</th>
+                <th className="px-3 py-3 font-medium">Cod</th>
+                <th className="px-3 py-3 font-medium">Denumire</th>
+                <th className="px-3 py-3 text-center font-medium">U/M</th>
+                <th className="px-3 py-3 text-center font-medium">TVA</th>
+                <th className="px-3 py-3 font-medium">Categorie</th>
+                <th className="px-3 py-3 font-medium">Cont</th>
+                <th className="px-3 py-3 text-center font-medium">Acțiuni</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+            <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06] text-[13px]">
               {isLoading ? (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-500">Se încarcă...</td></tr>
+                <tr><td colSpan={8} className="px-3 py-10 text-center text-[#6e6e73] dark:text-[#98989d]">Se încarcă...</td></tr>
               ) : paginatedArticles.length === 0 ? (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-500">
+                <tr><td colSpan={8} className="px-3 py-10 text-center text-[#6e6e73] dark:text-[#98989d]">
                   {search ? "Niciun rezultat" : "Niciun articol în nomenclator. Adaugă manual sau importă din SAGA."}
                 </td></tr>
               ) : (
                 paginatedArticles.map((art: any, i: number) => (
-                  <tr key={art.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                    <td className="px-4 py-3 text-slate-400">{(page - 1) * pageSize + i + 1}</td>
-                    <td className="px-4 py-3 tabular-nums text-xs text-emerald-700 dark:text-emerald-400 font-medium">{art.code}</td>
-                    <td className="px-4 py-3 text-slate-900 dark:text-white font-medium">{art.name}</td>
-                    <td className="px-4 py-3 text-center text-slate-500">{art.unit}</td>
-                    <td className="px-4 py-3 text-center text-slate-500">{Number(art.vatRate)}%</td>
-                    <td className="px-4 py-3">
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                  <tr key={art.id} className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors">
+                    <td className="px-3 py-3 text-[#8e8e93] text-[12px] font-medium tabular-nums">{(page - 1) * pageSize + i + 1}</td>
+                    <td className="px-3 py-3 tabular-nums text-[12.5px] text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold">{art.code}</td>
+                    <td className="px-3 py-3 text-[#1d1d1f] dark:text-[#f5f5f7] font-medium max-w-[300px] truncate" title={art.name}>{art.name}</td>
+                    <td className="px-3 py-3 text-center text-[#6e6e73] dark:text-[#98989d]">{art.unit}</td>
+                    <td className="px-3 py-3 text-center text-[#6e6e73] dark:text-[#98989d] tabular-nums">{Number(art.vatRate)}%</td>
+                    <td className="px-3 py-3">
+                      <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#ebebf5]">
                         {art.category}
                       </span>
                     </td>
-                    <td className="px-4 py-3 tabular-nums text-xs text-slate-500">{art.accountingAccount}</td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-3 py-3 tabular-nums text-[12.5px] text-[#6e6e73] dark:text-[#98989d]">{art.accountingAccount}</td>
+                    <td className="px-3 py-3 text-center">
                       <div className="flex items-center justify-center gap-1">
                         <ConfirmDeleteWrapper onConfirm={() => deleteMut.mutate({ id: art.id })} title="Ștergi articolul?">
                           {(openModal) => (
                             <button
+                              type="button"
                               onClick={openModal}
-                              className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                              className="p-1.5 text-[#8e8e93] hover:text-rose-500 rounded-full hover:bg-rose-500/10 transition-colors cursor-pointer"
                               title="Șterge"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -519,17 +565,17 @@ function NomenclatorTab() {
           </table>
         </div>
         {filtered.length > 0 && (
-          <div className="px-4 py-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
-            <div className="flex items-center gap-4 text-xs text-slate-500">
-              <div>
-                Rânduri pe pagină: 
-                <select 
-                  value={pageSize} 
+          <div className="px-4 py-3 border-t border-black/[0.05] dark:border-white/[0.07] flex items-center justify-between flex-wrap gap-2 bg-[#fafafa] dark:bg-white/[0.02]">
+            <div className="flex items-center gap-3 text-[12px] text-[#6e6e73] dark:text-[#98989d] flex-wrap">
+              <div className="inline-flex items-center gap-2">
+                <span>Rânduri pe pagină:</span>
+                <select
+                  value={pageSize}
                   onChange={(e) => {
                     setPageSize(Number(e.target.value));
                     setPage(1);
                   }}
-                  className="ml-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs px-2 py-1 outline-none focus:ring-1 focus:ring-blue-500"
+                  className="apple-pill-control !h-7 px-2.5 text-[12px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] outline-none cursor-pointer"
                 >
                   <option value={10}>10</option>
                   <option value={15}>15</option>
@@ -541,22 +587,24 @@ function NomenclatorTab() {
                   <option value={9999}>Toți</option>
                 </select>
               </div>
-              <span>
-                Afișate {Math.min(filtered.length, (page - 1) * pageSize + 1)} - {Math.min(filtered.length, page * pageSize)} din {filtered.length} articole
+              <span className="tabular-nums">
+                Afișate {Math.min(filtered.length, (page - 1) * pageSize + 1)} – {Math.min(filtered.length, page * pageSize)} din {filtered.length} articole
               </span>
             </div>
-            <div className="flex gap-1">
+            <div className="flex gap-1.5">
               <button
+                type="button"
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="px-3 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-sm disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                className="apple-btn-glass px-3 h-8 text-[12px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] disabled:opacity-40 cursor-pointer"
               >
                 Anterior
               </button>
               <button
+                type="button"
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="px-3 py-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-sm disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                className="apple-btn-glass px-3 h-8 text-[12px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] disabled:opacity-40 cursor-pointer"
               >
                 Următorul
               </button>
@@ -585,35 +633,37 @@ function MapareTab() {
   const [selectedArticles, setSelectedArticles] = useState<Record<string, number>>({});
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Unmapped Section */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+      <div className="apple-surface overflow-hidden">
+        <div className="px-4 py-3 border-b border-black/[0.05] dark:border-white/[0.07] flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-amber-500" />
-            <h3 className="text-sm font-semibold text-slate-800 dark:text-white">
-              Articole Nemapate ({unmapped.length})
+            <h3 className="text-[14px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+              Articole nemapate ({unmapped.length})
             </h3>
           </div>
-          <p className="text-xs text-slate-500">Produse din NIR-uri care nu au corespondent în nomenclator</p>
+          <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d]">
+            Produse din NIR-uri care nu au corespondent în nomenclator
+          </p>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left whitespace-nowrap">
-            <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 uppercase text-[10px] font-bold tracking-wider">
+          <table className="w-full text-left whitespace-nowrap">
+            <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07] text-[#6e6e73] dark:text-[#98989d] text-[12px] font-medium">
               <tr>
-                <th className="px-4 py-3">Denumire pe Factură</th>
-                <th className="px-4 py-3">Furnizor</th>
-                <th className="px-4 py-3 text-center">U/M</th>
-                <th className="px-4 py-3 text-center">Apariții</th>
-                <th className="px-4 py-3">Asociază cu Articol</th>
-                <th className="px-4 py-3 text-center">Acțiune</th>
+                <th className="px-4 py-3 font-medium">Denumire pe factură</th>
+                <th className="px-4 py-3 font-medium">Furnizor</th>
+                <th className="px-4 py-3 text-center font-medium">U/M</th>
+                <th className="px-4 py-3 text-center font-medium">Apariții</th>
+                <th className="px-4 py-3 font-medium">Asociază cu articol</th>
+                <th className="px-4 py-3 text-center font-medium">Acțiune</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+            <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06] text-[13px]">
               {unmapped.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                <tr><td colSpan={6} className="px-4 py-10 text-center text-[#6e6e73] dark:text-[#98989d]">
                   <div className="flex flex-col items-center gap-2">
-                    <Check className="w-6 h-6 text-green-500" />
+                    <Check className="w-6 h-6 text-emerald-500" />
                     <span>Toate articolele sunt mapate!</span>
                   </div>
                 </td></tr>
@@ -621,14 +671,14 @@ function MapareTab() {
                 unmapped.map((item: any, i: number) => {
                   const key = item.description;
                   return (
-                    <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                      <td className="px-4 py-3 text-slate-900 dark:text-white font-medium max-w-[300px] truncate">
+                    <tr key={i} className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035]">
+                      <td className="px-4 py-3 text-[#1d1d1f] dark:text-[#f5f5f7] font-medium max-w-[300px] truncate">
                         {item.description}
                       </td>
-                      <td className="px-4 py-3 text-slate-500 text-xs">{item.supplierName || "—"}</td>
-                      <td className="px-4 py-3 text-center text-slate-500">{item.unit}</td>
+                      <td className="px-4 py-3 text-[#6e6e73] dark:text-[#98989d] text-[12.5px]">{item.supplierName || "—"}</td>
+                      <td className="px-4 py-3 text-center text-[#6e6e73] dark:text-[#98989d]">{item.unit}</td>
                       <td className="px-4 py-3 text-center">
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                        <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-amber-500/12 text-amber-700 dark:bg-amber-500/18 dark:text-amber-300 tabular-nums">
                           ×{item.count}
                         </span>
                       </td>
@@ -636,7 +686,7 @@ function MapareTab() {
                         <select
                           value={selectedArticles[key] || ""}
                           onChange={(e) => setSelectedArticles({ ...selectedArticles, [key]: Number(e.target.value) })}
-                          className="w-full px-2 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-800 dark:text-white"
+                          className="w-full px-3 h-8 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[12.5px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none cursor-pointer"
                         >
                           <option value="">— Selectează articol —</option>
                           {articles.map((a: any) => (
@@ -648,6 +698,7 @@ function MapareTab() {
                       </td>
                       <td className="px-4 py-3 text-center">
                         <button
+                          type="button"
                           onClick={() => {
                             if (!selectedArticles[key]) return toast.error("Selectează un articol!");
                             createMut.mutate({
@@ -657,7 +708,7 @@ function MapareTab() {
                             });
                           }}
                           disabled={!selectedArticles[key] || createMut.isPending}
-                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-xs font-medium transition-colors"
+                          className="apple-btn-prominent px-3.5 h-8 disabled:opacity-50 text-[12px] font-semibold cursor-pointer"
                         >
                           Salvează
                         </button>
@@ -672,43 +723,44 @@ function MapareTab() {
       </div>
 
       {/* Existing Mappings */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
-          <h3 className="text-sm font-semibold text-slate-800 dark:text-white flex items-center gap-2">
+      <div className="apple-surface overflow-hidden">
+        <div className="px-4 py-3 border-b border-black/[0.05] dark:border-white/[0.07]">
+          <h3 className="text-[14px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-2">
             <Link2 className="w-4 h-4 text-emerald-500" />
-            Mapări Existente ({mappings.length})
+            Mapări existente ({mappings.length})
           </h3>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left whitespace-nowrap">
-            <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 uppercase text-[10px] font-bold tracking-wider">
+          <table className="w-full text-left whitespace-nowrap">
+            <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07] text-[#6e6e73] dark:text-[#98989d] text-[12px] font-medium">
               <tr>
-                <th className="px-4 py-3">Denumire Furnizor</th>
-                <th className="px-4 py-3 text-center"><ArrowRight className="w-3 h-3 inline" /></th>
-                <th className="px-4 py-3">Articol SAGA</th>
-                <th className="px-4 py-3">CUI Furnizor</th>
-                <th className="px-4 py-3 text-center">Acțiune</th>
+                <th className="px-4 py-3 font-medium">Denumire furnizor</th>
+                <th className="px-4 py-3 text-center font-medium"><ArrowRight className="w-3.5 h-3.5 inline" /></th>
+                <th className="px-4 py-3 font-medium">Articol SAGA</th>
+                <th className="px-4 py-3 font-medium">CUI furnizor</th>
+                <th className="px-4 py-3 text-center font-medium">Acțiune</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+            <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06] text-[13px]">
               {mappings.length === 0 ? (
-                <tr><td colSpan={5} className="px-4 py-6 text-center text-slate-500">Nicio mapare încă.</td></tr>
+                <tr><td colSpan={5} className="px-4 py-8 text-center text-[#6e6e73] dark:text-[#98989d]">Nicio mapare încă.</td></tr>
               ) : (
                 mappings.map((m: any) => (
-                  <tr key={m.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300 max-w-[300px] truncate">{m.externalName}</td>
+                  <tr key={m.id} className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035]">
+                    <td className="px-4 py-3 text-[#1d1d1f] dark:text-[#f5f5f7] max-w-[300px] truncate">{m.externalName}</td>
                     <td className="px-4 py-3 text-center text-emerald-500"><ArrowRight className="w-4 h-4 inline" /></td>
                     <td className="px-4 py-3">
-                      <span className="tabular-nums text-xs text-emerald-700 dark:text-emerald-400">{m.articleCode}</span>
-                      <span className="ml-2 text-slate-600 dark:text-slate-400">{m.articleName}</span>
+                      <span className="tabular-nums text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">{m.articleCode}</span>
+                      <span className="ml-2 text-[#6e6e73] dark:text-[#98989d]">{m.articleName}</span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-slate-500">{m.supplierCUI || "—"}</td>
+                    <td className="px-4 py-3 text-[12.5px] text-[#6e6e73] dark:text-[#98989d] tabular-nums">{m.supplierCUI || "—"}</td>
                     <td className="px-4 py-3 text-center">
                       <ConfirmDeleteWrapper onConfirm={() => deleteMut.mutate({ id: m.id })} title="Ștergi maparea?">
                         {(openModal) => (
                           <button
+                            type="button"
                             onClick={openModal}
-                            className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors"
+                            className="p-1.5 text-[#8e8e93] hover:text-rose-500 rounded-full hover:bg-rose-500/10 transition-colors cursor-pointer"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -942,54 +994,52 @@ function ExportTab() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Canal Selector: Desktop vs Web */}
-      <div className="flex items-center gap-3 bg-white dark:bg-slate-900 p-2 rounded-2xl border border-slate-200 dark:border-slate-800">
-        <button
-          onClick={() => setActiveChannel("desktop")}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium text-sm transition-all ${
-            activeChannel === "desktop"
-              ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
-              : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-          }`}
-        >
-          <Download className="w-4 h-4" />
-          <span>SAGA C (Desktop / Diverse &gt; Import date)</span>
-        </button>
-        <button
-          onClick={() => setActiveChannel("web")}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium text-sm transition-all ${
-            activeChannel === "web"
-              ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
-              : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-          }`}
-        >
-          <Upload className="w-4 h-4" />
-          <span>SAGA Web (Sincronizare Automată Cloud API)</span>
-        </button>
+      <div className="apple-surface px-3 py-2.5">
+        <div className="apple-segmented max-w-full overflow-x-auto no-scrollbar">
+          <button
+            type="button"
+            data-active={activeChannel === "desktop"}
+            onClick={() => setActiveChannel("desktop")}
+            className="apple-segmented-item px-4 shrink-0"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>SAGA C (Desktop / Diverse &gt; Import date)</span>
+          </button>
+          <button
+            type="button"
+            data-active={activeChannel === "web"}
+            onClick={() => setActiveChannel("web")}
+            className="apple-segmented-item px-4 shrink-0"
+          >
+            <Upload className="w-3.5 h-3.5" />
+            <span>SAGA Web (Sincronizare Automată Cloud API)</span>
+          </button>
+        </div>
       </div>
 
       {/* Selector Perioadă */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
-        <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+      <div className="apple-surface p-5 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-black/[0.05] dark:border-white/[0.07]">
           <div>
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-              <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              Selectează Perioada Documentelor
+            <h3 className="text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-2">
+              <FileText className="w-4 h-4 text-[#0071e3] dark:text-[#0a84ff]" />
+              Selectează perioada documentelor
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
               Se exportă automat atât facturile emise (Ieșiri), cât și recepțiile furnizori (Intrări / NIR).
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <div>
-              <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
+              <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">
                 Luna
               </label>
               <select
                 value={month}
                 onChange={(e) => setMonth(Number(e.target.value))}
-                className="px-3.5 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 dark:text-white font-medium"
+                className="apple-pill-control !h-9 px-3.5 text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] outline-none cursor-pointer"
               >
                 <option value={0}>Tot Anul ({year}) — Toate Lunile</option>
                 {MONTHS.map((m, i) => (
@@ -1000,13 +1050,13 @@ function ExportTab() {
               </select>
             </div>
             <div>
-              <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
+              <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">
                 Anul
               </label>
               <select
                 value={year}
                 onChange={(e) => setYear(Number(e.target.value))}
-                className="px-3.5 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 dark:text-white font-medium"
+                className="apple-pill-control !h-9 px-3.5 text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] outline-none cursor-pointer tabular-nums"
               >
                 {[2024, 2025, 2026, 2027].map((y) => (
                   <option key={y} value={y}>
@@ -1020,24 +1070,25 @@ function ExportTab() {
 
         {/* CANALUL 1: SAGA C DESKTOP */}
         {activeChannel === "desktop" && (
-          <div className="pt-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="pt-5 space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
               {/* Pachet ZIP Complet */}
-              <div className="p-4 rounded-xl bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 flex flex-col justify-between">
+              <div className="p-4 rounded-2xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.05] dark:border-white/[0.07] flex flex-col justify-between">
                 <div>
-                  <div className="text-xs font-bold text-blue-700 dark:text-blue-400 uppercase tracking-wider mb-1">
+                  <div className="text-[11px] font-semibold text-[#0071e3] dark:text-[#64d2ff] mb-1">
                     Recomandat SAGA C
                   </div>
-                  <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
-                    Pachet Arhivă ZIP
+                  <h4 className="text-[14px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] mb-1">
+                    Pachet arhivă ZIP
                   </h4>
-                  <p className="text-xs text-slate-500 mb-4">
+                  <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d] mb-4">
                     Conține cele 3 fișiere standard SAGA C: F_...xml, CLI_...xml și ART_...xml.
                   </p>
                 </div>
                 <button
+                  type="button"
                   onClick={downloadZip}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-all"
+                  className="apple-btn-prominent w-full h-9 inline-flex items-center justify-center gap-1.5 px-3 text-[12px] font-semibold cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
                   Descarcă Arhiva ZIP {selectedNirIds !== null || selectedInvoiceIds !== null ? `(${(selectedNirIds?.length || 0) + (selectedInvoiceIds?.length || 0)} doc.)` : ""}
@@ -1045,19 +1096,20 @@ function ExportTab() {
               </div>
 
               {/* Facturi XML */}
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 flex flex-col justify-between">
+              <div className="p-4 rounded-2xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.05] dark:border-white/[0.07] flex flex-col justify-between">
                 <div>
-                  <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  <div className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">
                     Format &lt;Facturi&gt;
                   </div>
-                  <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
+                  <h4 className="text-[14px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] mb-1">
                     Doar Facturi XML
                   </h4>
-                  <p className="text-xs text-slate-500 mb-4">
+                  <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d] mb-4">
                     Fișierul standardizat F_CUI_Luna_An.xml (Ieșiri vânzări + Intrări furnizori).
                   </p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => exportFacturiMut.mutate({
                     month,
                     year,
@@ -1065,7 +1117,7 @@ function ExportTab() {
                     invoiceIds: selectedInvoiceIds !== null ? selectedInvoiceIds : undefined,
                   })}
                   disabled={exportFacturiMut.isPending}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
+                  className="apple-btn-glass w-full h-9 inline-flex items-center justify-center gap-1.5 px-3 text-[#1d1d1f] dark:text-[#f5f5f7] text-[12px] font-semibold disabled:opacity-50 cursor-pointer"
                 >
                   {exportFacturiMut.isPending ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1077,22 +1129,23 @@ function ExportTab() {
               </div>
 
               {/* Nomenclator Articole */}
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 flex flex-col justify-between">
+              <div className="p-4 rounded-2xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.05] dark:border-white/[0.07] flex flex-col justify-between">
                 <div>
-                  <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  <div className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">
                     Format &lt;Articole&gt;
                   </div>
-                  <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
+                  <h4 className="text-[14px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] mb-1">
                     Articole (Nomenclator)
                   </h4>
-                  <p className="text-xs text-slate-500 mb-4">
+                  <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d] mb-4">
                     Fișierul ART_data.xml cu toate codurile de produs, UM și cote TVA.
                   </p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => exportArticoleMut.mutate()}
                   disabled={exportArticoleMut.isPending}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
+                  className="apple-btn-glass w-full h-9 inline-flex items-center justify-center gap-1.5 px-3 text-[#1d1d1f] dark:text-[#f5f5f7] text-[12px] font-semibold disabled:opacity-50 cursor-pointer"
                 >
                   {exportArticoleMut.isPending ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1104,22 +1157,23 @@ function ExportTab() {
               </div>
 
               {/* Nomenclator Clienți */}
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 flex flex-col justify-between">
+              <div className="p-4 rounded-2xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.05] dark:border-white/[0.07] flex flex-col justify-between">
                 <div>
-                  <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  <div className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">
                     Format &lt;Clienti&gt;
                   </div>
-                  <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
+                  <h4 className="text-[14px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] mb-1">
                     Clienți (Nomenclator)
                   </h4>
-                  <p className="text-xs text-slate-500 mb-4">
+                  <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d] mb-4">
                     Fișierul CLI_data.xml cu lista partenerilor, CUI, RegCom și adrese.
                   </p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => exportClientiMut.mutate()}
                   disabled={exportClientiMut.isPending}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
+                  className="apple-btn-glass w-full h-9 inline-flex items-center justify-center gap-1.5 px-3 text-[#1d1d1f] dark:text-[#f5f5f7] text-[12px] font-semibold disabled:opacity-50 cursor-pointer"
                 >
                   {exportClientiMut.isPending ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1132,26 +1186,26 @@ function ExportTab() {
             </div>
 
             {/* Import Facturi Externe din SAGA Card */}
-            <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-50/70 to-teal-50/70 dark:from-emerald-950/20 dark:to-teal-950/20 border border-emerald-200 dark:border-emerald-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="p-5 rounded-2xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.05] dark:border-white/[0.07] flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-600 text-white">
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/12 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300">
                     Import SAGA
                   </span>
-                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">
-                    Importă Facturi Externe generate în SAGA
+                  <h4 className="text-[14px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                    Importă facturi externe generate în SAGA
                   </h4>
                 </div>
-                <p className="text-xs text-slate-600 dark:text-slate-400 max-w-2xl">
+                <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d] max-w-2xl">
                   Încarcă fișierul XML (exportat din SAGA Diverse &gt; Export facturi) sau fișierul Excel (din Ieșiri valută). Facturile vor fi importate automat în secțiunea Facturi Emise cu status extern și curs BNR.
                 </p>
                 {importResult && (
-                  <p className={`text-xs font-semibold ${importResult.success ? "text-emerald-700 dark:text-emerald-300" : "text-red-600"}`}>
+                  <p className={`text-xs font-semibold ${importResult.success ? "text-emerald-700 dark:text-emerald-300" : "text-rose-600"}`}>
                     {importResult.message || importResult.error}
                   </p>
                 )}
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 shrink-0 flex-wrap">
                 <input
                   type="file"
                   id="saga-exporttab-import"
@@ -1166,16 +1220,16 @@ function ExportTab() {
                 />
                 <label
                   htmlFor="saga-exporttab-import"
-                  className="cursor-pointer flex items-center gap-1.5 px-3.5 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 shadow-sm transition-all"
+                  className="apple-btn-glass cursor-pointer inline-flex items-center gap-1.5 px-3.5 h-9 text-[#1d1d1f] dark:text-[#f5f5f7] text-[12px] font-medium"
                 >
-                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                   <span>{importFile ? importFile.name.slice(0, 20) + "..." : "Alege XML / Excel"}</span>
                 </label>
                 <button
                   type="button"
                   disabled={!importFile || isImporting}
                   onClick={handleImportInvoices}
-                  className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
+                  className="apple-btn-prominent inline-flex items-center gap-1.5 px-4 h-9 text-[12px] font-semibold disabled:opacity-50 cursor-pointer"
                 >
                   {isImporting ? (
                     <>
@@ -1185,7 +1239,7 @@ function ExportTab() {
                   ) : (
                     <>
                       <Upload className="w-3.5 h-3.5" />
-                      Importă în Aplicație
+                      Importă în aplicație
                     </>
                   )}
                 </button>
@@ -1196,34 +1250,34 @@ function ExportTab() {
             <div className="space-y-4 pt-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <Eye className="w-4 h-4 text-blue-600" />
+                  <h4 className="text-[14.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-2">
+                    <Eye className="w-4 h-4 text-[#0071e3] dark:text-[#0a84ff]" />
                     Ce conține acest export ({month === 0 ? "Tot Anul" : MONTHS[month - 1]} {year})
                   </h4>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d]">
                     Verifică documentele împachetate în fișierul XML înainte de a-l importa în SAGA.
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                    {selectedInvoiceIds ? selectedInvoiceIds.length : (previewData?.invoices.length || 0)} / {previewData?.invoices.length || 0} Facturi Emise (Ieșiri)
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-2.5 py-1 rounded-full text-[11.5px] font-medium bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums">
+                    {selectedInvoiceIds ? selectedInvoiceIds.length : (previewData?.invoices.length || 0)} / {previewData?.invoices.length || 0} Facturi emise (Ieșiri)
                   </span>
-                  <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                  <span className="px-2.5 py-1 rounded-full text-[11.5px] font-medium bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300 tabular-nums">
                     {selectedNirIds ? selectedNirIds.length : (previewData?.nirs.length || 0)} / {previewData?.nirs.length || 0} Recepții NIR (Intrări)
                   </span>
                 </div>
               </div>
 
               {/* Informare SAGA: "Deja au fost importate" */}
-              <div className="p-3.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 text-xs text-slate-700 dark:text-slate-300 space-y-1">
-                <span className="font-bold text-blue-800 dark:text-blue-300 flex items-center gap-1.5">
-                  <AlertCircle className="w-4 h-4 text-blue-600" />
+              <div className="p-3.5 rounded-2xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.05] dark:border-white/[0.07] text-[12px] text-[#3a3a3c] dark:text-[#ebebf5] space-y-1">
+                <span className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-1.5">
+                  <AlertCircle className="w-4 h-4 text-[#0071e3] dark:text-[#0a84ff]" />
                   De ce zice SAGA C: „Deja au fost importate”?
                 </span>
                 <p>
                   Dacă SAGA afișează acest mesaj la import, înseamnă că <strong>fișierul a fost citit cu succes</strong>, însă facturile sau NIR-urile din el există deja salvate în SAGA la <strong>Operații &gt; Intrări</strong> sau <strong>Operații &gt; Ieșiri</strong>!
                 </p>
-                <p className="text-slate-500">
+                <p className="text-[#6e6e73] dark:text-[#98989d]">
                   Pentru a forța re-importul și actualizarea lor în SAGA, bifează în fereastra din SAGA opțiunea <em>„Actualizare poziții existente”</em> sau verifică documentele direct în meniul Intrări/Ieșiri.
                 </p>
               </div>
@@ -1231,27 +1285,27 @@ function ExportTab() {
               {/* Tabele Documente */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* 1. Facturi Vânzare (Ieșiri) */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-                  <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                      <FileText className="w-3.5 h-3.5 text-blue-600" />
-                      Ieșiri — Facturi Emise ({selectedInvoiceIds ? selectedInvoiceIds.length : (previewData?.invoices.length || 0)} / {previewData?.invoices.length || 0})
+                <div className="apple-surface overflow-hidden">
+                  <div className="px-4 py-3 bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07] flex items-center justify-between">
+                    <span className="text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-1.5 tabular-nums">
+                      <FileText className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#0a84ff]" />
+                      Ieșiri — Facturi emise ({selectedInvoiceIds ? selectedInvoiceIds.length : (previewData?.invoices.length || 0)} / {previewData?.invoices.length || 0})
                     </span>
                     {(previewData?.invoices.length || 0) > 0 && (
                       <button
                         type="button"
                         onClick={toggleAllInvoices}
-                        className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 hover:underline cursor-pointer"
+                        className="text-[11.5px] font-medium text-[#0071e3] dark:text-[#64d2ff] hover:underline cursor-pointer"
                       >
                         {(selectedInvoiceIds ?? []).length === (previewData?.invoices.length || 0) ? "Deselectează tot" : "Selectează tot"}
                       </button>
                     )}
                   </div>
-                  <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                  <div className="max-h-80 overflow-y-auto divide-y divide-black/[0.045] dark:divide-white/[0.06]">
                     {isLoadingPreview ? (
-                      <div className="p-4 text-center text-xs text-slate-400"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></div>
+                      <div className="p-6 text-center text-[#6e6e73]"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></div>
                     ) : (previewData?.invoices.length || 0) === 0 ? (
-                      <div className="p-4 text-center text-xs text-slate-400">Nicio factură emisă în {month === 0 ? `anul ${year}` : `luna ${MONTHS[month - 1]}`}.</div>
+                      <div className="p-6 text-center text-[12.5px] text-[#6e6e73] dark:text-[#98989d]">Nicio factură emisă în {month === 0 ? `anul ${year}` : `luna ${MONTHS[month - 1]}`}.</div>
                     ) : (
                       previewData?.invoices.map((inv) => {
                         const isSelected = (selectedInvoiceIds ?? []).includes(inv.id);
@@ -1259,31 +1313,31 @@ function ExportTab() {
                           <div
                             key={inv.id}
                             onClick={() => toggleInvoice(inv.id)}
-                            className={`p-3 text-xs flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/30 cursor-pointer transition-colors ${
-                              isSelected ? "bg-blue-50/20 dark:bg-blue-900/10" : "opacity-60 bg-slate-50/40"
+                            className={`p-3 text-[12.5px] flex items-center justify-between hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] cursor-pointer transition-colors ${
+                              isSelected ? "bg-[#0071e3]/[0.04] dark:bg-[#0a84ff]/[0.08]" : "opacity-65"
                             }`}
                           >
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
                               <input
                                 type="checkbox"
                                 checked={isSelected}
                                 onChange={() => toggleInvoice(inv.id)}
                                 onClick={(e) => e.stopPropagation()}
-                                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
+                                className="w-4 h-4 rounded accent-[#0071e3] cursor-pointer shrink-0"
                               />
-                              <div>
+                              <div className="min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-bold text-slate-900 dark:text-white">{inv.number}</span>
-                                  <span className="text-slate-400 tabular-nums text-[11px]">{inv.issueDate}</span>
+                                  <span className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums">{inv.number}</span>
+                                  <span className="text-[#8e8e93] tabular-nums text-[11.5px]">{inv.issueDate}</span>
                                 </div>
-                                <div className="text-slate-600 dark:text-slate-300 truncate max-w-[200px]">
+                                <div className="text-[#6e6e73] dark:text-[#98989d] truncate max-w-[200px]">
                                   {inv.clientName || "Client"} {inv.clientCui ? `(CUI: ${inv.clientCui})` : ""}
                                 </div>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <span className="font-bold tabular-nums text-slate-900 dark:text-white">{Number(inv.total).toFixed(2)} {inv.currency || "RON"}</span>
-                              <div className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold">Ieșire SAGA</div>
+                            <div className="text-right shrink-0">
+                              <span className="font-semibold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">{Number(inv.total).toFixed(2)} {inv.currency || "RON"}</span>
+                              <div className="text-[10.5px] text-[#6e6e73] dark:text-[#98989d] font-medium">Ieșire SAGA</div>
                             </div>
                           </div>
                         );
@@ -1293,30 +1347,30 @@ function ExportTab() {
                 </div>
 
                 {/* 2. Recepții NIR (Intrări) */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-                  <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                      <Download className="w-3.5 h-3.5 text-emerald-600" />
+                <div className="apple-surface overflow-hidden">
+                  <div className="px-4 py-3 bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07] flex items-center justify-between">
+                    <span className="text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-1.5 tabular-nums">
+                      <Download className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                       Intrări — Recepții NIR ({selectedNirIds ? selectedNirIds.length : (previewData?.nirs.length || 0)} / {previewData?.nirs.length || 0})
                     </span>
                     {(previewData?.nirs.length || 0) > 0 && (
                       <button
                         type="button"
                         onClick={toggleAllNirs}
-                        className="text-[11px] font-semibold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 hover:underline cursor-pointer"
+                        className="text-[11.5px] font-medium text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
                       >
                         {(selectedNirIds ?? []).length === (previewData?.nirs.length || 0) ? "Deselectează tot" : "Selectează tot"}
                       </button>
                     )}
                   </div>
-                  <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                  <div className="max-h-80 overflow-y-auto divide-y divide-black/[0.045] dark:divide-white/[0.06]">
                     {isLoadingPreview ? (
-                      <div className="p-4 text-center text-xs text-slate-400"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></div>
+                      <div className="p-6 text-center text-[#6e6e73]"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></div>
                     ) : (previewData?.nirs.length || 0) === 0 ? (
-                      <div className="p-4 text-center text-xs text-slate-400">
+                      <div className="p-6 text-center text-[12.5px] text-[#6e6e73] dark:text-[#98989d]">
                         Niciun NIR înregistrat în {month === 0 ? `anul ${year}` : `luna ${MONTHS[month - 1]}`}.
                         {(previewData?.totalAllNirs || 0) > 0 && (
-                          <div className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                          <div className="text-[11.5px] text-amber-600 dark:text-amber-400 mt-1">
                             (Există {previewData?.totalAllNirs} NIR-uri în alte luni din sistem)
                           </div>
                         )}
@@ -1328,48 +1382,47 @@ function ExportTab() {
                           <div
                             key={n.id}
                             onClick={() => toggleNir(n.id)}
-                            className={`p-3.5 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/30 cursor-pointer transition-colors ${
-                              isSelected ? "bg-emerald-50/20 dark:bg-emerald-900/10" : "opacity-60 bg-slate-50/40"
+                            className={`p-3.5 text-[12.5px] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] cursor-pointer transition-colors ${
+                              isSelected ? "bg-emerald-500/[0.04] dark:bg-emerald-500/[0.08]" : "opacity-65"
                             }`}
                           >
-                            <div className="flex items-start gap-3 w-full sm:w-auto">
+                            <div className="flex items-start gap-3 w-full sm:w-auto min-w-0">
                               <input
                                 type="checkbox"
                                 checked={isSelected}
                                 onChange={() => toggleNir(n.id)}
                                 onClick={(e) => e.stopPropagation()}
-                                className="w-4 h-4 mt-0.5 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300 cursor-pointer shrink-0"
+                                className="w-4 h-4 mt-0.5 rounded accent-emerald-600 cursor-pointer shrink-0"
                               />
                               <div className="space-y-1 min-w-0">
                                 <div className="flex flex-wrap items-center gap-1.5">
-                                  <span className="font-bold text-emerald-700 dark:text-emerald-400">
+                                  <span className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums">
                                     {n.nirNumber}
                                   </span>
                                   {n.invoiceNumber && (
-                                    <span className="px-1.5 py-0.5 rounded text-[10px] tabular-nums bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                                    <span className="px-2 py-0.5 rounded-full text-[10.5px] tabular-nums bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#ebebf5]">
                                       Doc: {n.invoiceNumber}
                                     </span>
                                   )}
-                                  {/* Prominent Index SPV */}
                                   {n.spvIndex ? (
                                     <span
-                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] tabular-nums font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200 border border-blue-300 dark:border-blue-700 shadow-xs"
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] tabular-nums font-semibold bg-[#0071e3]/10 text-[#0071e3] dark:bg-[#0a84ff]/18 dark:text-[#64d2ff]"
                                       title="ID Încărcare SPV / Index ANAF preluat automat din e-Factura"
                                     >
-                                      <Hash className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                                      <Hash className="w-3 h-3" />
                                       Index SPV: {n.spvIndex}
                                     </span>
                                   ) : (
-                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] text-[#8e8e93] bg-[#f2f2f7] dark:bg-[#2c2c2e]">
                                       Fără Index SPV
                                     </span>
                                   )}
                                 </div>
-                                <div className="text-slate-700 dark:text-slate-200 font-semibold truncate max-w-xs sm:max-w-sm">
+                                <div className="text-[#1d1d1f] dark:text-[#f5f5f7] font-medium truncate max-w-xs sm:max-w-sm">
                                   {n.supplierName || "Furnizor"} {n.supplierCUI ? `(CUI: ${n.supplierCUI})` : ""}
                                 </div>
-                                <div className="text-[11px] text-slate-500 dark:text-slate-400 flex flex-wrap items-center gap-x-2">
-                                  <span>Dată factură: <strong className="text-slate-700 dark:text-slate-300">{n.issueDate || n.receiptDate}</strong></span>
+                                <div className="text-[11px] text-[#6e6e73] dark:text-[#98989d] flex flex-wrap items-center gap-x-2">
+                                  <span>Dată factură: <strong className="text-[#1d1d1f] dark:text-[#f5f5f7]">{n.issueDate || n.receiptDate}</strong></span>
                                   <span>•</span>
                                   <span>Recepție: {n.receiptDate}</span>
                                   <span>•</span>
@@ -1379,13 +1432,13 @@ function ExportTab() {
                             </div>
                             <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto shrink-0 gap-1.5">
                               <div className="text-left sm:text-right">
-                                <span className="font-bold tabular-nums text-slate-900 dark:text-white text-sm">{n.total} RON</span>
+                                <span className="font-semibold tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7] text-[13.5px]">{n.total} RON</span>
                                 {(n as any).subtotal && (
-                                  <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                                  <div className="text-[10.5px] text-[#6e6e73] dark:text-[#98989d]">
                                     Fără TVA: <span className="tabular-nums">{(n as any).subtotal}</span> • TVA: <span className="tabular-nums">{(n as any).totalVat || "0.00"}</span>
                                   </div>
                                 )}
-                                <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">Intrare SAGA</div>
+                                <div className="text-[10.5px] text-emerald-600 dark:text-emerald-400 font-medium">Intrare SAGA</div>
                               </div>
                               <button
                                 type="button"
@@ -1396,7 +1449,7 @@ function ExportTab() {
                                 }}
                                 disabled={exportSingleNirMut.isPending && exportingNirId === n.id}
                                 title="Descarcă doar acest NIR cu indexul SPV în format XML pentru SAGA C"
-                                className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg shadow-xs hover:shadow transition-all disabled:opacity-50 cursor-pointer"
+                                className="apple-btn-glass inline-flex items-center gap-1 px-2.5 h-7 text-[11px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] disabled:opacity-50 cursor-pointer"
                               >
                                 {exportSingleNirMut.isPending && exportingNirId === n.id ? (
                                   <Loader2 className="w-3 h-3 animate-spin" />
@@ -1416,12 +1469,12 @@ function ExportTab() {
             </div>
 
             {/* Ghid Import SAGA C Desktop */}
-            <div className="p-4 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50 text-xs text-amber-900 dark:text-amber-200 space-y-1.5">
-              <div className="font-bold flex items-center gap-1.5">
+            <div className="p-4 rounded-2xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.05] dark:border-white/[0.07] text-[12px] text-[#3a3a3c] dark:text-[#ebebf5] space-y-1.5">
+              <div className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-1.5">
                 <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                 Cum imporți fișierele în SAGA C Desktop (clasic):
               </div>
-              <ol className="list-decimal list-inside space-y-1 text-slate-700 dark:text-slate-300 pl-1">
+              <ol className="list-decimal list-inside space-y-1 text-[#6e6e73] dark:text-[#98989d] pl-1">
                 <li>Deschide aplicația <strong>SAGA C</strong> pe calculator.</li>
                 <li>Mergi în meniul <strong>Diverse &gt; Import date</strong>.</li>
                 <li>Alege tabul <strong>Import date din fișiere XML</strong>.</li>
@@ -1434,32 +1487,34 @@ function ExportTab() {
 
         {/* CANALUL 2: SAGA WEB CLOUD API */}
         {activeChannel === "web" && (
-          <div className="pt-6 space-y-6">
+          <div className="pt-5 space-y-5">
             {/* Box Configurare Credențiale */}
-            <div className="p-5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 space-y-4">
-              <div className="flex items-center justify-between">
+            <div className="p-5 rounded-2xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.05] dark:border-white/[0.07] space-y-4">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                  <h4 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                    <Settings className="w-4 h-4 text-blue-600" />
-                    Configurare Cheie API SAGA Web
+                  <h4 className="text-[14px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-2">
+                    <Settings className="w-4 h-4 text-[#0071e3] dark:text-[#0a84ff]" />
+                    Configurare cheie API SAGA Web
                   </h4>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d]">
                     Cheia se generează în contul Saga Web din ecranul{" "}
-                    <code className="font-sans tabular-nums bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded text-blue-700 dark:text-blue-300">
+                    <code className="font-sans tabular-nums bg-white dark:bg-[#1c1c1e] px-1.5 py-0.5 rounded text-[#1d1d1f] dark:text-[#f5f5f7]">
                       Administrare &gt; Utilizatori &gt; Integrare API
                     </code>.
                   </p>
                 </div>
                 {!isEditingConfig ? (
                   <button
+                    type="button"
                     onClick={() => setIsEditingConfig(true)}
-                    className="px-3 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-300"
+                    className="apple-btn-glass px-3.5 h-8 text-[12px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
                   >
                     Modifică
                   </button>
                 ) : (
                   <div className="flex gap-2">
                     <button
+                      type="button"
                       onClick={() => {
                         saveConfigMut.mutate({
                           sagaWebToken: tokenInput,
@@ -1467,13 +1522,14 @@ function ExportTab() {
                         });
                       }}
                       disabled={saveConfigMut.isPending}
-                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold"
+                      className="apple-btn-prominent px-3.5 h-8 text-[12px] font-semibold cursor-pointer"
                     >
                       {saveConfigMut.isPending ? "Se salvează..." : "Salvează"}
                     </button>
                     <button
+                      type="button"
                       onClick={() => setIsEditingConfig(false)}
-                      className="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-semibold"
+                      className="apple-btn-glass px-3.5 h-8 text-[12px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
                     >
                       Anulează
                     </button>
@@ -1481,10 +1537,10 @@ function ExportTab() {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1">
-                    Cod Fiscal Firmă (CUI SAGA)
+                  <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">
+                    Cod fiscal firmă (CUI SAGA)
                   </label>
                   <input
                     type="text"
@@ -1492,12 +1548,12 @@ function ExportTab() {
                     onChange={(e) => setCuiInput(e.target.value)}
                     disabled={!isEditingConfig}
                     placeholder="Ex: 12345678"
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-900 dark:text-white tabular-nums disabled:opacity-75"
+                    className="w-full px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums disabled:opacity-75 outline-none"
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-semibold text-slate-500 mb-1">
-                    Cheie de Acces SAGA Web (Bearer Token)
+                  <label className="block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">
+                    Cheie de acces SAGA Web (Bearer Token)
                   </label>
                   <input
                     type="password"
@@ -1505,13 +1561,13 @@ function ExportTab() {
                     onChange={(e) => setTokenInput(e.target.value)}
                     disabled={!isEditingConfig}
                     placeholder="Lipește aici tokenul generat din Saga Web..."
-                    className="w-full px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs bg-white dark:bg-slate-900 dark:text-white tabular-nums disabled:opacity-75"
+                    className="w-full px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-white dark:bg-[#1c1c1e] text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums disabled:opacity-75 outline-none"
                   />
                 </div>
               </div>
 
               {tokenInput && (
-                <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1.5">
+                <div className="text-[11.5px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5" />
                   Token configurat activ. Sincronizarea automată gestionează și salvarea noului token la fiecare rotație (X-Saga-Refresh-Token).
                 </div>
@@ -1519,8 +1575,9 @@ function ExportTab() {
             </div>
 
             {/* Buton Trimitere Directă */}
-            <div className="flex flex-wrap items-center gap-4 pt-2">
+            <div className="flex flex-wrap items-center gap-4 pt-1">
               <button
+                type="button"
                 onClick={() =>
                   pushWebMut.mutate({
                     month,
@@ -1530,7 +1587,7 @@ function ExportTab() {
                   })
                 }
                 disabled={pushWebMut.isPending || !tokenInput}
-                className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold shadow-md shadow-blue-500/20 transition-all"
+                className="apple-btn-prominent inline-flex items-center gap-2 px-5 h-10 disabled:opacity-50 text-[13px] font-semibold cursor-pointer"
               >
                 {pushWebMut.isPending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -1540,7 +1597,7 @@ function ExportTab() {
                 Trimite Facturile în SAGA Web ({month === 0 ? "Tot Anul" : MONTHS[month - 1]} {year})
               </button>
 
-              <p className="text-xs text-slate-500">
+              <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d]">
                 După trimitere, fișierele apar imediat în Saga Web în meniul{" "}
                 <strong>Diverse &gt; Import Date</strong>.
               </p>
@@ -1550,43 +1607,43 @@ function ExportTab() {
       </div>
 
       {/* Istoric Exporturi */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-            <History className="w-4 h-4 text-slate-400" />
-            Istoric Operațiuni SAGA
+      <div className="apple-surface overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-black/[0.05] dark:border-white/[0.07] flex items-center justify-between">
+          <h3 className="text-[14.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] flex items-center gap-2">
+            <History className="w-4 h-4 text-[#6e6e73] dark:text-[#98989d]" />
+            Istoric operațiuni SAGA
           </h3>
-          <span className="text-xs text-slate-400">{history.length} înregistrări</span>
+          <span className="text-[12px] text-[#6e6e73] dark:text-[#98989d] tabular-nums">{history.length} înregistrări</span>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left whitespace-nowrap">
-            <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 uppercase text-[10px] font-bold tracking-wider">
+          <table className="w-full text-left whitespace-nowrap">
+            <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07] text-[#6e6e73] dark:text-[#98989d] text-[12px] font-medium">
               <tr>
-                <th className="px-5 py-3">Nr.</th>
-                <th className="px-5 py-3">Perioadă</th>
-                <th className="px-5 py-3 text-center">Data Procesare</th>
-                <th className="px-5 py-3 text-right">Status</th>
+                <th className="px-5 py-3 font-medium">Nr.</th>
+                <th className="px-5 py-3 font-medium">Perioadă</th>
+                <th className="px-5 py-3 text-center font-medium">Data procesare</th>
+                <th className="px-5 py-3 text-right font-medium">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+            <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06] text-[13px]">
               {history.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-5 py-6 text-center text-slate-500">
+                  <td colSpan={4} className="px-5 py-8 text-center text-[#6e6e73] dark:text-[#98989d]">
                     Nicio operațiune de export înregistrată încă.
                   </td>
                 </tr>
               ) : (
                 history.map((h: any, i: number) => (
-                  <tr key={h.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                    <td className="px-5 py-3 text-slate-400 tabular-nums text-xs">{i + 1}</td>
-                    <td className="px-5 py-3 text-slate-900 dark:text-white font-medium">
+                  <tr key={h.id} className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035]">
+                    <td className="px-5 py-3 text-[#8e8e93] tabular-nums text-[12px]">{i + 1}</td>
+                    <td className="px-5 py-3 text-[#1d1d1f] dark:text-[#f5f5f7] font-medium">
                       {MONTHS[h.month - 1]} {h.year}
                     </td>
-                    <td className="px-5 py-3 text-center text-slate-500 text-xs">
+                    <td className="px-5 py-3 text-center text-[#6e6e73] dark:text-[#98989d] text-[12.5px] tabular-nums">
                       {new Date(h.createdAt).toLocaleString("ro-RO")}
                     </td>
                     <td className="px-5 py-3 text-right">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300">
                         <Check className="w-3 h-3" /> Generat
                       </span>
                     </td>
@@ -1664,48 +1721,48 @@ function SetariTab() {
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
-      <h3 className="text-sm font-semibold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-        <Settings className="w-4 h-4 text-slate-400" />
-        Setări Modul SAGA
+    <div className="apple-surface p-5 sm:p-6">
+      <h3 className="text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] mb-4 flex items-center gap-2">
+        <Settings className="w-4 h-4 text-[#6e6e73] dark:text-[#98989d]" />
+        Setări modul SAGA
       </h3>
 
-      <div className="space-y-6 max-w-lg">
+      <div className="space-y-5 max-w-lg">
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+          <label className="block text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">
             Prefix cod articol
           </label>
           <input
             type="text"
             value={articlePrefix}
             onChange={(e) => setArticlePrefix(e.target.value)}
-            className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 dark:text-white tabular-nums"
+            className="w-full px-3.5 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums outline-none"
           />
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] mt-1">
             Prefixul folosit la generarea automată a codurilor (ex: ART-0001)
           </p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+          <label className="block text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">
             Gestiune implicită
           </label>
           <input
             type="text"
             value={defaultGestiune}
             onChange={(e) => setDefaultGestiune(e.target.value)}
-            className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 dark:text-white"
+            className="w-full px-3.5 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+          <label className="block text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">
             Cont contabil implicit
           </label>
           <select
             value={defaultAccount}
             onChange={(e) => setDefaultAccount(e.target.value)}
-            className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 dark:text-white tabular-nums"
+            className="w-full px-3.5 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums outline-none cursor-pointer"
           >
             {planConturi.map((c: any) => (
               <option key={c.cod} value={c.cod}>{c.cod} — {c.denumire}</option>
@@ -1714,13 +1771,13 @@ function SetariTab() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+          <label className="block text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1">
             Cotă TVA implicită
           </label>
           <select
             value={defaultVatRate}
             onChange={(e) => setDefaultVatRate(e.target.value)}
-            className="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-800 dark:text-white tabular-nums"
+            className="w-full px-3.5 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums outline-none cursor-pointer"
           >
             <option value="21">21%</option>
             <option value="11">11%</option>
@@ -1731,15 +1788,15 @@ function SetariTab() {
           </select>
         </div>
 
-        <div className="pt-2">
+        <div className="pt-1">
           <button
             type="button"
             onClick={handleSaveSagaSettings}
             disabled={updateSettingsMut.isPending}
-            className="h-9 px-5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-full text-sm font-medium transition-colors inline-flex items-center gap-2"
+            className="apple-btn-prominent h-9 px-5 disabled:opacity-50 text-[13px] font-semibold inline-flex items-center gap-2 cursor-pointer"
           >
             {updateSettingsMut.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-            Salvează Setări
+            Salvează setări
           </button>
         </div>
       </div>
@@ -1769,46 +1826,55 @@ function GestiuniTab() {
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
-        <button onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-1.5 h-9 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-medium">
-          <Plus className="w-4 h-4" /> Adaugă gestiune
+      <div className="apple-surface px-3 py-2.5 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setShowForm(!showForm)}
+          className="apple-btn-prominent inline-flex items-center gap-1.5 h-8 px-4 text-[12.5px] font-semibold cursor-pointer"
+        >
+          <Plus className="w-3.5 h-3.5" /> Adaugă gestiune
         </button>
-        <span className="ml-auto text-xs text-slate-500">{gestiuni.length} gestiuni</span>
+        <span className="ml-auto text-[12px] text-[#6e6e73] dark:text-[#98989d] tabular-nums pr-1">{gestiuni.length} gestiuni</span>
       </div>
 
       {/* Add Form */}
       {showForm && (
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-blue-200 dark:border-blue-800 space-y-3">
+        <div className="apple-surface p-4 sm:p-5 space-y-3">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <input placeholder="Cod *" value={form.cod} onChange={e => setForm({...form, cod: e.target.value})}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+              className="px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none" />
             <input placeholder="Denumire *" value={form.denumire} onChange={e => setForm({...form, denumire: e.target.value})}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white col-span-2" />
+              className="px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none col-span-2" />
             <select value={form.tipGestiune} onChange={e => setForm({...form, tipGestiune: e.target.value})}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+              className="px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none cursor-pointer">
               <option value="cantitativ-valorica">Cantitativ-valorică</option>
               <option value="cantitativa">Cantitativă</option>
             </select>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <input placeholder="Gestionar" value={form.gestionar} onChange={e => setForm({...form, gestionar: e.target.value})}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+              className="px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none" />
             <input placeholder="Analitic 371" value={form.analitic371} onChange={e => setForm({...form, analitic371: e.target.value})}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+              className="px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none tabular-nums" />
             <input placeholder="Analitic 607" value={form.analitic607} onChange={e => setForm({...form, analitic607: e.target.value})}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+              className="px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none tabular-nums" />
             <input placeholder="Analitic 707" value={form.analitic707} onChange={e => setForm({...form, analitic707: e.target.value})}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+              className="px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none tabular-nums" />
           </div>
           <div className="flex gap-2">
-            <button onClick={() => createMut.mutate(form)}
+            <button
+              type="button"
+              onClick={() => createMut.mutate(form)}
               disabled={!form.cod || !form.denumire || createMut.isPending}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm disabled:opacity-50">
+              className="apple-btn-prominent px-4 h-9 text-[12.5px] font-semibold disabled:opacity-50 cursor-pointer"
+            >
               {createMut.isPending ? "Se salvează..." : "Salvează"}
             </button>
-            <button onClick={() => setShowForm(false)}
-              className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-sm">
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="apple-btn-glass px-4 h-9 text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-medium cursor-pointer"
+            >
               Anulează
             </button>
           </div>
@@ -1816,47 +1882,49 @@ function GestiuniTab() {
       )}
 
       {/* Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 dark:bg-slate-800/50">
-            <tr>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Cod</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Denumire</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Tip</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Gestionar</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">371</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">607</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">707</th>
-              <th className="px-4 py-2.5"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading && <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></td></tr>}
-            {gestiuni.map((g: any) => (
-              <tr key={g.id} className="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                <td className="px-4 py-2 tabular-nums text-blue-600">{g.cod}</td>
-                <td className="px-4 py-2 text-slate-900 dark:text-white">{g.denumire}</td>
-                <td className="px-4 py-2 text-slate-500">{g.tipGestiune}</td>
-                <td className="px-4 py-2 text-slate-500">{g.gestionar || "—"}</td>
-                <td className="px-4 py-2 text-slate-500 tabular-nums text-xs">{g.analitic371 || "—"}</td>
-                <td className="px-4 py-2 text-slate-500 tabular-nums text-xs">{g.analitic607 || "—"}</td>
-                <td className="px-4 py-2 text-slate-500 tabular-nums text-xs">{g.analitic707 || "—"}</td>
-                <td className="px-4 py-2">
-                  <ConfirmDeleteWrapper onConfirm={() => deleteMut.mutate({ id: g.id })} title="Ștergi gestiunea?">
-                    {(openModal) => (
-                      <button onClick={openModal} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                  </ConfirmDeleteWrapper>
-                </td>
+      <div className="apple-surface overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+              <tr>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Cod</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Denumire</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Tip</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Gestionar</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">371</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">607</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">707</th>
+                <th className="px-4 py-3"></th>
               </tr>
-            ))}
-            {!isLoading && gestiuni.length === 0 && (
-              <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-400">Nicio gestiune. Apasă „Adaugă gestiune” pentru prima gestiune.</td></tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06] text-[13px]">
+              {isLoading && <tr><td colSpan={8} className="px-4 py-8 text-center text-[#6e6e73]"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></td></tr>}
+              {gestiuni.map((g: any) => (
+                <tr key={g.id} className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035]">
+                  <td className="px-4 py-2.5 tabular-nums font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">{g.cod}</td>
+                  <td className="px-4 py-2.5 text-[#1d1d1f] dark:text-[#f5f5f7] font-medium">{g.denumire}</td>
+                  <td className="px-4 py-2.5 text-[#6e6e73] dark:text-[#98989d]">{g.tipGestiune}</td>
+                  <td className="px-4 py-2.5 text-[#6e6e73] dark:text-[#98989d]">{g.gestionar || "—"}</td>
+                  <td className="px-4 py-2.5 text-[#6e6e73] dark:text-[#98989d] tabular-nums text-[12.5px]">{g.analitic371 || "—"}</td>
+                  <td className="px-4 py-2.5 text-[#6e6e73] dark:text-[#98989d] tabular-nums text-[12.5px]">{g.analitic607 || "—"}</td>
+                  <td className="px-4 py-2.5 text-[#6e6e73] dark:text-[#98989d] tabular-nums text-[12.5px]">{g.analitic707 || "—"}</td>
+                  <td className="px-4 py-2.5 text-right">
+                    <ConfirmDeleteWrapper onConfirm={() => deleteMut.mutate({ id: g.id })} title="Ștergi gestiunea?">
+                      {(openModal) => (
+                        <button type="button" onClick={openModal} className="p-1.5 text-[#8e8e93] hover:text-rose-500 hover:bg-rose-500/10 rounded-full cursor-pointer">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </ConfirmDeleteWrapper>
+                  </td>
+                </tr>
+              ))}
+              {!isLoading && gestiuni.length === 0 && (
+                <tr><td colSpan={8} className="px-4 py-10 text-center text-[#6e6e73] dark:text-[#98989d]">Nicio gestiune. Apasă „Adaugă gestiune” pentru prima gestiune.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
@@ -1914,7 +1982,7 @@ function FurnizoriTab() {
       toast.error(err.message, { id: toastId });
     } finally {
       setIsImporting(false);
-      e.target.value = ""; // reset file input
+      e.target.value = "";
     }
   };
 
@@ -1929,64 +1997,76 @@ function FurnizoriTab() {
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
-        <button onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium">
-          <Plus className="w-4 h-4" /> Adaugă
+      <div className="apple-surface px-3 py-2.5 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setShowForm(!showForm)}
+          className="apple-btn-prominent inline-flex items-center gap-1.5 px-3.5 h-8 text-[12.5px] font-semibold cursor-pointer"
+        >
+          <Plus className="w-3.5 h-3.5" /> Adaugă
         </button>
-        
-        <label className={`flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-medium cursor-pointer transition-colors ${isImporting ? 'opacity-50 pointer-events-none' : ''}`}>
-          <Upload className="w-4 h-4" /> Import din SAGA
+
+        <label className={`apple-btn-glass inline-flex items-center gap-1.5 px-3.5 h-8 text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-medium cursor-pointer ${isImporting ? "opacity-50 pointer-events-none" : ""}`}>
+          <Upload className="w-3.5 h-3.5" /> Import din SAGA
           <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFurnizoriImport} disabled={isImporting} />
         </label>
-        <div className="ml-auto flex items-center gap-2">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input value={searchQ} onChange={e => setSearchQ(e.target.value)}
+        <div className="ml-auto flex items-center gap-2.5 flex-wrap">
+          <div className="apple-pill-control relative flex items-center w-56 px-3">
+            <Search className="w-3.5 h-3.5 text-[#8e8e93] shrink-0 mr-2" />
+            <input
+              value={searchQ}
+              onChange={e => setSearchQ(e.target.value)}
               placeholder="Caută furnizor..."
-              className="pl-8 pr-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white w-48" />
+              className="flex-1 min-w-0 bg-transparent text-[13px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none"
+            />
           </div>
-          <span className="text-xs text-slate-500">{filtered.length} furnizori</span>
+          <span className="text-[12px] text-[#6e6e73] dark:text-[#98989d] tabular-nums pr-1">{filtered.length} furnizori</span>
         </div>
       </div>
 
       {/* Add Form */}
       {showForm && (
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-blue-200 dark:border-blue-800 space-y-3">
+        <div className="apple-surface p-4 sm:p-5 space-y-3">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <input placeholder="Cod *" value={form.cod} onChange={e => setForm({...form, cod: e.target.value})}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+              className="px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none" />
             <input placeholder="Denumire *" value={form.denumire} onChange={e => setForm({...form, denumire: e.target.value})}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white col-span-2" />
+              className="px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none col-span-2" />
             <input placeholder="CUI" value={form.cui} onChange={e => setForm({...form, cui: e.target.value})}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+              className="px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none tabular-nums" />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <input placeholder="Reg. Comerțului" value={form.regCom} onChange={e => setForm({...form, regCom: e.target.value})}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+              className="px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none" />
             <input placeholder="Adresă" value={form.adresa} onChange={e => setForm({...form, adresa: e.target.value})}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white col-span-2" />
+              className="px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none col-span-2" />
             <input placeholder="Telefon" value={form.telefon} onChange={e => setForm({...form, telefon: e.target.value})}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+              className="px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none tabular-nums" />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <input placeholder="Email" value={form.email} onChange={e => setForm({...form, email: e.target.value})}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+              className="px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none" />
             <input placeholder="Bancă" value={form.banca} onChange={e => setForm({...form, banca: e.target.value})}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+              className="px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none" />
             <input placeholder="IBAN" value={form.contBanca} onChange={e => setForm({...form, contBanca: e.target.value})}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+              className="px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none tabular-nums" />
             <input placeholder="Cont furnizor (401)" value={form.contFurnizor} onChange={e => setForm({...form, contFurnizor: e.target.value})}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+              className="px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none tabular-nums" />
           </div>
           <div className="flex gap-2">
-            <button onClick={() => createMut.mutate(form)}
+            <button
+              type="button"
+              onClick={() => createMut.mutate(form)}
               disabled={!form.cod || !form.denumire || createMut.isPending}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm disabled:opacity-50">
+              className="apple-btn-prominent px-4 h-9 text-[12.5px] font-semibold disabled:opacity-50 cursor-pointer"
+            >
               {createMut.isPending ? "Se salvează..." : "Salvează"}
             </button>
-            <button onClick={() => setShowForm(false)}
-              className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-sm">
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="apple-btn-glass px-4 h-9 text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-medium cursor-pointer"
+            >
               Anulează
             </button>
           </div>
@@ -1994,45 +2074,47 @@ function FurnizoriTab() {
       )}
 
       {/* Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 dark:bg-slate-800/50">
-            <tr>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Cod</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Denumire</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">CUI</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Adresă</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Telefon</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Cont</th>
-              <th className="px-4 py-2.5"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading && <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></td></tr>}
-            {filtered.map((f: any) => (
-              <tr key={f.id} className="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                <td className="px-4 py-2 tabular-nums text-blue-600">{f.cod}</td>
-                <td className="px-4 py-2 text-slate-900 dark:text-white font-medium">{f.denumire}</td>
-                <td className="px-4 py-2 text-slate-500 tabular-nums">{f.cui || "—"}</td>
-                <td className="px-4 py-2 text-slate-500 text-xs max-w-[200px] truncate">{f.adresa || "—"}</td>
-                <td className="px-4 py-2 text-slate-500">{f.telefon || "—"}</td>
-                <td className="px-4 py-2 text-slate-500 tabular-nums text-xs">{f.contFurnizor}</td>
-                <td className="px-4 py-2">
-                  <ConfirmDeleteWrapper onConfirm={() => deleteMut.mutate({ id: f.id })} title="Ștergi furnizorul?">
-                    {(openModal) => (
-                      <button onClick={openModal} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                  </ConfirmDeleteWrapper>
-                </td>
+      <div className="apple-surface overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+              <tr>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Cod</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Denumire</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">CUI</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Adresă</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Telefon</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Cont</th>
+                <th className="px-4 py-3"></th>
               </tr>
-            ))}
-            {!isLoading && filtered.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400">Niciun furnizor.</td></tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06] text-[13px]">
+              {isLoading && <tr><td colSpan={7} className="px-4 py-8 text-center text-[#6e6e73]"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></td></tr>}
+              {filtered.map((f: any) => (
+                <tr key={f.id} className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035]">
+                  <td className="px-4 py-2.5 tabular-nums font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">{f.cod}</td>
+                  <td className="px-4 py-2.5 text-[#1d1d1f] dark:text-[#f5f5f7] font-medium">{f.denumire}</td>
+                  <td className="px-4 py-2.5 text-[#6e6e73] dark:text-[#98989d] tabular-nums">{f.cui || "—"}</td>
+                  <td className="px-4 py-2.5 text-[#6e6e73] dark:text-[#98989d] text-[12.5px] max-w-[220px] truncate">{f.adresa || "—"}</td>
+                  <td className="px-4 py-2.5 text-[#6e6e73] dark:text-[#98989d] tabular-nums">{f.telefon || "—"}</td>
+                  <td className="px-4 py-2.5 text-[#6e6e73] dark:text-[#98989d] tabular-nums text-[12.5px]">{f.contFurnizor}</td>
+                  <td className="px-4 py-2.5 text-right">
+                    <ConfirmDeleteWrapper onConfirm={() => deleteMut.mutate({ id: f.id })} title="Ștergi furnizorul?">
+                      {(openModal) => (
+                        <button type="button" onClick={openModal} className="p-1.5 text-[#8e8e93] hover:text-rose-500 hover:bg-rose-500/10 rounded-full cursor-pointer">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </ConfirmDeleteWrapper>
+                  </td>
+                </tr>
+              ))}
+              {!isLoading && filtered.length === 0 && (
+                <tr><td colSpan={7} className="px-4 py-10 text-center text-[#6e6e73] dark:text-[#98989d]">Niciun furnizor.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
@@ -2097,84 +2179,86 @@ function ClientiTab() {
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
-        <label className={`flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium cursor-pointer transition-colors ${isImporting ? 'opacity-50 pointer-events-none' : ''}`}>
-          <Upload className="w-4 h-4" /> Import Clienți din SAGA (XLSX)
+      <div className="apple-surface px-3 py-2.5 flex flex-wrap items-center gap-2">
+        <label className={`apple-btn-prominent inline-flex items-center gap-1.5 px-4 h-8 text-[12.5px] font-semibold cursor-pointer ${isImporting ? "opacity-50 pointer-events-none" : ""}`}>
+          <Upload className="w-3.5 h-3.5" /> Import clienți din SAGA (XLSX)
           <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleClientiImport} disabled={isImporting} />
         </label>
-        <div className="ml-auto flex items-center gap-2">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <div className="ml-auto flex items-center gap-2.5 flex-wrap">
+          <div className="apple-pill-control relative flex items-center w-64 px-3">
+            <Search className="w-3.5 h-3.5 text-[#8e8e93] shrink-0 mr-2" />
             <input
               value={searchQ}
               onChange={e => setSearchQ(e.target.value)}
               placeholder="Caută client, CUI sau cod SAGA..."
-              className="pl-8 pr-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white w-64"
+              className="flex-1 min-w-0 bg-transparent text-[13px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none"
             />
           </div>
-          <span className="text-xs text-slate-500">{filtered.length} clienți</span>
+          <span className="text-[12px] text-[#6e6e73] dark:text-[#98989d] tabular-nums pr-1">{filtered.length} clienți</span>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 dark:bg-slate-800/50">
-            <tr>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Cod SAGA</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Denumire Client</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">CUI</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Reg. Com.</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Oraș / Adresă</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Telefon / Email</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading && (
+      <div className="apple-surface overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
-                  <Loader2 className="w-5 h-5 animate-spin mx-auto" />
-                </td>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Cod SAGA</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Denumire client</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">CUI</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Reg. Com.</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Oraș / Adresă</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Telefon / Email</th>
               </tr>
-            )}
-            {filtered.map((c: any) => (
-              <tr key={c.id} className="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                <td className="px-4 py-2 tabular-nums font-bold text-amber-600 dark:text-amber-400">
-                  {c.sagaCode ? (
-                    <span className="px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-xs">
-                      {c.sagaCode}
-                    </span>
-                  ) : (
-                    <span className="text-slate-400 font-normal text-xs">—</span>
-                  )}
-                </td>
-                <td className="px-4 py-2 text-slate-900 dark:text-white font-medium">{c.name}</td>
-                <td className="px-4 py-2 text-slate-500 tabular-nums text-xs">{c.cui || "—"}</td>
-                <td className="px-4 py-2 text-slate-500 text-xs">{c.regCom || "—"}</td>
-                <td className="px-4 py-2 text-slate-500 text-xs max-w-[220px] truncate">
-                  {c.city ? `${c.city}${c.address ? `, ${c.address}` : ""}` : (c.address || "—")}
-                </td>
-                <td className="px-4 py-2 text-slate-500 text-xs">
-                  {c.phone || c.email ? (
-                    <div>
-                      {c.phone && <div>{c.phone}</div>}
-                      {c.email && <div className="text-[11px] text-slate-400">{c.email}</div>}
-                    </div>
-                  ) : (
-                    "—"
-                  )}
-                </td>
-              </tr>
-            ))}
-            {!isLoading && filtered.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
-                  Niciun client găsit.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06] text-[13px]">
+              {isLoading && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-[#6e6e73]">
+                    <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+                  </td>
+                </tr>
+              )}
+              {filtered.map((c: any) => (
+                <tr key={c.id} className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035]">
+                  <td className="px-4 py-2.5 tabular-nums font-semibold">
+                    {c.sagaCode ? (
+                      <span className="px-2 py-0.5 rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] text-[11.5px]">
+                        {c.sagaCode}
+                      </span>
+                    ) : (
+                      <span className="text-[#8e8e93] font-normal text-xs">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-2.5 text-[#1d1d1f] dark:text-[#f5f5f7] font-medium">{c.name}</td>
+                  <td className="px-4 py-2.5 text-[#6e6e73] dark:text-[#98989d] tabular-nums text-[12.5px]">{c.cui || "—"}</td>
+                  <td className="px-4 py-2.5 text-[#6e6e73] dark:text-[#98989d] text-[12.5px]">{c.regCom || "—"}</td>
+                  <td className="px-4 py-2.5 text-[#6e6e73] dark:text-[#98989d] text-[12.5px] max-w-[220px] truncate">
+                    {c.city ? `${c.city}${c.address ? `, ${c.address}` : ""}` : (c.address || "—")}
+                  </td>
+                  <td className="px-4 py-2.5 text-[#6e6e73] dark:text-[#98989d] text-[12.5px]">
+                    {c.phone || c.email ? (
+                      <div>
+                        {c.phone && <div className="tabular-nums">{c.phone}</div>}
+                        {c.email && <div className="text-[11.5px] text-[#8e8e93]">{c.email}</div>}
+                      </div>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {!isLoading && filtered.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-10 text-center text-[#6e6e73] dark:text-[#98989d]">
+                    Niciun client găsit.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
@@ -2189,34 +2273,39 @@ function PlanConturiTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input value={searchQ} onChange={e => setSearchQ(e.target.value)}
+      <div className="apple-surface px-3 py-2.5 flex items-center gap-2">
+        <div className="apple-pill-control relative flex items-center flex-1 max-w-md px-3">
+          <Search className="w-3.5 h-3.5 text-[#8e8e93] shrink-0 mr-2" />
+          <input
+            value={searchQ}
+            onChange={e => setSearchQ(e.target.value)}
             placeholder="Caută cont (cod sau denumire)..."
-            className="pl-8 pr-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white w-full" />
+            className="flex-1 min-w-0 bg-transparent text-[13px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none"
+          />
         </div>
-        <span className="text-xs text-slate-500">{conturi.length} conturi</span>
+        <span className="ml-auto text-[12px] text-[#6e6e73] dark:text-[#98989d] tabular-nums pr-1">{conturi.length} conturi</span>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden max-h-[600px] overflow-y-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 dark:bg-slate-800/50 sticky top-0">
+      <div className="apple-surface overflow-hidden max-h-[600px] overflow-y-auto">
+        <table className="w-full">
+          <thead className="bg-[#fafafa] dark:bg-[#242426] border-b border-black/[0.05] dark:border-white/[0.07] sticky top-0 z-10">
             <tr>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase w-24">Cod</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Denumire</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase w-16">Tip</th>
+              <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] w-24">Cod</th>
+              <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Denumire</th>
+              <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] w-20">Tip</th>
             </tr>
           </thead>
-          <tbody>
-            {isLoading && <tr><td colSpan={3} className="px-4 py-8 text-center text-slate-400"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></td></tr>}
+          <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06] text-[13px]">
+            {isLoading && <tr><td colSpan={3} className="px-4 py-8 text-center text-[#6e6e73]"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></td></tr>}
             {conturi.map((c: any, i: number) => (
-              <tr key={i} className="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                <td className="px-4 py-1.5 tabular-nums text-blue-600 text-xs">{c.cod}</td>
-                <td className="px-4 py-1.5 text-slate-900 dark:text-white">{c.denumire}</td>
-                <td className="px-4 py-1.5">
-                  <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
-                    c.tip === "A" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"
+              <tr key={i} className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035]">
+                <td className="px-4 py-2 tabular-nums font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px]">{c.cod}</td>
+                <td className="px-4 py-2 text-[#1d1d1f] dark:text-[#f5f5f7]">{c.denumire}</td>
+                <td className="px-4 py-2">
+                  <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                    c.tip === "A"
+                      ? "bg-[#0071e3]/10 text-[#0071e3] dark:bg-[#0a84ff]/18 dark:text-[#64d2ff]"
+                      : "bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300"
                   }`}>{c.tip === "A" ? "Activ" : "Pasiv"}</span>
                 </td>
               </tr>
@@ -2245,7 +2334,7 @@ function IntrariTab({ mode = "ron" }: { mode?: "ron" | "valuta" }) {
 
   const [showForm, setShowForm] = useState(false);
   const [selectedIntrareId, setSelectedIntrareId] = useState<number | null>(null);
-  
+
   const { data: intrareDetails, isLoading: isLoadingDetails } = trpc.saga.intrari.getById.useQuery(
     { id: selectedIntrareId! },
     { enabled: !!selectedIntrareId }
@@ -2258,44 +2347,53 @@ function IntrariTab({ mode = "ron" }: { mode?: "ron" | "valuta" }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
-        <button onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium">
-          <Plus className="w-4 h-4" /> Intrare nouă
+      <div className="apple-surface px-3 py-2.5 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setShowForm(!showForm)}
+          className="apple-btn-prominent inline-flex items-center gap-1.5 px-4 h-8 text-[12.5px] font-semibold cursor-pointer"
+        >
+          <Plus className="w-3.5 h-3.5" /> Intrare nouă
         </button>
-        <span className="ml-auto text-xs text-slate-500">{intrari.length} intrări</span>
+        <span className="ml-auto text-[12px] text-[#6e6e73] dark:text-[#98989d] tabular-nums pr-1">{intrari.length} intrări</span>
       </div>
 
       {showForm && (
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-blue-200 dark:border-blue-800 space-y-3">
+        <div className="apple-surface p-4 sm:p-5 space-y-3">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <select value={form.tip} onChange={e => setForm({...form, tip: e.target.value})}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+              className="px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none cursor-pointer">
               <option value="Factura">Factură</option>
               <option value="Aviz">Aviz</option>
               <option value="Retur">Retur</option>
             </select>
             <input placeholder="Nr. document" value={form.nrDoc} onChange={e => setForm({...form, nrDoc: e.target.value})}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+              className="px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none" />
             <input type="date" value={form.data} onChange={e => setForm({...form, data: e.target.value})}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+              className="px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none tabular-nums" />
             <input type="date" placeholder="Scadență" value={form.scadent} onChange={e => setForm({...form, scadent: e.target.value})}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+              className="px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none tabular-nums" />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <input placeholder="Furnizor" value={form.numeFurnizor} onChange={e => setForm({...form, numeFurnizor: e.target.value})}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white col-span-2" />
+              className="px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none col-span-2" />
             <input placeholder="CUI furnizor" value={form.cuiFurnizor} onChange={e => setForm({...form, cuiFurnizor: e.target.value})}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+              className="px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none tabular-nums" />
           </div>
           <div className="flex gap-2">
-            <button onClick={() => createMut.mutate(form)}
+            <button
+              type="button"
+              onClick={() => createMut.mutate(form)}
               disabled={!form.data || createMut.isPending}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm disabled:opacity-50">
+              className="apple-btn-prominent px-4 h-9 text-[12.5px] font-semibold disabled:opacity-50 cursor-pointer"
+            >
               {createMut.isPending ? "Se creează..." : "Creează intrare"}
             </button>
-            <button onClick={() => setShowForm(false)}
-              className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-sm">
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="apple-btn-glass px-4 h-9 text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-medium cursor-pointer"
+            >
               Anulează
             </button>
           </div>
@@ -2303,125 +2401,127 @@ function IntrariTab({ mode = "ron" }: { mode?: "ron" | "valuta" }) {
       )}
 
       {/* Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 dark:bg-slate-800/50">
-            <tr>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Nr.</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Tip</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Nr.Doc</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Data</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Furnizor</th>
-              {mode === "valuta" && <th className="text-right px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Curs BNR</th>}
-              <th className="text-right px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">{mode === "valuta" ? "Valoare (valută)" : "Valoare"}</th>
-              <th className="text-right px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">{mode === "valuta" ? "TVA (valută)" : "TVA"}</th>
-              <th className="text-right px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">{mode === "valuta" ? "Total (valută)" : "Total"}</th>
-              {mode === "valuta" && <th className="text-right px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Total RON</th>}
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Status</th>
-              <th className="px-4 py-2.5"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading && <tr><td colSpan={mode === "valuta" ? 12 : 10} className="px-4 py-8 text-center text-slate-400"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></td></tr>}
-            {intrari.map((intr: any) => (
-              <Fragment key={intr.id}>
-                <tr
-                  onClick={() => setSelectedIntrareId(selectedIntrareId === intr.id ? null : intr.id)}
-                  className={`border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30 cursor-pointer ${
-                    selectedIntrareId === intr.id ? "bg-blue-50/50 dark:bg-blue-900/10" : ""
-                  }`}
-                >
-                  <td className="px-4 py-2 tabular-nums text-blue-600">{intr.nrIntern}</td>
-                  <td className="px-4 py-2 text-slate-500">{intr.tip}</td>
-                  <td className="px-4 py-2 text-slate-900 dark:text-white font-medium">{intr.nrDoc || "—"}</td>
-                  <td className="px-4 py-2 text-slate-500">{intr.data}</td>
-                  <td className="px-4 py-2 text-slate-900 dark:text-white">{intr.numeFurnizor || "—"}</td>
-                  {mode === "valuta" && <td className="px-4 py-2 text-right tabular-nums text-slate-500">{Number(intr.curs || 1).toFixed(4)}</td>}
-                  <td className="px-4 py-2 text-right tabular-nums">{Number(mode === "valuta" ? intr.valoareValuta || 0 : intr.valoare || 0).toFixed(2)}{mode === "valuta" ? ` ${intr.valuta}` : ""}</td>
-                  <td className="px-4 py-2 text-right tabular-nums text-slate-500">{Number(mode === "valuta" ? intr.tvaValuta || 0 : intr.tva || 0).toFixed(2)}{mode === "valuta" ? ` ${intr.valuta}` : ""}</td>
-                  <td className="px-4 py-2 text-right tabular-nums font-bold text-slate-900 dark:text-white">{Number(mode === "valuta" ? intr.totalValuta || 0 : intr.total || 0).toFixed(2)}{mode === "valuta" ? ` ${intr.valuta}` : ""}</td>
-                  {mode === "valuta" && <td className="px-4 py-2 text-right tabular-nums text-slate-500">{Number(intr.total || 0).toFixed(2)} RON</td>}
-                  <td className="px-4 py-2">
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                      intr.status === "validat" ? "bg-green-100 text-green-700" :
-                      intr.status === "stornat" ? "bg-red-100 text-red-700" :
-                      "bg-yellow-100 text-yellow-700"
-                    }`}>{intr.status}</span>
-                  </td>
-                  <td className="px-4 py-2 text-right">
-                    <ConfirmDeleteWrapper onConfirm={() => deleteMut.mutate({ id: intr.id })} title="Ștergi intrarea?">
-                      {(openModal) => (
-                        <button onClick={(e) => { e.stopPropagation(); openModal(); }} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </ConfirmDeleteWrapper>
-                  </td>
-                </tr>
-                
-                {/* Expandable Details Row */}
-                {selectedIntrareId === intr.id && (
-                  <tr className="bg-slate-50/80 dark:bg-slate-800/80 border-b-2 border-slate-200 dark:border-slate-700">
-                    <td colSpan={mode === "valuta" ? 12 : 10} className="p-0">
-                      <div className="p-4 pl-8 border-l-4 border-blue-500 shadow-inner">
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                            Linii document (Detalii Recepție)
-                          </div>
-                          {isLoadingDetails && <Loader2 className="w-3 h-3 animate-spin text-slate-400" />}
-                        </div>
-                        
-                        <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
-                          <table className="w-full text-xs">
-                            <thead className="bg-slate-100 dark:bg-slate-800">
-                              <tr>
-                                <th className="px-3 py-2 text-left font-semibold text-slate-500">Denumire Articol</th>
-                                <th className="px-3 py-2 text-left font-semibold text-slate-500">Cod</th>
-                                <th className="px-3 py-2 text-left font-semibold text-slate-500">Tip / Cont</th>
-                                <th className="px-3 py-2 text-center font-semibold text-slate-500">U/M</th>
-                                <th className="px-3 py-2 text-right font-semibold text-slate-500">Cantitate</th>
-                                <th className="px-3 py-2 text-right font-semibold text-slate-500">Preț Unitar</th>
-                                <th className="px-3 py-2 text-center font-semibold text-slate-500">TVA %</th>
-                                <th className="px-3 py-2 text-right font-semibold text-slate-500">Total</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                              {intrareDetails?.lines && intrareDetails.lines.length > 0 ? (
-                                intrareDetails.lines.map((line: any) => (
-                                  <tr key={line.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                                    <td className="px-3 py-2 font-medium">{line.denumire}</td>
-                                    <td className="px-3 py-2 tabular-nums text-slate-500">{line.cod || "—"}</td>
-                                    <td className="px-3 py-2 text-slate-500">{line.tip || "—"} {line.cont ? `/ ${line.cont}` : ""}</td>
-                                    <td className="px-3 py-2 text-center">{line.um || "BUC"}</td>
-                                    <td className="px-3 py-2 text-right tabular-nums">{Number(line.cantitate || 0).toFixed(2)}</td>
-                                    <td className="px-3 py-2 text-right tabular-nums">{Number(line.pretUnitar || 0).toFixed(2)}</td>
-                                    <td className="px-3 py-2 text-center tabular-nums">{line.tvaPercent}%</td>
-                                    <td className="px-3 py-2 text-right tabular-nums font-semibold">
-                                      {Number(line.total || (Number(line.cantitate || 0) * Number(line.pretUnitar || 0) * (1 + Number(line.tvaPercent || 0)/100))).toFixed(2)}
-                                    </td>
-                                  </tr>
-                                ))
-                              ) : (
-                                <tr>
-                                  <td colSpan={8} className="px-3 py-6 text-center text-slate-400 italic">
-                                    {!isLoadingDetails ? "Această intrare nu are nicio linie de produse înregistrată." : "Se încarcă liniile..."}
-                                  </td>
-                                </tr>
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
+      <div className="apple-surface overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+              <tr>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Nr.</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Tip</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Nr. doc</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Data</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Furnizor</th>
+                {mode === "valuta" && <th className="text-right px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Curs BNR</th>}
+                <th className="text-right px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">{mode === "valuta" ? "Valoare (valută)" : "Valoare"}</th>
+                <th className="text-right px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">{mode === "valuta" ? "TVA (valută)" : "TVA"}</th>
+                <th className="text-right px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">{mode === "valuta" ? "Total (valută)" : "Total"}</th>
+                {mode === "valuta" && <th className="text-right px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Total RON</th>}
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Status</th>
+                <th className="px-4 py-3"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06] text-[13px]">
+              {isLoading && <tr><td colSpan={mode === "valuta" ? 12 : 10} className="px-4 py-8 text-center text-[#6e6e73]"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></td></tr>}
+              {intrari.map((intr: any) => (
+                <Fragment key={intr.id}>
+                  <tr
+                    onClick={() => setSelectedIntrareId(selectedIntrareId === intr.id ? null : intr.id)}
+                    className={`hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] cursor-pointer transition-colors ${
+                      selectedIntrareId === intr.id ? "bg-[#0071e3]/[0.05] dark:bg-[#0a84ff]/[0.10]" : ""
+                    }`}
+                  >
+                    <td className="px-4 py-2.5 tabular-nums font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">{intr.nrIntern}</td>
+                    <td className="px-4 py-2.5 text-[#6e6e73] dark:text-[#98989d]">{intr.tip}</td>
+                    <td className="px-4 py-2.5 text-[#1d1d1f] dark:text-[#f5f5f7] font-medium">{intr.nrDoc || "—"}</td>
+                    <td className="px-4 py-2.5 text-[#6e6e73] dark:text-[#98989d] tabular-nums">{intr.data}</td>
+                    <td className="px-4 py-2.5 text-[#1d1d1f] dark:text-[#f5f5f7]">{intr.numeFurnizor || "—"}</td>
+                    {mode === "valuta" && <td className="px-4 py-2.5 text-right tabular-nums text-[#6e6e73] dark:text-[#98989d]">{Number(intr.curs || 1).toFixed(4)}</td>}
+                    <td className="px-4 py-2.5 text-right tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">{Number(mode === "valuta" ? intr.valoareValuta || 0 : intr.valoare || 0).toFixed(2)}{mode === "valuta" ? ` ${intr.valuta}` : ""}</td>
+                    <td className="px-4 py-2.5 text-right tabular-nums text-[#6e6e73] dark:text-[#98989d]">{Number(mode === "valuta" ? intr.tvaValuta || 0 : intr.tva || 0).toFixed(2)}{mode === "valuta" ? ` ${intr.valuta}` : ""}</td>
+                    <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">{Number(mode === "valuta" ? intr.totalValuta || 0 : intr.total || 0).toFixed(2)}{mode === "valuta" ? ` ${intr.valuta}` : ""}</td>
+                    {mode === "valuta" && <td className="px-4 py-2.5 text-right tabular-nums text-[#6e6e73] dark:text-[#98989d]">{Number(intr.total || 0).toFixed(2)} RON</td>}
+                    <td className="px-4 py-2.5">
+                      <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium ${
+                        intr.status === "validat" ? "bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300" :
+                        intr.status === "stornat" ? "bg-rose-500/10 text-rose-700 dark:bg-rose-500/18 dark:text-rose-300" :
+                        "bg-amber-500/12 text-amber-700 dark:bg-amber-500/18 dark:text-amber-300"
+                      }`}>{intr.status}</span>
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <ConfirmDeleteWrapper onConfirm={() => deleteMut.mutate({ id: intr.id })} title="Ștergi intrarea?">
+                        {(openModal) => (
+                          <button type="button" onClick={(e) => { e.stopPropagation(); openModal(); }} className="p-1.5 text-[#8e8e93] hover:text-rose-500 hover:bg-rose-500/10 rounded-full transition-colors cursor-pointer">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </ConfirmDeleteWrapper>
                     </td>
                   </tr>
-                )}
-              </Fragment>
-            ))}
-            {!isLoading && intrari.length === 0 && (
-              <tr><td colSpan={mode === "valuta" ? 12 : 10} className="px-4 py-8 text-center text-slate-400">Nicio intrare.</td></tr>
-            )}
-          </tbody>
-        </table>
+
+                  {/* Expandable Details Row */}
+                  {selectedIntrareId === intr.id && (
+                    <tr className="bg-[#fafafa] dark:bg-white/[0.02]">
+                      <td colSpan={mode === "valuta" ? 12 : 10} className="p-0">
+                        <div className="p-4 pl-6 border-l-4 border-[#0071e3]">
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="text-[12px] font-semibold text-[#6e6e73] dark:text-[#98989d]">
+                              Linii document (detalii recepție)
+                            </div>
+                            {isLoadingDetails && <Loader2 className="w-3.5 h-3.5 animate-spin text-[#8e8e93]" />}
+                          </div>
+
+                          <div className="apple-surface overflow-hidden">
+                            <table className="w-full text-[12.5px]">
+                              <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+                                <tr>
+                                  <th className="px-3 py-2.5 text-left font-medium text-[#6e6e73] dark:text-[#98989d]">Denumire articol</th>
+                                  <th className="px-3 py-2.5 text-left font-medium text-[#6e6e73] dark:text-[#98989d]">Cod</th>
+                                  <th className="px-3 py-2.5 text-left font-medium text-[#6e6e73] dark:text-[#98989d]">Tip / Cont</th>
+                                  <th className="px-3 py-2.5 text-center font-medium text-[#6e6e73] dark:text-[#98989d]">U/M</th>
+                                  <th className="px-3 py-2.5 text-right font-medium text-[#6e6e73] dark:text-[#98989d]">Cantitate</th>
+                                  <th className="px-3 py-2.5 text-right font-medium text-[#6e6e73] dark:text-[#98989d]">Preț unitar</th>
+                                  <th className="px-3 py-2.5 text-center font-medium text-[#6e6e73] dark:text-[#98989d]">TVA %</th>
+                                  <th className="px-3 py-2.5 text-right font-medium text-[#6e6e73] dark:text-[#98989d]">Total</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
+                                {intrareDetails?.lines && intrareDetails.lines.length > 0 ? (
+                                  intrareDetails.lines.map((line: any) => (
+                                    <tr key={line.id} className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035]">
+                                      <td className="px-3 py-2 font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">{line.denumire}</td>
+                                      <td className="px-3 py-2 tabular-nums text-[#6e6e73] dark:text-[#98989d]">{line.cod || "—"}</td>
+                                      <td className="px-3 py-2 text-[#6e6e73] dark:text-[#98989d]">{line.tip || "—"} {line.cont ? `/ ${line.cont}` : ""}</td>
+                                      <td className="px-3 py-2 text-center text-[#6e6e73] dark:text-[#98989d]">{line.um || "BUC"}</td>
+                                      <td className="px-3 py-2 text-right tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">{Number(line.cantitate || 0).toFixed(2)}</td>
+                                      <td className="px-3 py-2 text-right tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7]">{Number(line.pretUnitar || 0).toFixed(2)}</td>
+                                      <td className="px-3 py-2 text-center tabular-nums text-[#6e6e73] dark:text-[#98989d]">{line.tvaPercent}%</td>
+                                      <td className="px-3 py-2 text-right tabular-nums font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                                        {Number(line.total || (Number(line.cantitate || 0) * Number(line.pretUnitar || 0) * (1 + Number(line.tvaPercent || 0)/100))).toFixed(2)}
+                                      </td>
+                                    </tr>
+                                  ))
+                                ) : (
+                                  <tr>
+                                    <td colSpan={8} className="px-3 py-6 text-center text-[#6e6e73] dark:text-[#98989d] italic">
+                                      {!isLoadingDetails ? "Această intrare nu are nicio linie de produse înregistrată." : "Se încarcă liniile..."}
+                                    </td>
+                                  </tr>
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              ))}
+              {!isLoading && intrari.length === 0 && (
+                <tr><td colSpan={mode === "valuta" ? 12 : 10} className="px-4 py-10 text-center text-[#6e6e73] dark:text-[#98989d]">Nicio intrare.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
@@ -2449,37 +2549,46 @@ function ComenziTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
-        <button onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium">
-          <Plus className="w-4 h-4" /> Comandă nouă
+      <div className="apple-surface px-3 py-2.5 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setShowForm(!showForm)}
+          className="apple-btn-prominent inline-flex items-center gap-1.5 px-4 h-8 text-[12.5px] font-semibold cursor-pointer"
+        >
+          <Plus className="w-3.5 h-3.5" /> Comandă nouă
         </button>
-        <span className="ml-auto text-xs text-slate-500">{comenzi.length} comenzi</span>
+        <span className="ml-auto text-[12px] text-[#6e6e73] dark:text-[#98989d] tabular-nums pr-1">{comenzi.length} comenzi</span>
       </div>
 
       {showForm && (
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-blue-200 dark:border-blue-800 space-y-3">
+        <div className="apple-surface p-4 sm:p-5 space-y-3">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <select value={form.tipComanda} onChange={e => setForm({...form, tipComanda: e.target.value})}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white">
+              className="px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none cursor-pointer">
               <option value="Productie">Producție</option>
               <option value="Comanda">Comandă client</option>
             </select>
             <input type="date" value={form.data} onChange={e => setForm({...form, data: e.target.value})}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+              className="px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none tabular-nums" />
             <input placeholder="Client" value={form.denumireClient} onChange={e => setForm({...form, denumireClient: e.target.value})}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+              className="px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none" />
             <input type="date" placeholder="Data livrării" value={form.dataLivrarii} onChange={e => setForm({...form, dataLivrarii: e.target.value})}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white" />
+              className="px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none tabular-nums" />
           </div>
           <div className="flex gap-2">
-            <button onClick={() => createMut.mutate(form)}
+            <button
+              type="button"
+              onClick={() => createMut.mutate(form)}
               disabled={!form.data || createMut.isPending}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm disabled:opacity-50">
+              className="apple-btn-prominent px-4 h-9 text-[12.5px] font-semibold disabled:opacity-50 cursor-pointer"
+            >
               {createMut.isPending ? "Se creează..." : "Creează comandă"}
             </button>
-            <button onClick={() => setShowForm(false)}
-              className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-sm">
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="apple-btn-glass px-4 h-9 text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-medium cursor-pointer"
+            >
               Anulează
             </button>
           </div>
@@ -2487,76 +2596,81 @@ function ComenziTab() {
       )}
 
       {/* Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800">
-            <tr>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Nr.</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Tip</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Data</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Client</th>
-              <th className="text-right px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Valoare</th>
-              <th className="text-right px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Total</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Livrare</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Status</th>
-              <th className="px-4 py-2.5"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading && <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-400"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></td></tr>}
-            {comenzi.map((cmd: any) => (
-              <tr key={cmd.id} className="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                <td className="px-4 py-2 tabular-nums text-blue-600">{cmd.nrComanda}</td>
-                <td className="px-4 py-2 text-slate-500">{cmd.tipComanda}</td>
-                <td className="px-4 py-2 text-slate-500">{cmd.data}</td>
-                <td className="px-4 py-2 text-slate-900 dark:text-white">{cmd.denumireClient || "—"}</td>
-                <td className="px-4 py-2 text-right tabular-nums">{Number(cmd.valoare || 0).toFixed(2)}</td>
-                <td className="px-4 py-2 text-right tabular-nums font-semibold">{Number(cmd.total || 0).toFixed(2)}</td>
-                <td className="px-4 py-2 text-slate-500">{cmd.dataLivrarii || "—"}</td>
-                <td className="px-4 py-2">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    cmd.status === "facturat" ? "bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-300" :
-                    cmd.status === "productie" ? "bg-orange-100 text-orange-700 dark:bg-orange-950/50 dark:text-orange-300" :
-                    cmd.status === "livrat" ? "bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300" :
-                    "bg-yellow-100 text-yellow-700 dark:bg-yellow-950/50 dark:text-yellow-300"
-                  }`}>{cmd.status}</span>
-                </td>
-                <td className="px-4 py-2 text-right">
-                  {confirmDeleteId === cmd.id ? (
-                    <div className="inline-flex items-center gap-1.5">
-                      <button
-                        onClick={() => {
-                          deleteMut.mutate({ id: cmd.id });
-                          setConfirmDeleteId(null);
-                        }}
-                        className="h-7 px-2.5 bg-red-600 hover:bg-red-700 text-white rounded-full text-xs font-medium"
-                      >
-                        Șterge
-                      </button>
-                      <button
-                        onClick={() => setConfirmDeleteId(null)}
-                        className="h-7 px-2.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full text-xs font-medium"
-                      >
-                        Nu
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setConfirmDeleteId(cmd.id)}
-                      className="w-8 h-8 inline-flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
-                      title="Șterge comanda"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </td>
+      <div className="apple-surface overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+              <tr>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Nr.</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Tip</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Data</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Client</th>
+                <th className="text-right px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Valoare</th>
+                <th className="text-right px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Total</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Livrare</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Status</th>
+                <th className="px-4 py-3"></th>
               </tr>
-            ))}
-            {!isLoading && comenzi.length === 0 && (
-              <tr><td colSpan={9} className="px-4 py-8 text-center text-slate-400">Nicio comandă de producție.</td></tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06] text-[13px]">
+              {isLoading && <tr><td colSpan={9} className="px-4 py-8 text-center text-[#6e6e73]"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></td></tr>}
+              {comenzi.map((cmd: any) => (
+                <tr key={cmd.id} className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035]">
+                  <td className="px-4 py-2.5 tabular-nums font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">{cmd.nrComanda}</td>
+                  <td className="px-4 py-2.5 text-[#6e6e73] dark:text-[#98989d]">{cmd.tipComanda}</td>
+                  <td className="px-4 py-2.5 text-[#6e6e73] dark:text-[#98989d] tabular-nums">{cmd.data}</td>
+                  <td className="px-4 py-2.5 text-[#1d1d1f] dark:text-[#f5f5f7] font-medium">{cmd.denumireClient || "—"}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-[#6e6e73] dark:text-[#98989d]">{Number(cmd.valoare || 0).toFixed(2)}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">{Number(cmd.total || 0).toFixed(2)}</td>
+                  <td className="px-4 py-2.5 text-[#6e6e73] dark:text-[#98989d] tabular-nums">{cmd.dataLivrarii || "—"}</td>
+                  <td className="px-4 py-2.5">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium ${
+                      cmd.status === "facturat" ? "bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300" :
+                      cmd.status === "productie" ? "bg-amber-500/12 text-amber-700 dark:bg-amber-500/18 dark:text-amber-300" :
+                      cmd.status === "livrat" ? "bg-[#0071e3]/10 text-[#0071e3] dark:bg-[#0a84ff]/18 dark:text-[#64d2ff]" :
+                      "bg-[#f2f2f7] text-[#6e6e73] dark:bg-[#2c2c2e] dark:text-[#98989d]"
+                    }`}>{cmd.status}</span>
+                  </td>
+                  <td className="px-4 py-2.5 text-right">
+                    {confirmDeleteId === cmd.id ? (
+                      <div className="inline-flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            deleteMut.mutate({ id: cmd.id });
+                            setConfirmDeleteId(null);
+                          }}
+                          className="h-7 px-2.5 bg-red-600 hover:bg-red-700 text-white rounded-full text-xs font-medium cursor-pointer"
+                        >
+                          Șterge
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteId(null)}
+                          className="apple-btn-glass h-7 px-2.5 text-[#1d1d1f] dark:text-[#f5f5f7] text-xs font-medium cursor-pointer"
+                        >
+                          Nu
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteId(cmd.id)}
+                        className="w-8 h-8 inline-flex items-center justify-center text-[#8e8e93] hover:text-rose-600 hover:bg-rose-500/10 rounded-full transition-colors cursor-pointer"
+                        title="Șterge comanda"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {!isLoading && comenzi.length === 0 && (
+                <tr><td colSpan={9} className="px-4 py-10 text-center text-[#6e6e73] dark:text-[#98989d]">Nicio comandă de producție.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
@@ -2604,30 +2718,30 @@ function ReteteTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+      <div className="apple-surface px-3 py-2.5 flex items-center gap-2">
         <button
           type="button"
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-1.5 h-9 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-medium transition-colors"
+          className="apple-btn-prominent inline-flex items-center gap-1.5 h-8 px-4 text-[12.5px] font-semibold cursor-pointer"
         >
-          <Plus className="w-4 h-4" /> Rețetă nouă
+          <Plus className="w-3.5 h-3.5" /> Rețetă nouă
         </button>
-        <span className="ml-auto text-xs text-slate-500">{retete.length} rețete</span>
+        <span className="ml-auto text-[12px] text-[#6e6e73] dark:text-[#98989d] tabular-nums pr-1">{retete.length} rețete</span>
       </div>
 
       {showForm && (
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-blue-200 dark:border-blue-800 space-y-3">
+        <div className="apple-surface p-4 sm:p-5 space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <input
               placeholder="Denumire rețetă *"
               value={recipeForm.denumire}
               onChange={(e) => setRecipeForm({ ...recipeForm, denumire: e.target.value })}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white md:col-span-2"
+              className="px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none md:col-span-2"
             />
             <select
               value={recipeForm.articolProdusId}
               onChange={(e) => setRecipeForm({ ...recipeForm, articolProdusId: e.target.value })}
-              className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+              className="px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none cursor-pointer"
             >
               <option value="">— Produs finit asociat —</option>
               {(articles as any[]).map((a: any) => (
@@ -2643,13 +2757,13 @@ function ReteteTab() {
                 placeholder="Cant."
                 value={recipeForm.cantitateRezultata}
                 onChange={(e) => setRecipeForm({ ...recipeForm, cantitateRezultata: e.target.value })}
-                className="w-24 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm tabular-nums bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                className="w-24 px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] tabular-nums bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
               />
               <input
                 placeholder="U/M"
                 value={recipeForm.um}
                 onChange={(e) => setRecipeForm({ ...recipeForm, um: e.target.value })}
-                className="flex-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                className="flex-1 min-w-0 px-3 h-9 border border-black/[0.06] dark:border-white/[0.08] rounded-xl text-[13px] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
               />
             </div>
           </div>
@@ -2658,14 +2772,14 @@ function ReteteTab() {
               type="button"
               onClick={handleCreateRecipe}
               disabled={!recipeForm.denumire.trim() || createRetetaMut?.isPending}
-              className="h-9 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-full text-sm font-medium transition-colors"
+              className="apple-btn-prominent h-9 px-4 disabled:opacity-50 text-[12.5px] font-semibold cursor-pointer"
             >
               {createRetetaMut?.isPending ? "Se salvează..." : "Salvează rețeta"}
             </button>
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="h-9 px-4 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full text-sm font-medium transition-colors"
+              className="apple-btn-glass h-9 px-4 text-[#1d1d1f] dark:text-[#f5f5f7] text-[12.5px] font-medium cursor-pointer"
             >
               Anulează
             </button>
@@ -2673,24 +2787,24 @@ function ReteteTab() {
         </div>
       )}
 
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6">
+      <div className="apple-surface p-6">
         {isLoading ? (
-          <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-slate-400" /></div>
+          <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-[#6e6e73]" /></div>
         ) : retete.length === 0 ? (
           <div className="text-center py-12">
-            <Layers className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">Nicio rețetă definită</h3>
-            <p className="text-sm text-slate-400 mt-1">
+            <Layers className="w-10 h-10 text-[#8e8e93] opacity-40 mx-auto mb-3" />
+            <h3 className="text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">Nicio rețetă definită</h3>
+            <p className="text-[13px] text-[#6e6e73] dark:text-[#98989d] mt-1">
               O rețetă (BOM) definește ce materii prime intră într-un produs finit.<br />
               Ex: Fereastră 120x140 = 4.8m profil PVC + 1.68mp sticlă + garnitură + feronerie
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {retete.map((r: any) => (
-              <div key={r.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4">
-                <h4 className="font-semibold text-slate-900 dark:text-white">{r.denumire}</h4>
-                <p className="text-xs text-slate-500 mt-1">Produs ID: {r.articolProdusId}</p>
+              <div key={r.id} className="bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.05] dark:border-white/[0.07] rounded-2xl p-4">
+                <h4 className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">{r.denumire}</h4>
+                <p className="text-xs text-[#6e6e73] dark:text-[#98989d] mt-1 tabular-nums">Produs ID: {r.articolProdusId}</p>
               </div>
             ))}
           </div>
@@ -2706,44 +2820,46 @@ function ArticoleContabileTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
-        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+      <div className="apple-surface px-4 py-3 flex items-center gap-2">
+        <span className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7]">
           Articole contabile generate automat din operații
         </span>
-        <span className="ml-auto text-xs text-slate-500">{articole.length} înregistrări</span>
+        <span className="ml-auto text-[12px] text-[#6e6e73] dark:text-[#98989d] tabular-nums">{articole.length} înregistrări</span>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 dark:bg-slate-800/50">
-            <tr>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Data</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Nr.Doc</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Cont Debit</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Cont Credit</th>
-              <th className="text-right px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Suma</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Explicație</th>
-              <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase">Tip</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading && <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></td></tr>}
-            {articole.map((a: any) => (
-              <tr key={a.id} className="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                <td className="px-4 py-2 text-slate-500">{a.data}</td>
-                <td className="px-4 py-2 text-slate-900 dark:text-white">{a.nrDocument || "—"}</td>
-                <td className="px-4 py-2 tabular-nums text-blue-600">{a.contDebit}</td>
-                <td className="px-4 py-2 tabular-nums text-green-600">{a.contCredit}</td>
-                <td className="px-4 py-2 text-right tabular-nums font-semibold">{Number(a.suma).toFixed(2)}</td>
-                <td className="px-4 py-2 text-slate-500 text-xs max-w-[200px] truncate">{a.explicatie || "—"}</td>
-                <td className="px-4 py-2 text-slate-500">{a.tip || "—"}</td>
+      <div className="apple-surface overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+              <tr>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Data</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Nr. doc</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Cont debit</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Cont credit</th>
+                <th className="text-right px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Suma</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Explicație</th>
+                <th className="text-left px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">Tip</th>
               </tr>
-            ))}
-            {!isLoading && articole.length === 0 && (
-              <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400">Niciun articol contabil. Se generează automat la validarea intrărilor/ieșirilor.</td></tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06] text-[13px]">
+              {isLoading && <tr><td colSpan={7} className="px-4 py-8 text-center text-[#6e6e73]"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></td></tr>}
+              {articole.map((a: any) => (
+                <tr key={a.id} className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035]">
+                  <td className="px-4 py-2.5 text-[#6e6e73] dark:text-[#98989d] tabular-nums">{a.data}</td>
+                  <td className="px-4 py-2.5 text-[#1d1d1f] dark:text-[#f5f5f7] font-medium">{a.nrDocument || "—"}</td>
+                  <td className="px-4 py-2.5 tabular-nums font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">{a.contDebit}</td>
+                  <td className="px-4 py-2.5 tabular-nums font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">{a.contCredit}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">{Number(a.suma).toFixed(2)}</td>
+                  <td className="px-4 py-2.5 text-[#6e6e73] dark:text-[#98989d] text-[12.5px] max-w-[200px] truncate">{a.explicatie || "—"}</td>
+                  <td className="px-4 py-2.5 text-[#6e6e73] dark:text-[#98989d]">{a.tip || "—"}</td>
+                </tr>
+              ))}
+              {!isLoading && articole.length === 0 && (
+                <tr><td colSpan={7} className="px-4 py-10 text-center text-[#6e6e73] dark:text-[#98989d]">Niciun articol contabil. Se generează automat la validarea intrărilor/ieșirilor.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
@@ -2752,15 +2868,15 @@ function ArticoleContabileTab() {
 // ── SITUAȚIE STOCURI TAB ──────────────────────────────────────────────────────
 function SituatieStocuriTab() {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6">
-      <div className="text-center py-12">
-        <BarChart3 className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-        <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">Situație Stocuri</h3>
-        <p className="text-sm text-slate-400 mt-1">
+    <div className="apple-surface p-8">
+      <div className="text-center py-10">
+        <BarChart3 className="w-10 h-10 text-[#8e8e93] opacity-40 mx-auto mb-3" />
+        <h3 className="text-[16px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">Situație stocuri</h3>
+        <p className="text-[13px] text-[#6e6e73] dark:text-[#98989d] mt-1">
           Stocul curent per gestiune per articol.<br />
           Calculat din: Intrări − Ieșiri − Consumuri producție.
         </p>
-        <p className="text-xs text-blue-500 mt-4">Se va popula automat după adăugarea intrărilor și comenzilor.</p>
+        <p className="text-[12px] text-[#0071e3] dark:text-[#64d2ff] mt-4">Se va popula automat după adăugarea intrărilor și comenzilor.</p>
       </div>
     </div>
   );
@@ -2769,11 +2885,11 @@ function SituatieStocuriTab() {
 // ── FIȘE ARTICOLE TAB ─────────────────────────────────────────────────────────
 function FiseArticoleTab() {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6">
-      <div className="text-center py-12">
-        <FileSpreadsheet className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-        <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">Fișe Articole</h3>
-        <p className="text-sm text-slate-400 mt-1">
+    <div className="apple-surface p-8">
+      <div className="text-center py-10">
+        <FileSpreadsheet className="w-10 h-10 text-[#8e8e93] opacity-40 mx-auto mb-3" />
+        <h3 className="text-[16px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">Fișe articole</h3>
+        <p className="text-[13px] text-[#6e6e73] dark:text-[#98989d] mt-1">
           Fișa de magazie per articol — toate mișcările: intrări, ieșiri, consumuri.
         </p>
       </div>
@@ -2784,11 +2900,11 @@ function FiseArticoleTab() {
 // ── REGISTRU INVENTAR TAB ─────────────────────────────────────────────────────
 function RegistruInventarTab() {
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6">
-      <div className="text-center py-12">
-        <ClipboardList className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-        <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300">Registru Inventar</h3>
-        <p className="text-sm text-slate-400 mt-1">
+    <div className="apple-surface p-8">
+      <div className="text-center py-10">
+        <ClipboardList className="w-10 h-10 text-[#8e8e93] opacity-40 mx-auto mb-3" />
+        <h3 className="text-[16px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">Registru inventar</h3>
+        <p className="text-[13px] text-[#6e6e73] dark:text-[#98989d] mt-1">
           Registru inventar la o dată specificată — lista completă a stocurilor.
         </p>
       </div>

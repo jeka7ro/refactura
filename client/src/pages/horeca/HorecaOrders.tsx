@@ -27,33 +27,33 @@ import { toast } from "sonner";
 const STATUS_OPTS = {
   draft: {
     label: "Schiță",
-    bg: "bg-slate-100 dark:bg-slate-800",
-    text: "text-slate-600 dark:text-slate-400",
+    bg: "bg-[#f2f2f7] dark:bg-[#2c2c2e]",
+    text: "text-[#6e6e73] dark:text-[#98989d]",
   },
   sent: {
     label: "La bucătărie",
-    bg: "bg-blue-100 dark:bg-blue-500/20",
-    text: "text-blue-700 dark:text-blue-400",
+    bg: "bg-[#0071e3]/10 dark:bg-[#0a84ff]/18",
+    text: "text-[#0071e3] dark:text-[#64d2ff]",
   },
   preparing: {
     label: "Se prepară",
-    bg: "bg-amber-100 dark:bg-amber-500/20",
-    text: "text-amber-700 dark:text-amber-400",
+    bg: "bg-amber-500/12 dark:bg-amber-500/18",
+    text: "text-amber-700 dark:text-amber-300",
   },
   ready: {
     label: "Gata (Ready)",
-    bg: "bg-emerald-100 dark:bg-emerald-500/20",
-    text: "text-emerald-700 dark:text-emerald-400",
+    bg: "bg-emerald-500/10 dark:bg-emerald-500/18",
+    text: "text-emerald-700 dark:text-emerald-300",
   },
   paid: {
     label: "Plătită",
-    bg: "bg-slate-200 dark:bg-slate-700",
-    text: "text-slate-900 dark:text-slate-300",
+    bg: "bg-[#f2f2f7] dark:bg-[#2c2c2e]",
+    text: "text-[#1d1d1f] dark:text-[#ebebf5]",
   },
   cancelled: {
     label: "Anulată",
-    bg: "bg-red-100 dark:bg-red-500/20",
-    text: "text-red-700 dark:text-red-400",
+    bg: "bg-[#ff3b30]/10 dark:bg-[#ff453a]/18",
+    text: "text-[#d70015] dark:text-[#ff6961]",
   },
 };
 
@@ -168,31 +168,32 @@ export default function HorecaOrders() {
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-w-full overflow-x-hidden">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
-            <Receipt className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              Comenzi HORECA{" "}
-              {isFetching && (
-                <RefreshCw className="w-4 h-4 animate-spin text-slate-400" />
-              )}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-0.5">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
+              Comenzi HORECA
             </h1>
-            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">
-              {orders.length} comenzi · Total{" "}
-              {formatCurrency(totalAmount, "RON")}
-              {usesBridge && (
-                <span className="text-primary font-semibold">
-                  {" "}
-                  (Smart Kiosk API — READ-ONLY)
-                </span>
-              )}
-            </p>
+            {isFetching && (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#8e8e93]" />
+            )}
           </div>
+          <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5 tabular-nums">
+            <strong className="text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold">
+              {orders.length}
+            </strong>{" "}
+            comenzi · Total{" "}
+            <strong className="text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold">
+              {formatCurrency(totalAmount, "RON")}
+            </strong>
+            {usesBridge && (
+              <span className="text-primary font-semibold ml-1.5">
+                (Smart Kiosk API — Read-only)
+              </span>
+            )}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {locations.length > 1 && (
@@ -201,9 +202,9 @@ export default function HorecaOrders() {
                 value={locationId || ""}
                 onChange={e => {
                   const val = e.target.value;
-                  setSelectedLocationId(val.startsWith('bridge-') ? val as any : Number(val));
+                  setSelectedLocationId(val.startsWith("bridge-") ? (val as any) : Number(val));
                 }}
-                className="appearance-none pr-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-3 py-2 !rounded-full text-sm font-medium shadow-sm focus:outline-none focus:border-blue-500"
+                className="apple-pill-control appearance-none pl-3.5 pr-8 h-[34px] text-[12.5px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] focus:outline-none cursor-pointer"
               >
                 {locations.map(l => (
                   <option key={l.id} value={l.id}>
@@ -211,121 +212,117 @@ export default function HorecaOrders() {
                   </option>
                 ))}
               </select>
-              <ChevronDown className="w-4 h-4 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           )}
           <input
             type="date"
             value={date}
             onChange={e => setDate(e.target.value)}
-            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white px-3 py-2 rounded-full text-sm font-medium shadow-sm focus:outline-none focus:border-blue-500"
+            className="apple-pill-control px-3 h-[34px] text-[12.5px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums focus:outline-none cursor-pointer"
           />
 
           <Link
             href="/horeca/comenzi/nou"
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-sm font-bold transition-colors shadow-sm"
+            className="apple-btn-prominent inline-flex items-center gap-1.5 text-white px-4 h-[34px] text-[12.5px] font-semibold cursor-pointer"
           >
-            <Plus className="w-4 h-4" /> Comandă Nouă
+            <Plus className="w-4 h-4" /> Comandă nouă
           </Link>
         </div>
       </div>
 
-      {/* Filters & Search */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        {/* Status filters */}
-        <div className="apple-segmented overflow-x-auto no-scrollbar w-fit">
-          <button
-            type="button"
-            data-active={statusFilter === "all"}
-            onClick={() => setStatusFilter("all")}
-            className="apple-segmented-item px-4 text-xs font-semibold tabular-nums"
-          >
-            Toate ({orders.length})
-          </button>
-          {Object.entries(STATUS_OPTS).map(([k, v]) => {
-            const count = orders.filter((o: any) => o.status === k).length;
-            if (count === 0 && statusFilter !== k) return null;
-            return (
-              <button
-                key={k}
-                type="button"
-                data-active={statusFilter === k}
-                onClick={() => setStatusFilter(k)}
-                className="apple-segmented-item px-4 text-xs font-semibold tabular-nums"
-              >
-                {v.label} ({count})
-              </button>
-            );
-          })}
-        </div>
+      {/* Filters & Search inside apple-surface */}
+      <div className="apple-surface px-3 py-2.5">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          {/* Status filters */}
+          <div className="apple-segmented overflow-x-auto no-scrollbar max-w-full shrink-0">
+            <button
+              type="button"
+              data-active={statusFilter === "all"}
+              onClick={() => setStatusFilter("all")}
+              className="apple-segmented-item px-3 text-xs tabular-nums shrink-0"
+            >
+              Toate ({orders.length})
+            </button>
+            {Object.entries(STATUS_OPTS).map(([k, v]) => {
+              const count = orders.filter((o: any) => o.status === k).length;
+              if (count === 0 && statusFilter !== k) return null;
+              return (
+                <button
+                  key={k}
+                  type="button"
+                  data-active={statusFilter === k}
+                  onClick={() => setStatusFilter(k)}
+                  className="apple-segmented-item px-3 text-xs tabular-nums shrink-0"
+                >
+                  {v.label} ({count})
+                </button>
+              );
+            })}
+          </div>
 
-        {/* Search */}
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 z-10" />
-          <input
-            className="w-full bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-600 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 shadow-sm transition-colors rounded-full"
-            style={{
-              paddingLeft: 36,
-              paddingRight: search ? 90 : 16,
-              paddingTop: 10,
-              paddingBottom: 10,
-              fontSize: 14,
-            }}
-            placeholder="Caută comandă, masă, ospătar..."
-            value={search}
-            onChange={e => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-          />
-          {search && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 bg-blue-100 dark:bg-blue-600 text-blue-800 dark:text-white rounded-full px-2.5 py-0.5 text-xs font-bold">
-              {filtered.length} rezultate
-            </div>
-          )}
+          {/* Search */}
+          <div className="relative flex-1 min-w-[160px]">
+            <Search className="w-3.5 h-3.5 text-[#8e8e93] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              style={{
+                paddingLeft: 34,
+                paddingRight: search ? 90 : 16,
+              }}
+              className="apple-pill-control rounded-full w-full h-[34px] text-[13px] text-[#1d1d1f] dark:text-[#f5f5f7] placeholder:text-[#8e8e93] outline-none focus:bg-white dark:focus:bg-[#2c2c2e]"
+              placeholder="Caută comandă, masă, ospătar..."
+              value={search}
+              onChange={e => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+            />
+            {search && (
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 bg-black/[0.07] dark:bg-white/[0.14] text-[#1d1d1f] dark:text-white rounded-full px-2 py-0.5 text-[10.5px] font-semibold tabular-nums">
+                {filtered.length} rezultate
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Tabel */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+      <div className="apple-surface overflow-hidden">
         {isLoading ? (
           <div className="flex justify-center items-center py-16">
-            <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+            <Loader2 className="w-7 h-7 text-primary animate-spin" />
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
-                <tr className="text-slate-600 dark:text-slate-400 text-left">
-                  <th
-                    style={{ width: 50, textAlign: "center" }}
-                    className="px-3 py-3 font-semibold text-xs uppercase tracking-wider"
-                  >
+              <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+                <tr className="text-[#6e6e73] dark:text-[#98989d] text-left text-[12px] font-medium">
+                  <th className="w-12 text-center px-3 py-3 font-medium">
                     Nr.
                   </th>
-                  <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wider">
+                  <th className="px-4 py-3 font-medium">
                     Comandă
                   </th>
-                  <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wider">
+                  <th className="px-4 py-3 font-medium">
                     Tip
                   </th>
-                  <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wider">
+                  <th className="px-4 py-3 font-medium">
                     Timp
                   </th>
-                  <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wider">
+                  <th className="px-4 py-3 font-medium">
                     Total
                   </th>
-                  <th className="px-4 py-3 font-semibold text-xs uppercase tracking-wider">
+                  <th className="px-4 py-3 font-medium">
                     Status
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06] tabular-nums">
                 {paginated.length === 0 ? (
                   <tr>
                     <td
                       colSpan={6}
-                      className="text-center text-slate-500 py-12"
+                      className="text-center text-[#6e6e73] dark:text-[#98989d] text-[13px] py-12"
                     >
                       {search ? "Nicio comandă găsită" : "Nicio comandă azi"}
                     </td>
@@ -339,32 +336,29 @@ export default function HorecaOrders() {
                       order.status as keyof typeof STATUS_OPTS
                     ] || {
                       label: order.status,
-                      bg: "bg-slate-800",
-                      text: "text-white",
+                      bg: "bg-[#f2f2f7] dark:bg-[#2c2c2e]",
+                      text: "text-[#1d1d1f] dark:text-[#f5f5f7]",
                     };
 
                     return (
                       <tr
                         key={order.id}
-                        className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                        className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors"
                       >
-                        <td
-                          style={{ textAlign: "center" }}
-                          className="px-3 py-3 text-slate-400 dark:text-slate-500 font-medium"
-                        >
+                        <td className="text-center px-3 py-3 text-[#8e8e93] text-xs font-medium">
                           {(safePage - 1) * rowsPerPage + idx + 1}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <span className="text-slate-900 dark:text-white font-bold text-base">
+                            <span className="text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold text-[13.5px]">
                               #{order.orderNumber}
                             </span>
                             {order.staffName && (
-                              <span className="text-slate-500 text-xs font-medium flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 w-fit px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm">
+                              <span className="text-[#6e6e73] dark:text-[#98989d] text-xs font-medium flex items-center gap-1.5 bg-[#f2f2f7] dark:bg-[#2c2c2e] w-fit px-2 py-0.5 rounded-full border border-black/[0.06] dark:border-white/[0.08]">
                                 {order._brand ? (
-                                  <img src={`/brands/${order._brand}-logo.png`} onError={(e) => { e.currentTarget.src = "/logo.png"; }} alt="Brand Logo" className="w-4 h-4 object-contain rounded-full bg-white p-[1px] shadow-sm" />
+                                  <img src={`/brands/${order._brand}-logo.png`} onError={e => { e.currentTarget.src = "/logo.png"; }} alt="Brand Logo" className="w-4 h-4 object-contain rounded-full bg-white p-[1px]" />
                                 ) : (
-                                  <div className="w-4 h-4 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-[8px] font-bold text-blue-700 dark:text-blue-300">
+                                  <div className="w-4 h-4 rounded-full bg-[#0071e3]/12 dark:bg-[#0a84ff]/20 flex items-center justify-center text-[8px] font-bold text-[#0071e3] dark:text-[#64d2ff]">
                                     {order.staffName.charAt(0).toUpperCase()}
                                   </div>
                                 )}
@@ -375,17 +369,17 @@ export default function HorecaOrders() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex flex-col gap-0.5">
-                            <span className="text-slate-700 dark:text-slate-300 font-bold flex items-center gap-1.5">
+                            <span className="text-[#1d1d1f] dark:text-[#ebebf5] font-medium text-[13px] flex items-center gap-1.5">
                               {typeOpt.icon} {typeOpt.label}
                             </span>
                             {order.type === "dine_in" && (
-                              <span className="text-slate-500 text-xs font-semibold">
+                              <span className="text-[#6e6e73] dark:text-[#98989d] text-xs">
                                 Masă: {order.tableNumber || "?"}
                               </span>
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-slate-600 dark:text-slate-400 font-medium whitespace-nowrap">
+                        <td className="px-4 py-3 text-[#6e6e73] dark:text-[#98989d] font-medium text-[13px] whitespace-nowrap">
                           {order.createdAt
                             ? new Date(order.createdAt).toLocaleTimeString(
                                 "ro-RO",
@@ -393,11 +387,11 @@ export default function HorecaOrders() {
                               )
                             : "—"}
                         </td>
-                        <td className="px-4 py-3 font-black text-slate-900 dark:text-white text-base">
+                        <td className="px-4 py-3 font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] text-[13.5px]">
                           {formatCurrency(Number(order.totalAmount), "RON")}
                         </td>
                         <td className="px-4 py-3">
-                          <div className="relative inline-block w-full min-w-[120px]">
+                          <div className="relative inline-block w-full min-w-[125px] max-w-[160px]">
                             <select
                               value={order.status || "draft"}
                               onChange={e =>
@@ -406,7 +400,7 @@ export default function HorecaOrders() {
                                   status: e.target.value as any,
                                 })
                               }
-                              className={`appearance-none border-none !rounded-full pl-3 pr-8 py-1.5 w-full text-xs font-bold focus:ring-2 focus:ring-blue-500 shadow-sm cursor-pointer ${stOpt.bg} ${stOpt.text}`}
+                              className={`appearance-none border-none !rounded-full pl-3 pr-7 py-1 w-full text-[11.5px] font-semibold focus:ring-2 focus:ring-primary/30 cursor-pointer ${stOpt.bg} ${stOpt.text}`}
                             >
                               {Object.entries(STATUS_OPTS).map(([k, v]) => (
                                 <option key={k} value={k}>
@@ -414,7 +408,7 @@ export default function HorecaOrders() {
                                 </option>
                               ))}
                             </select>
-                            <ChevronDown className={`w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none ${stOpt.text} opacity-70`} />
+                            <ChevronDown className={`w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none ${stOpt.text} opacity-70`} />
                           </div>
                         </td>
                       </tr>
@@ -428,9 +422,9 @@ export default function HorecaOrders() {
 
         {/* Footer paginare */}
         {!isLoading && (
-          <div className="px-5 py-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/80 dark:bg-slate-900/80 rounded-b-xl">
+          <div className="px-4 sm:px-5 py-3 border-t border-black/[0.05] dark:border-white/[0.07] flex items-center justify-between flex-wrap gap-2 bg-[#fafafa] dark:bg-white/[0.02] text-xs text-[#6e6e73] dark:text-[#98989d] tabular-nums">
             <div className="flex items-center gap-4">
-              <span className="text-slate-500 dark:text-slate-400 text-sm font-medium flex items-center gap-2 whitespace-nowrap">
+              <span className="flex items-center gap-1.5 whitespace-nowrap">
                 Afișează
                 <div className="relative inline-block">
                   <select
@@ -439,7 +433,7 @@ export default function HorecaOrders() {
                       setRowsPerPage(Number(e.target.value));
                       setPage(1);
                     }}
-                    className="appearance-none pr-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 !rounded-full pl-3 py-1 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-blue-500 shadow-sm"
+                    className="apple-pill-control appearance-none pl-3 pr-7 h-7 text-xs text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
                   >
                     <option value={10}>10</option>
                     <option value={15}>15</option>
@@ -447,62 +441,33 @@ export default function HorecaOrders() {
                     <option value={50}>50</option>
                     <option value={9999}>Toți</option>
                   </select>
-                  <ChevronDown className="w-3 h-3 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <ChevronDown className="w-3 h-3 text-[#6e6e73] dark:text-[#98989d] absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </span>
-              <span className="text-slate-500 dark:text-slate-400 text-sm font-medium hidden sm:inline-block whitespace-nowrap">
+              <span className="hidden sm:inline-block whitespace-nowrap">
                 Total înregistrări:{" "}
-                <strong className="text-slate-900 dark:text-white">
+                <strong className="text-[#1d1d1f] dark:text-[#f5f5f7]">
                   {filtered.length}
                 </strong>
               </span>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-slate-500 dark:text-slate-400 text-sm font-medium whitespace-nowrap">
+            <div className="flex items-center gap-2">
+              <span className="whitespace-nowrap">
                 Pagina {safePage} din {totalPages}
               </span>
               <button
-                className="flex items-center justify-center transition-all"
+                type="button"
+                className="apple-btn-glass w-7 h-7 flex items-center justify-center text-[#1d1d1f] dark:text-[#f5f5f7] disabled:opacity-40 cursor-pointer"
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={safePage === 1}
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 9999,
-                  background:
-                    safePage === 1 ? "transparent" : "var(--background)",
-                  color: "var(--foreground)",
-                  border: safePage === 1 ? "none" : "1px solid var(--border)",
-                  cursor: safePage === 1 ? "not-allowed" : "pointer",
-                  opacity: safePage === 1 ? 0.4 : 1,
-                }}
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <button
-                className="flex items-center justify-center transition-all"
+                type="button"
+                className="apple-btn-glass w-7 h-7 flex items-center justify-center text-[#1d1d1f] dark:text-[#f5f5f7] disabled:opacity-40 cursor-pointer"
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={safePage === totalPages || totalPages === 0}
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 9999,
-                  background:
-                    safePage === totalPages || totalPages === 0
-                      ? "transparent"
-                      : "var(--background)",
-                  color: "var(--foreground)",
-                  border:
-                    safePage === totalPages || totalPages === 0
-                      ? "none"
-                      : "1px solid var(--border)",
-                  cursor:
-                    safePage === totalPages || totalPages === 0
-                      ? "not-allowed"
-                      : "pointer",
-                  opacity:
-                    safePage === totalPages || totalPages === 0 ? 0.4 : 1,
-                }}
               >
                 <ChevronRight className="w-4 h-4" />
               </button>

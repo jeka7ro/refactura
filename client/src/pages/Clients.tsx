@@ -19,10 +19,13 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle2,
-  Filter,
   Globe,
   Tag,
   FileSignature,
+  Users,
+  Package,
+  MapPin,
+  X,
 } from "lucide-react";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { toast } from "sonner";
@@ -270,16 +273,16 @@ export default function Clients() {
   const columns: DataTableColumn<any>[] = [
     {
       key: "type",
-      label: "TIP",
+      label: "Tip",
       sortable: true,
       render: (_: any, row: any) => (
         <div className="whitespace-nowrap">
           {row.isSupplier === 1 ? (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[10px] font-bold uppercase tracking-wider">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-amber-500/12 text-amber-700 dark:bg-amber-500/18 dark:text-amber-300 text-[11px] font-medium leading-none">
               Furnizor
             </span>
           ) : (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-[10px] font-bold uppercase tracking-wider">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300 text-[11px] font-medium leading-none">
               Client
             </span>
           )}
@@ -288,16 +291,16 @@ export default function Clients() {
     },
     {
       key: "regime",
-      label: "REGIM",
+      label: "Regim",
       sortable: true,
       render: (val: string) => (
         <div className="whitespace-nowrap">
           {val === "EXTERN" ? (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-[10px] font-bold uppercase tracking-wider">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#0071e3]/10 text-[#0071e3] dark:bg-[#0a84ff]/18 dark:text-[#64d2ff] text-[11px] font-medium leading-none">
               Extern
             </span>
           ) : (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 text-[10px] font-semibold uppercase tracking-wider">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#6e6e73] dark:text-[#98989d] text-[11px] font-medium leading-none">
               Intern
             </span>
           )}
@@ -306,12 +309,12 @@ export default function Clients() {
     },
     {
       key: "name",
-      label: "NUME PARTENER",
+      label: "Nume partener",
       sortable: true,
       render: (val: string, row: any) => (
         <Link
           href={`/client/${row.id}`}
-          className="font-semibold text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap"
+          className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] hover:underline whitespace-nowrap"
         >
           {val}
         </Link>
@@ -323,35 +326,39 @@ export default function Clients() {
       sortable: true,
       render: (val: string) =>
         val ? (
-          <span className="tabular-nums text-slate-700 dark:text-slate-300 font-medium">
+          <span className="tabular-nums text-[13px] text-[#1d1d1f] dark:text-[#ebebf5] font-medium">
             {val}
           </span>
         ) : (
-          <span className="text-slate-400 text-xs">-</span>
+          <span className="text-[#8e8e93] text-xs">—</span>
         ),
     },
     {
       key: "sagaCode",
-      label: "COD SAGA",
+      label: "Cod SAGA",
       sortable: true,
       render: (val: string) =>
         val ? (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[10px] tabular-nums font-bold">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#ebebf5] text-[11px] tabular-nums font-medium leading-none">
             {val}
           </span>
         ) : (
-          <span className="text-slate-400 text-xs">-</span>
+          <span className="text-[#8e8e93] text-xs">—</span>
         ),
     },
     {
       key: "city",
-      label: "ORAȘ",
+      label: "Oraș",
       sortable: true,
-      render: (val: string) => val || "-",
+      render: (val: string) => (
+        <span className="text-[13px] text-[#6e6e73] dark:text-[#98989d]">
+          {val || "—"}
+        </span>
+      ),
     },
     {
       key: "currency",
-      label: "ȚARĂ / MONEDĂ",
+      label: "Țară & Monedă",
       sortable: true,
       render: (_: any, row: any) => {
         const countryCode = (row.country || "RO").trim().toUpperCase();
@@ -362,7 +369,7 @@ export default function Clients() {
 
         return (
           <div className="flex items-center gap-2 whitespace-nowrap">
-            <div className="w-5 h-5 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 shadow-xs shrink-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800">
+            <div className="w-5 h-5 rounded-full overflow-hidden border border-black/[0.08] dark:border-white/[0.12] shrink-0 flex items-center justify-center bg-[#f2f2f7] dark:bg-[#2c2c2e]">
               <img
                 src={`https://flagcdn.com/w40/${flagCode}.png`}
                 alt={countryCode}
@@ -373,13 +380,7 @@ export default function Clients() {
                 }}
               />
             </div>
-            <span
-              className={`inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full text-[10px] font-bold tabular-nums border ${
-                isEur
-                  ? "bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700"
-              }`}
-            >
+            <span className="inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full text-[11px] font-semibold tabular-nums bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#ebebf5] leading-none">
               {symbol}
             </span>
           </div>
@@ -389,7 +390,7 @@ export default function Clients() {
   ];
 
   return (
-    <div className="p-3 sm:p-5 max-w-full space-y-3">
+    <div className="p-3 sm:p-5 max-w-full space-y-4 overflow-x-hidden">
       <ConfirmModal
         isOpen={deleteTarget !== null}
         title="Ștergere Partener"
@@ -404,36 +405,44 @@ export default function Clients() {
       {/* Header + KPI — ascunse când formularul e deschis */}
       {!showForm && (
         <>
-          <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center justify-between gap-3 flex-wrap px-0.5">
             <div className="flex items-center gap-3 flex-wrap">
               <div>
-                <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
-                  Parteneri (Clienți & Furnizori)
+                <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
+                  Parteneri
                 </h1>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Total: <strong>{counts.total}</strong> parteneri ({counts.clientsCount} clienți, {counts.suppliers} furnizori)
+                <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5 tabular-nums">
+                  Clienți și furnizori ·{" "}
+                  <strong className="text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold">
+                    {counts.total}
+                  </strong>{" "}
+                  parteneri ({counts.clientsCount} clienți, {counts.suppliers} furnizori)
                 </p>
               </div>
 
               {tenantsList.length > 1 && (
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold">
-                  <Building2 className="w-3.5 h-3.5 text-primary" />
-                  <span className="text-slate-500 text-[11px]">Companie:</span>
-                  <select
-                    value={currentTenant?.id || 1}
-                    onChange={(e) => switchTenantMutation.mutate({ tenantId: Number(e.target.value) })}
-                    className="bg-transparent font-bold text-xs text-slate-900 dark:text-white focus:outline-none cursor-pointer"
-                  >
+                <Select
+                  value={String(currentTenant?.id || 1)}
+                  onValueChange={(val) =>
+                    switchTenantMutation.mutate({ tenantId: Number(val) })
+                  }
+                >
+                  <SelectTrigger className="apple-pill-control h-[34px] w-auto shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3">
+                    <Building2 className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
+                    <SelectValue placeholder="Companie" />
+                  </SelectTrigger>
+                  <SelectContent>
                     {tenantsList.map((t: any) => (
-                      <option key={t.id} value={t.id} className="dark:bg-slate-900">
+                      <SelectItem key={t.id} value={String(t.id)}>
                         {t.name}
-                      </option>
+                      </SelectItem>
                     ))}
-                  </select>
-                </div>
+                  </SelectContent>
+                </Select>
               )}
             </div>
             <button
+              type="button"
               onClick={() => {
                 setEditingId(null);
                 setFormData({
@@ -452,128 +461,170 @@ export default function Clients() {
                 });
                 setShowForm(true);
               }}
-              className="flex items-center gap-1.5 px-3.5 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors shadow-sm"
+              className="apple-btn-prominent flex items-center justify-center gap-1.5 px-4 h-9 rounded-full text-white text-[12.5px] font-semibold transition-all cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5" />
-              Partener nou
+              <Plus className="w-4 h-4 shrink-0" />
+              <span>Partener nou</span>
             </button>
           </div>
 
           {mutationError && !showForm && (
-            <div className="p-3 mb-4 rounded-2xl bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300 border border-red-200 dark:border-red-800 text-sm">
+            <div className="p-3 rounded-2xl bg-[#ff3b30]/10 text-[#ff3b30] dark:text-[#ff6961] border border-[#ff3b30]/25 text-sm">
               <AlertCircle className="w-4 h-4 inline mr-2" />
               {mutationError}
             </div>
           )}
 
-          {/* KPI Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pb-1">
+          {/* KPI Cards — Clean Rectangular 16px Apple Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             {/* TOTAL */}
             <div
               role="button"
               tabIndex={0}
-              className="bg-white dark:bg-[#1c1c1e] rounded-2xl border border-black/[0.06] dark:border-white/[0.09] px-3.5 py-2.5 flex items-center justify-between shadow-2xs transition-all hover:shadow-sm cursor-pointer outline-none"
+              className="apple-surface outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 transition-all hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none"
               onClick={() => {
                 setFilterType("all");
                 setFilterRegime("all");
               }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setFilterType("all");
+                  setFilterRegime("all");
+                }
+              }}
             >
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] mb-0.5 truncate">
-                  Total Parteneri
-                </p>
-                <p className="text-lg sm:text-[19px] font-bold tabular-nums text-[#1d1d1f] dark:text-white leading-tight">
-                  {counts.total}
-                </p>
+              <div className="flex items-center justify-between gap-2 w-full">
+                <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
+                  Total parteneri
+                </span>
+                <span className="w-7 h-7 rounded-[8px] bg-[#f2f4f7] dark:bg-[#2c2c2e] flex items-center justify-center shrink-0">
+                  <Users className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#0a84ff]" />
+                </span>
               </div>
+              <span className="text-[22px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none tabular-nums">
+                {counts.total}
+              </span>
             </div>
 
             {/* CLIENȚI */}
             <div
-              className={`bg-white dark:bg-[#1c1c1e] rounded-2xl border px-3.5 py-2.5 flex items-center justify-between shadow-2xs transition-all hover:shadow-sm cursor-pointer ${
-                filterType === "client" && filterRegime === "all"
-                  ? "border-blue-500/60 ring-1 ring-blue-500/20"
-                  : "border-black/[0.06] dark:border-white/[0.09]"
-              }`}
+              role="button"
+              tabIndex={0}
+              className="apple-surface outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 transition-all hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none"
               onClick={() => {
                 setFilterType(filterType === "client" ? "all" : "client");
                 setFilterRegime("all");
               }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setFilterType(filterType === "client" ? "all" : "client");
+                  setFilterRegime("all");
+                }
+              }}
             >
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] mb-0.5 truncate">
+              <div className="flex items-center justify-between gap-2 w-full">
+                <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
                   Clienți
-                </p>
-                <p className="text-lg sm:text-[19px] font-bold tabular-nums text-blue-600 dark:text-blue-400 leading-tight">
-                  {counts.clientsCount}
-                </p>
+                </span>
+                <span className="w-7 h-7 rounded-[8px] bg-[#eefbf3] dark:bg-emerald-500/18 flex items-center justify-center shrink-0">
+                  <Building2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                </span>
               </div>
+              <span className="text-[22px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none tabular-nums">
+                {counts.clientsCount}
+              </span>
             </div>
 
             {/* FURNIZORI */}
             <div
-              className={`bg-white dark:bg-[#1c1c1e] rounded-2xl border px-3.5 py-2.5 flex items-center justify-between shadow-2xs transition-all hover:shadow-sm cursor-pointer ${
-                filterType === "supplier" && filterRegime === "all"
-                  ? "border-amber-500/60 ring-1 ring-amber-500/20"
-                  : "border-black/[0.06] dark:border-white/[0.09]"
-              }`}
+              role="button"
+              tabIndex={0}
+              className="apple-surface outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 transition-all hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none"
               onClick={() => {
                 setFilterType(filterType === "supplier" ? "all" : "supplier");
                 setFilterRegime("all");
               }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setFilterType(filterType === "supplier" ? "all" : "supplier");
+                  setFilterRegime("all");
+                }
+              }}
             >
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] mb-0.5 truncate">
+              <div className="flex items-center justify-between gap-2 w-full">
+                <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
                   Furnizori
-                </p>
-                <p className="text-lg sm:text-[19px] font-bold tabular-nums text-amber-600 dark:text-amber-400 leading-tight">
-                  {counts.suppliers}
-                </p>
+                </span>
+                <span className="w-7 h-7 rounded-[8px] bg-[#fff6eb] dark:bg-amber-500/18 flex items-center justify-center shrink-0">
+                  <Package className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                </span>
               </div>
+              <span className="text-[22px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none tabular-nums">
+                {counts.suppliers}
+              </span>
             </div>
 
             {/* EXTERNI (EUR) */}
             <div
-              className={`bg-white dark:bg-[#1c1c1e] rounded-2xl border px-3.5 py-2.5 flex items-center justify-between shadow-2xs transition-all hover:shadow-sm cursor-pointer ${
-                filterRegime === "extern"
-                  ? "border-indigo-500/60 ring-1 ring-indigo-500/20"
-                  : "border-black/[0.06] dark:border-white/[0.09]"
-              }`}
+              role="button"
+              tabIndex={0}
+              className="apple-surface outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 transition-all hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none"
               onClick={() => {
                 setFilterRegime(filterRegime === "extern" ? "all" : "extern");
                 setFilterType("all");
               }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setFilterRegime(filterRegime === "extern" ? "all" : "extern");
+                  setFilterType("all");
+                }
+              }}
             >
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] mb-0.5 truncate">
+              <div className="flex items-center justify-between gap-2 w-full">
+                <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
                   Externi (EUR)
-                </p>
-                <p className="text-lg sm:text-[19px] font-bold tabular-nums text-indigo-600 dark:text-indigo-400 leading-tight">
-                  {counts.externals}
-                </p>
+                </span>
+                <span className="w-7 h-7 rounded-[8px] bg-[#f2f4f7] dark:bg-[#2c2c2e] flex items-center justify-center shrink-0">
+                  <Globe className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#0a84ff]" />
+                </span>
               </div>
+              <span className="text-[22px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none tabular-nums">
+                {counts.externals}
+              </span>
             </div>
 
             {/* INTERNI (RON) */}
             <div
-              className={`bg-white dark:bg-[#1c1c1e] rounded-2xl border px-3.5 py-2.5 flex items-center justify-between shadow-2xs transition-all hover:shadow-sm cursor-pointer ${
-                filterRegime === "intern"
-                  ? "border-slate-500/60 ring-1 ring-slate-500/20"
-                  : "border-black/[0.06] dark:border-white/[0.09]"
-              }`}
+              role="button"
+              tabIndex={0}
+              className="apple-surface outline-none px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5 transition-all hover:shadow-[0_6px_20px_-6px_rgba(15,23,42,0.08)] cursor-pointer select-none col-span-2 sm:col-span-1"
               onClick={() => {
                 setFilterRegime(filterRegime === "intern" ? "all" : "intern");
                 setFilterType("all");
               }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setFilterRegime(filterRegime === "intern" ? "all" : "intern");
+                  setFilterType("all");
+                }
+              }}
             >
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-[#636366] dark:text-[#98989d] mb-0.5 truncate">
+              <div className="flex items-center justify-between gap-2 w-full">
+                <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d] truncate">
                   Interni (RON)
-                </p>
-                <p className="text-lg sm:text-[19px] font-bold tabular-nums text-slate-700 dark:text-slate-300 leading-tight">
-                  {counts.internals}
-                </p>
+                </span>
+                <span className="w-7 h-7 rounded-[8px] bg-[#f2f4f7] dark:bg-[#2c2c2e] flex items-center justify-center shrink-0">
+                  <MapPin className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d]" />
+                </span>
               </div>
+              <span className="text-[22px] sm:text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.026em] leading-none tabular-nums">
+                {counts.internals}
+              </span>
             </div>
           </div>
         </>
@@ -581,8 +632,8 @@ export default function Clients() {
 
       {/* Titlu compact când form e deschis */}
       {showForm && (
-        <div className="flex items-center justify-between">
-          <h1 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
+        <div className="flex items-center justify-between px-0.5">
+          <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
             {editingId ? "Editare Partener" : "Adăugare Partener Nou"}
           </h1>
         </div>
@@ -592,7 +643,7 @@ export default function Clients() {
       {showForm && (
         <div className="space-y-3">
           {mutationError && (
-            <div className="p-3 rounded-2xl bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300 border border-red-200 dark:border-red-800 text-sm">
+            <div className="p-3 rounded-2xl bg-[#ff3b30]/10 text-[#ff3b30] dark:text-[#ff6961] border border-[#ff3b30]/25 text-sm">
               <AlertCircle className="w-4 h-4 inline mr-2" />
               {mutationError}
             </div>
@@ -628,108 +679,95 @@ export default function Clients() {
           isLoading={isLoading}
           initialSearch={urlSearch}
           headerContent={
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 flex-wrap">
               {/* Filtru TIP: Client / Furnizor */}
-              <div className="w-[155px] sm:w-[175px] flex-shrink-0">
-                <Select
-                  value={filterType}
-                  onValueChange={val => setFilterType(val as any)}
+              <Select
+                value={filterType}
+                onValueChange={val => setFilterType(val as any)}
+              >
+                <SelectTrigger
+                  data-filtered={filterType !== "all"}
+                  className="apple-pill-control h-[34px] w-auto shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3"
                 >
-                  <SelectTrigger
-                    className={`h-8 w-full rounded-full text-xs font-bold border ${
-                      filterType !== "all"
-                        ? "border-blue-500 bg-blue-50/70 text-blue-800 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-700"
-                        : "border-slate-200 bg-white text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
-                    } hover:bg-slate-50 focus:ring-2 focus:ring-blue-500 shadow-none flex items-center gap-1.5 px-3`}
-                  >
-                    <Tag className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
-                    <SelectValue placeholder="Tip partener" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tip: Toți ({counts.total})</SelectItem>
-                    <SelectItem value="client">Clienți ({counts.clientsCount})</SelectItem>
-                    <SelectItem value="supplier">Furnizori ({counts.suppliers})</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  <Tag className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
+                  <SelectValue placeholder="Tip partener" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tip: Toți ({counts.total})</SelectItem>
+                  <SelectItem value="client">Clienți ({counts.clientsCount})</SelectItem>
+                  <SelectItem value="supplier">Furnizori ({counts.suppliers})</SelectItem>
+                </SelectContent>
+              </Select>
 
               {/* Filtru REGIM: Intern / Extern */}
-              <div className="w-[165px] sm:w-[190px] flex-shrink-0">
-                <Select
-                  value={filterRegime}
-                  onValueChange={val => setFilterRegime(val as any)}
+              <Select
+                value={filterRegime}
+                onValueChange={val => setFilterRegime(val as any)}
+              >
+                <SelectTrigger
+                  data-filtered={filterRegime !== "all"}
+                  className="apple-pill-control h-[34px] w-auto shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3"
                 >
-                  <SelectTrigger
-                    className={`h-8 w-full rounded-full text-xs font-bold border ${
-                      filterRegime !== "all"
-                        ? "border-indigo-500 bg-indigo-50/70 text-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-700"
-                        : "border-slate-200 bg-white text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
-                    } hover:bg-slate-50 focus:ring-2 focus:ring-indigo-500 shadow-none flex items-center gap-1.5 px-3`}
-                  >
-                    <Globe className="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" />
-                    <SelectValue placeholder="Regim" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Regim: Toate ({counts.total})</SelectItem>
-                    <SelectItem value="intern">Interni (RON - {counts.internals})</SelectItem>
-                    <SelectItem value="extern">Externi (EUR - {counts.externals})</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  <Globe className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
+                  <SelectValue placeholder="Regim" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Regim: Toate ({counts.total})</SelectItem>
+                  <SelectItem value="intern">Interni (RON · {counts.internals})</SelectItem>
+                  <SelectItem value="extern">Externi (EUR · {counts.externals})</SelectItem>
+                </SelectContent>
+              </Select>
 
               {/* Filtru ȚARĂ */}
-              <div className="w-[170px] sm:w-[210px] flex-shrink-0">
-                <Select
-                  value={filterCountry}
-                  onValueChange={val => setFilterCountry(val)}
+              <Select
+                value={filterCountry}
+                onValueChange={val => setFilterCountry(val)}
+              >
+                <SelectTrigger
+                  data-filtered={filterCountry !== "all"}
+                  className="apple-pill-control h-[34px] w-auto shrink-0 whitespace-nowrap flex items-center gap-1.5 px-3"
                 >
-                  <SelectTrigger
-                    className={`h-8 w-full rounded-full text-xs font-bold border ${
-                      filterCountry !== "all"
-                        ? "border-emerald-500 bg-emerald-50/70 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-700"
-                        : "border-slate-200 bg-white text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
-                    } hover:bg-slate-50 focus:ring-2 focus:ring-emerald-500 shadow-none flex items-center gap-1.5 px-3`}
-                  >
-                    <Globe className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
-                    <SelectValue placeholder="Țară" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-72">
-                    <SelectItem value="all">Toate țările ({counts.total})</SelectItem>
-                    {countryCounts.map(([code, cnt]) => {
-                      const flag = code.toLowerCase();
-                      const name = COUNTRY_INFO[code]?.ro || code;
-                      return (
-                        <SelectItem key={code} value={code}>
-                          <div className="flex items-center gap-2">
-                            <img
-                              src={`https://flagcdn.com/w20/${flag}.png`}
-                              alt={code}
-                              className="w-4 h-3 rounded-[2px] object-cover inline-block shrink-0"
-                              onError={(e) => {
-                                (e.currentTarget as HTMLElement).style.display = "none";
-                              }}
-                            />
-                            <span>{name} ({cnt})</span>
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
+                  <Globe className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] shrink-0" />
+                  <SelectValue placeholder="Țară" />
+                </SelectTrigger>
+                <SelectContent className="max-h-72">
+                  <SelectItem value="all">Toate țările ({counts.total})</SelectItem>
+                  {countryCounts.map(([code, cnt]) => {
+                    const flag = code.toLowerCase();
+                    const name = COUNTRY_INFO[code]?.ro || code;
+                    return (
+                      <SelectItem key={code} value={code}>
+                        <div className="flex items-center gap-2">
+                          <img
+                            src={`https://flagcdn.com/w20/${flag}.png`}
+                            alt={code}
+                            className="w-4 h-3 rounded-[2px] object-cover inline-block shrink-0"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLElement).style.display = "none";
+                            }}
+                          />
+                          <span>{name} ({cnt})</span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
 
               {/* Reset buton */}
               {(filterType !== "all" || filterRegime !== "all" || filterCountry !== "all") && (
                 <button
                   type="button"
+                  title="Elimină filtrele"
+                  aria-label="Elimină filtrele"
                   onClick={() => {
                     setFilterType("all");
                     setFilterRegime("all");
                     setFilterCountry("all");
                   }}
-                  className="h-8 px-2.5 rounded-full text-xs font-semibold text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className="apple-pill-control w-[34px] h-[34px] shrink-0 flex items-center justify-center text-[#6e6e73] hover:text-[#1d1d1f] dark:text-[#98989d] dark:hover:text-white cursor-pointer"
                 >
-                  Resetează
+                  <X className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
@@ -751,7 +789,7 @@ export default function Clients() {
                 href={`/contracte/new?partnerId=${row.id}&mode=upload`}
                 title="Încarcă contract semnat pentru acest partener"
                 aria-label="Încarcă contract semnat"
-                className="w-8 h-8 rounded-full border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300 transition-colors flex items-center justify-center"
+                className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white transition-all"
               >
                 <FileSignature className="w-3.5 h-3.5" />
               </Link>
@@ -760,7 +798,7 @@ export default function Clients() {
                 onClick={() => handleEdit(row)}
                 title="Editare partener"
                 aria-label="Editare partener"
-                className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors flex items-center justify-center"
+                className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#1d1d1f] dark:hover:text-white transition-all cursor-pointer"
               >
                 <Edit2 className="w-3.5 h-3.5" />
               </button>
@@ -769,7 +807,7 @@ export default function Clients() {
                 onClick={() => handleDelete(row.id)}
                 title="Ștergere partener"
                 aria-label="Ștergere partener"
-                className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors flex items-center justify-center"
+                className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] hover:text-[#ff3b30] dark:hover:text-[#ff453a] transition-all cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -884,40 +922,34 @@ function ClientForm({
   };
 
   const inp =
-    "w-full px-3 h-10 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all";
+    "apple-input w-full px-3.5 h-10 text-[13.5px] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none";
   const lbl =
-    "block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5";
+    "block text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1.5";
 
   return (
-    <div className="p-6 rounded-[22px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-5 shadow-sm">
-      <h3 className="text-base font-bold text-slate-900 dark:text-white">
-        {editingId ? "Editează Partener" : "Partener Nou"}
+    <div className="apple-surface p-5 sm:p-6 space-y-5">
+      <h3 className="text-[16px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7]">
+        {editingId ? "Editează partener" : "Partener nou"}
       </h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Tip Partener: Client vs Furnizor */}
         <div className="md:col-span-2">
-          <label className={lbl}>Tip Partener</label>
-          <div className="grid grid-cols-2 gap-2">
+          <label className={lbl}>Tip partener</label>
+          <div className="apple-segmented w-full grid grid-cols-2">
             <button
               type="button"
+              data-active={data.isSupplier === 0}
               onClick={() => set("isSupplier", 0)}
-              className={`h-10 px-3 rounded-full border text-xs font-bold uppercase tracking-wider transition-all ${
-                data.isSupplier === 0
-                  ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 shadow-sm"
-                  : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
-              }`}
+              className="apple-segmented-item !h-9 text-xs font-semibold"
             >
               Client (Vânzări / Facturi)
             </button>
             <button
               type="button"
+              data-active={data.isSupplier === 1}
               onClick={() => set("isSupplier", 1)}
-              className={`h-10 px-3 rounded-full border text-xs font-bold uppercase tracking-wider transition-all ${
-                data.isSupplier === 1
-                  ? "border-amber-500 bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 shadow-sm"
-                  : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
-              }`}
+              className="apple-segmented-item !h-9 text-xs font-semibold"
             >
               Furnizor (Achiziții / NIR)
             </button>
@@ -945,23 +977,23 @@ function ClientForm({
               type="button"
               onClick={lookupCui}
               disabled={cuiLoading || !data.cui}
-              className="flex items-center gap-1.5 px-3.5 h-10 rounded-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold transition-colors flex-shrink-0"
+              className="apple-btn-prominent flex items-center gap-1.5 px-4 h-10 rounded-full disabled:opacity-50 text-white text-[12.5px] font-semibold shrink-0 cursor-pointer"
             >
               {cuiLoading ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : (
                 <Search className="w-3.5 h-3.5" />
               )}
-              {cuiLoading ? "Caută..." : "Auto-fill"}
+              <span>{cuiLoading ? "Caută..." : "Auto-fill"}</span>
             </button>
           </div>
           {cuiError && (
-            <div className="flex items-center gap-1 mt-1.5 text-xs text-red-500">
+            <div className="flex items-center gap-1 mt-1.5 text-xs text-[#ff3b30] dark:text-[#ff453a]">
               <AlertCircle className="w-3 h-3" /> {cuiError}
             </div>
           )}
           {cuiFilled && (
-            <div className="flex items-center gap-1 mt-1.5 text-xs text-green-600">
+            <div className="flex items-center gap-1 mt-1.5 text-xs text-emerald-600 dark:text-emerald-400">
               <CheckCircle2 className="w-3 h-3" /> Date completate automat
             </div>
           )}
@@ -981,7 +1013,7 @@ function ClientForm({
 
         {/* Cod SAGA + Reg. Com. */}
         <div>
-          <label className={lbl}>Cod SAGA (Partener)</label>
+          <label className={lbl}>Cod SAGA (partener)</label>
           <input
             className={inp + " tabular-nums"}
             placeholder="ex: 00001 sau 01209"
@@ -1005,14 +1037,14 @@ function ClientForm({
           <button
             type="button"
             onClick={() => setData(p => ({ ...p, tva: !p.tva }))}
-            className={`w-full h-10 px-4 rounded-full border text-sm font-semibold flex items-center gap-2 transition-all ${
+            className={`w-full h-10 px-4 rounded-full text-[13px] font-semibold flex items-center gap-2 transition-all cursor-pointer ${
               data.tva
-                ? "border-green-300 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-900/20 dark:text-green-400"
-                : "border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
+                ? "bg-emerald-500/12 text-emerald-700 dark:bg-emerald-500/18 dark:text-emerald-300"
+                : "bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#6e6e73] dark:text-[#98989d]"
             }`}
           >
             <span
-              className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${data.tva ? "bg-green-500" : "bg-slate-400"}`}
+              className={`w-2 h-2 rounded-full shrink-0 ${data.tva ? "bg-emerald-500" : "bg-[#8e8e93]"}`}
             />
             {data.tva ? "Plătitor TVA" : "Neplătitor TVA"}
           </button>
@@ -1050,7 +1082,7 @@ function ClientForm({
             />
           </div>
           <div>
-            <label className={lbl}>Monedă (Regim)</label>
+            <label className={lbl}>Monedă (regim)</label>
             <select
               className={inp}
               value={data.currency}
@@ -1088,19 +1120,23 @@ function ClientForm({
         </div>
       </div>
 
-      <div className="flex gap-2 justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
-        <Button type="button" variant="outline" className="rounded-full" onClick={onCancel}>
-          Anulează
-        </Button>
-        <Button
+      <div className="flex gap-2 justify-end pt-3 border-t border-black/[0.06] dark:border-white/[0.08]">
+        <button
           type="button"
-          className="rounded-full"
+          className="apple-btn-glass px-4 h-9 rounded-full text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
+          onClick={onCancel}
+        >
+          Anulează
+        </button>
+        <button
+          type="button"
+          className="apple-btn-prominent flex items-center gap-1.5 px-5 h-9 rounded-full text-white text-[12.5px] font-semibold disabled:opacity-50 cursor-pointer"
           disabled={isPending || !data.name.trim()}
           onClick={() => onSubmit(data)}
         >
-          {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
-          {editingId ? "Actualizează partener" : "Adaugă partener"}
-        </Button>
+          {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+          <span>{editingId ? "Actualizează partener" : "Adaugă partener"}</span>
+        </button>
       </div>
     </div>
   );
