@@ -2385,7 +2385,7 @@ export default function EmitInvoice() {
                   value={numarContract}
                   onChange={e => setNumarContract(e.target.value)}
                   className={inputCls}
-                  placeholder="ex: 392"
+                  placeholder="ex: 101"
                 />
               </div>
               <div>

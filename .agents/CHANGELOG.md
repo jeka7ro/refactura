@@ -1,5 +1,18 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-26 17:22 — Eliminare completă a exemplelor hardcodate cu numele/CUI-ul altor tenanți din UI (`Settings.tsx`, `Integrations.tsx`, `EmitInvoice.tsx`, `ContractInvoiceToggle.tsx`, `SagaModule.tsx`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Eliminat leak-ul de exemplu `wood-glass` / `contabilitate-wood` din Setări → Portal Contabil (`client/src/pages/Settings.tsx`):**
+     - Înlocuit textul hardcodat `(ex: wood-glass, contabilitate-wood)` cu exemple generate dinamic exclusiv din numele propriei firme active a tenantului curent (ex: `trade-invest-network`, `contabilitate-trade-invest` pe Trade Invest; sau `firma-mea`, `contabilitate-firma` dacă nu există denumire completată), plus prefixul dinamic al hostului curent (`/contabil/`).
+  2. **Eliminat toate celelalte exemple hardcodate de CUI / contract / rețetă aparținând unui anumit tenant din paginile partajate:**
+     - `client/src/pages/Integrations.tsx`: înlocuit CUI-ul real al Tenantului 1 (`Ex: 42322117`) din asistentul Oblio cu exemplul neutru `12345678`.
+     - `client/src/components/ContractInvoiceToggle.tsx` & `client/src/pages/EmitInvoice.tsx`: înlocuit `placeholder="ex: 392"` cu `ex: 101` și aliniat `ContractInvoiceToggle.tsx` la paleta neutră Apple Dark/Light (`#2c2c2e`).
+     - `client/src/pages/SagaModule.tsx`: înlocuit exemplul de tâmplărie din tabul Rețete (BOM) cu un exemplu generic de producție.
+- **Fișiere:** `client/src/pages/Settings.tsx`, `client/src/pages/Integrations.tsx`, `client/src/pages/EmitInvoice.tsx`, `client/src/pages/SagaModule.tsx`, `client/src/components/ContractInvoiceToggle.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori), `npm run build` (`0` erori) și verificare Playwright Headless pe `/setari?tab=accountant` (`0` referințe `wood-glass` pe alți tenanți, controale Dark Mode neutre `#2c2c2e`), fără `git push`.
+
 ### 2026-11-26 17:08 — Unificare completă Apple HIG Dark/Light Mode pe toate cele 57 de pagini, tabele și modale (zero tentă bleumarin `slate`, zero mix vizual)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

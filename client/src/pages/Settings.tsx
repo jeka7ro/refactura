@@ -2358,53 +2358,73 @@ export default function Settings() {
               </div>
 
               {/* Cod / Identificator URL Personalizat */}
-              <div className="space-y-2 py-3 border-b border-black/[0.05] dark:border-white/[0.07]">
-                <label className="block text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
-                  Identificator URL personalizat (codul din link)
-                </label>
-                <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d]">
-                  Puteți personaliza codul din link cu denumirea firmei sau orice text doriți (ex:{" "}
-                  <code className="font-sans font-semibold tabular-nums px-1.5 py-0.5 rounded bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7]">
-                    wood-glass
-                  </code>
-                  ,{" "}
-                  <code className="font-sans font-semibold tabular-nums px-1.5 py-0.5 rounded bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7]">
-                    contabilitate-wood
-                  </code>
-                  ).
-                </p>
-                <div className="flex items-center max-w-md">
-                  <span className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] tabular-nums select-none px-3 py-2 rounded-l-xl bg-[#e5e5ea] dark:bg-[#3a3a3c] border border-r-0 border-black/[0.06] dark:border-white/[0.08]">
-                    facturaspv.ro/contabil/
-                  </span>
-                  <input
-                    type="text"
-                    value={portalSlug}
-                    onChange={(e) =>
-                      setPortalSlug(
-                        e.target.value
-                          .toLowerCase()
-                          .replace(/\s+/g, "-")
-                          .replace(/[^a-z0-9-_]/g, "")
-                      )
-                    }
-                    placeholder="cod-firma"
-                    className="flex-1 min-w-0 px-3 py-2 rounded-r-xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.06] dark:border-white/[0.08] tabular-nums text-[12.5px] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
-                  />
-                </div>
-                <div className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d]">
-                  Sau puteți{" "}
-                  <button
-                    type="button"
-                    onClick={() => handleSavePortalConfig(true)}
-                    disabled={updateAccountantConfigMutation.isPending}
-                    className="text-[#0071e3] dark:text-[#64d2ff] hover:underline cursor-pointer"
-                  >
-                    genera automat un cod aleator nou
-                  </button>
-                  .
-                </div>
-              </div>
+              {(() => {
+                const rawExampleBase = (settings.name || currentTenantData?.name || "")
+                  .normalize("NFD")
+                  .replace(/[\u0300-\u036f]/g, "")
+                  .toLowerCase()
+                  .replace(/\b(s\.?r\.?l\.?|s\.?a\.?|s\.?c\.?|p\.?f\.?a\.?|i\.?i\.?|workspace)\b/g, " ")
+                  .replace(/[^a-z0-9]+/g, "-")
+                  .replace(/^-+|-+$/g, "");
+                const portalSlugExample1 = rawExampleBase || "firma-mea";
+                const portalSlugExample2 = rawExampleBase
+                  ? `contabilitate-${rawExampleBase.split("-").slice(0, 2).join("-")}`
+                  : "contabilitate-firma";
+                const portalHostPrefix =
+                  typeof window !== "undefined" && window.location?.host
+                    ? `${window.location.host}/contabil/`
+                    : "facturaspv.ro/contabil/";
+
+                return (
+                  <div className="space-y-2 py-3 border-b border-black/[0.05] dark:border-white/[0.07]">
+                    <label className="block text-[13px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                      Identificator URL personalizat (codul din link)
+                    </label>
+                    <p className="text-[12px] text-[#6e6e73] dark:text-[#98989d]">
+                      Puteți personaliza codul din link cu denumirea firmei sau orice text doriți (ex:{" "}
+                      <code className="font-sans font-semibold tabular-nums px-1.5 py-0.5 rounded bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7]">
+                        {portalSlugExample1}
+                      </code>
+                      ,{" "}
+                      <code className="font-sans font-semibold tabular-nums px-1.5 py-0.5 rounded bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7]">
+                        {portalSlugExample2}
+                      </code>
+                      ).
+                    </p>
+                    <div className="flex items-center max-w-md">
+                      <span className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] tabular-nums select-none px-3 py-2 rounded-l-xl bg-[#e5e5ea] dark:bg-[#3a3a3c] border border-r-0 border-black/[0.06] dark:border-white/[0.08]">
+                        {portalHostPrefix}
+                      </span>
+                      <input
+                        type="text"
+                        value={portalSlug}
+                        onChange={(e) =>
+                          setPortalSlug(
+                            e.target.value
+                              .toLowerCase()
+                              .replace(/\s+/g, "-")
+                              .replace(/[^a-z0-9-_]/g, "")
+                          )
+                        }
+                        placeholder="cod-firma"
+                        className="flex-1 min-w-0 px-3 py-2 rounded-r-xl bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.06] dark:border-white/[0.08] tabular-nums text-[12.5px] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
+                      />
+                    </div>
+                    <div className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d]">
+                      Sau puteți{" "}
+                      <button
+                        type="button"
+                        onClick={() => handleSavePortalConfig(true)}
+                        disabled={updateAccountantConfigMutation.isPending}
+                        className="text-[#0071e3] dark:text-[#64d2ff] hover:underline cursor-pointer"
+                      >
+                        genera automat un cod aleator nou
+                      </button>
+                      .
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Cod PIN Securitate */}
               <div className="space-y-3 py-2">

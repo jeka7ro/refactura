@@ -2796,7 +2796,7 @@ function ReteteTab() {
             <h3 className="text-[15px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">Nicio rețetă definită</h3>
             <p className="text-[13px] text-[#6e6e73] dark:text-[#98989d] mt-1">
               O rețetă (BOM) definește ce materii prime intră într-un produs finit.<br />
-              Ex: Fereastră 120x140 = 4.8m profil PVC + 1.68mp sticlă + garnitură + feronerie
+              Ex: Produs finit A = 2 buc. componentă X + 1,5 kg materie primă Y + ambalaj
             </p>
           </div>
         ) : (

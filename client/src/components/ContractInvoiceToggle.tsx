@@ -155,8 +155,8 @@ export function ContractInvoiceToggle({
   return (
     <div className={`inline-flex items-center gap-2.5 flex-wrap ${className}`}>
       <label className="inline-flex items-center gap-2 cursor-pointer select-none whitespace-nowrap shrink-0">
-        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap flex items-center gap-1.5">
-          <FileText className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+        <span className="text-xs font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] whitespace-nowrap flex items-center gap-1.5">
+          <FileText className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#64d2ff]" />
           <span>Contract</span>
         </span>
         <Switch
@@ -166,7 +166,7 @@ export function ContractInvoiceToggle({
       </label>
 
       {isEnabled && (
-        <div className="inline-flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300 pl-2.5 border-l border-slate-200 dark:border-slate-700 flex-wrap">
+        <div className="inline-flex items-center gap-2 text-xs text-[#1d1d1f] dark:text-[#ebebf5] pl-2.5 border-l border-black/[0.08] dark:border-white/[0.10] flex-wrap">
           {/* Selector dacă partenerul are contracte în sistem */}
           {clientContracts.length > 0 && (
             <select
@@ -177,7 +177,7 @@ export function ContractInvoiceToggle({
                   setInternalDate(selected.date || "");
                 }
               }}
-              className="h-8 px-2 text-xs font-medium rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-2xs max-w-[170px] truncate"
+              className="apple-pill-control !h-8 px-2.5 text-xs font-medium text-[#1d1d1f] dark:text-[#f5f5f7] outline-none cursor-pointer max-w-[170px] truncate"
               defaultValue=""
             >
               <option value="" disabled>
@@ -192,25 +192,25 @@ export function ContractInvoiceToggle({
           )}
 
           {/* Număr Contract */}
-          <div className="inline-flex items-center gap-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md px-2.5 h-8 shadow-2xs">
-            <span className="text-slate-500 dark:text-slate-400 text-[11px] font-bold">Nr.</span>
+          <div className="inline-flex items-center gap-1.5 bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.06] dark:border-white/[0.08] rounded-xl px-2.5 h-8">
+            <span className="text-[#6e6e73] dark:text-[#98989d] text-[11px] font-medium">Nr.</span>
             <input
               type="text"
-              placeholder="ex: 392"
+              placeholder="ex: 101"
               value={internalNumber}
               onChange={(e) => setInternalNumber(e.target.value)}
-              className="w-24 text-xs font-semibold text-slate-900 dark:text-white bg-transparent outline-none placeholder:text-slate-400 placeholder:font-normal"
+              className="w-24 text-xs font-semibold tabular-nums text-[#1d1d1f] dark:text-white bg-transparent outline-none placeholder:text-[#8e8e93] placeholder:font-normal"
             />
           </div>
 
           {/* Data Contract */}
-          <div className="inline-flex items-center gap-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-md px-2.5 h-8 shadow-2xs">
-            <span className="text-slate-500 dark:text-slate-400 text-[11px] font-bold">din data de</span>
+          <div className="inline-flex items-center gap-1.5 bg-[#f2f2f7] dark:bg-[#2c2c2e] border border-black/[0.06] dark:border-white/[0.08] rounded-xl px-2.5 h-8">
+            <span className="text-[#6e6e73] dark:text-[#98989d] text-[11px] font-medium">din data de</span>
             <input
               type="date"
               value={internalDate}
               onChange={(e) => setInternalDate(e.target.value)}
-              className="text-xs font-semibold text-slate-900 dark:text-white bg-transparent outline-none cursor-pointer"
+              className="text-xs font-semibold tabular-nums text-[#1d1d1f] dark:text-white bg-transparent outline-none cursor-pointer"
             />
           </div>
         </div>

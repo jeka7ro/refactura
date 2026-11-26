@@ -127,7 +127,7 @@ function useSetupAssistant(
         setStep("oblio_cif");
         newMessages.push({
           role: "ai",
-          text: `API Secret salvat.\n\n**Pasul 3/3** — Ultimul pas! Am nevoie de **CUI-ul (CIF-ul) firmei** tale din Oblio.\n\nIl gasesti la:\nSetari → Date Firma → campul **Cod Fiscal**\n\nEx: \`42322117\``,
+          text: `API Secret salvat.\n\n**Pasul 3/3** — Ultimul pas! Am nevoie de **CUI-ul (CIF-ul) firmei** tale din Oblio.\n\nIl gasesti la:\nSetari → Date Firma → campul **Cod Fiscal**\n\nEx: \`12345678\``,
         });
       }
     } else if (step === "oblio_cif") {
@@ -135,7 +135,7 @@ function useSetupAssistant(
       if (!/^\d{6,10}$/.test(cifClean)) {
         newMessages.push({
           role: "ai",
-          text: "CIF-ul trebuie să fie format din 6-10 cifre (ex: `42322117`). Încearcă din nou.",
+          text: "CIF-ul trebuie să fie format din 6-10 cifre (ex: `12345678`). Încearcă din nou.",
         });
       } else {
         const finalConfig: Record<string, string> = { ...draft, cif: cifClean };
