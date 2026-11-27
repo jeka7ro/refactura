@@ -23,6 +23,9 @@ import {
   FileCode,
   ClipboardCheck,
   Layers,
+  Landmark,
+  Download,
+  Eye,
   X,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
@@ -94,8 +97,11 @@ export default function AccountantPortal() {
     }
   }, [token, sessionToken]);
 
-  // Navigare Sidebar: "received" (Facturi Primite) sau "emitted" (Facturi Emise)
-  const [activeTab, setActiveTab] = useState<"received" | "emitted">("received");
+  // Navigare Sidebar: "received" (Facturi Primite), "emitted" (Facturi Emise) sau "statements" (Extrase de Cont)
+  const [activeTab, setActiveTab] = useState<"received" | "emitted" | "statements">("received");
+  const [searchStatements, setSearchStatements] = useState("");
+  const [statementMonthFilter, setStatementMonthFilter] = useState("all");
+  const [statementCurrencyFilter, setStatementCurrencyFilter] = useState("all");
 
   // Suprascriere manuală temporară pe sesiunea curentă (altfel se folosește modul setat în Setări -> Portal Contabil)
   const [manualViewOverride, setManualViewOverride] = useState<"modern" | "saga" | null>(null);
@@ -441,7 +447,37 @@ export default function AccountantPortal() {
     return list;
   }, [portalData?.emittedInvoices, activeEmittedDateRange, searchEmitted]);
 
-  // KPI-uri Facturi Primite
+  // Filtrare locală extrase de cont
+  const allStatements = portalData?.bankStatements || [];
+  const statementMonths = useMemo(() => {
+    const s = new Set<string>();
+    allStatements.forEach((st: any) => {
+      if (st.statementMonth) s.add(st.statementMonth);
+    });
+    return Array.from(s).sort((a, b) => b.localeCompare(a));
+  }, [allStatements]);
+
+  const filteredStatements = useMemo(() => {
+    return allStatements.filter((st: any) => {
+      if (statementMonthFilter !== "all" && st.statementMonth !== statementMonthFilter) {
+        return false;
+      }
+      if (
+        statementCurrencyFilter !== "all" &&
+        String(st.currency || "RON").toUpperCase() !== statementCurrencyFilter
+      ) {
+        return false;
+      }
+      if (searchStatements.trim()) {
+        const q = searchStatements.trim().toLowerCase();
+        const hay = `${st.bankName || ""} ${st.iban || ""} ${st.statementNumber || ""} ${st.fileName || ""} ${st.notes || ""} ${st.statementMonth || ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [allStatements, statementMonthFilter, statementCurrencyFilter, searchStatements]);
+
+  // KPI-uri Facturi Primite (convertite în RON la cursul BNR pentru facturile externe în valută)
   const currentKpis = useMemo(() => {
     const totalCount = filteredInvoices.length;
     let totalBase = 0;
@@ -451,9 +487,9 @@ export default function AccountantPortal() {
     let withoutNirCount = 0;
 
     for (const inv of filteredInvoices) {
-      totalBase += inv.totalBase;
-      totalVat += inv.totalVAT;
-      totalGross += inv.total;
+      totalBase += inv.totalBaseRon ?? inv.totalBase;
+      totalVat += inv.totalVatRon ?? inv.totalVAT;
+      totalGross += inv.totalRon ?? inv.total;
       if (inv.hasNir) withNirCount++;
       else withoutNirCount++;
     }
@@ -470,7 +506,7 @@ export default function AccountantPortal() {
     };
   }, [filteredInvoices]);
 
-  // KPI-uri Facturi Emise
+  // KPI-uri Facturi Emise (convertite în RON la cursul BNR pentru facturile în valută)
   const currentEmittedKpis = useMemo(() => {
     const totalCount = filteredEmittedInvoices.length;
     let totalBase = 0;
@@ -478,9 +514,9 @@ export default function AccountantPortal() {
     let totalGross = 0;
 
     for (const inv of filteredEmittedInvoices) {
-      totalBase += inv.totalBase;
-      totalVat += inv.totalVAT;
-      totalGross += inv.total;
+      totalBase += inv.totalBaseRon ?? inv.totalBase;
+      totalVat += inv.totalVatRon ?? inv.totalVAT;
+      totalGross += inv.totalRon ?? inv.total;
     }
 
     return {
@@ -493,7 +529,11 @@ export default function AccountantPortal() {
 
   // Paginare
   const activeList =
-    activeTab === "received" ? filteredInvoices : filteredEmittedInvoices;
+    activeTab === "received"
+      ? filteredInvoices
+      : activeTab === "emitted"
+        ? filteredEmittedInvoices
+        : filteredStatements;
   const totalPages = Math.ceil(activeList.length / pageSize) || 1;
   const safePage = Math.min(page, totalPages);
   const paginatedItems = useMemo(() => {
@@ -542,13 +582,16 @@ export default function AccountantPortal() {
       "Nr. Crt.": idx + 1,
       "Dată Factură": formatDate(inv.issueDate),
       "Dată Scadență": formatDate(inv.dueDate),
+      "Sursă Document": inv.isExternal ? "Factură Externă / Non-SPV" : "SPV ANAF",
       Furnizor: inv.supplierName,
-      "CUI Furnizor": inv.supplierCUI || "",
+      "CUI / VAT Furnizor": inv.supplierCUI || "",
       "Număr Factură": inv.invoiceNumber,
-      "Valoare Bază (fără TVA)": inv.totalBase,
-      TVA: inv.totalVAT,
-      "Total General": inv.total,
+      "Valoare Bază (valută)": inv.totalBase,
+      "TVA (valută)": inv.totalVAT,
+      "Total Factură (valută)": inv.total,
       Monedă: inv.currency,
+      "Curs BNR": inv.fxRateToRon || 1,
+      "Total Echivalent (RON)": inv.totalRon ?? inv.total,
       "Status NIR": inv.hasNir ? "Generat" : "Fără NIR",
       "Număr NIR": inv.nirNumber || "",
       "Dată NIR": formatDate(inv.nirDate),
@@ -557,6 +600,26 @@ export default function AccountantPortal() {
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(rows);
+    worksheet["!cols"] = [
+      { wch: 8 },
+      { wch: 13 },
+      { wch: 13 },
+      { wch: 24 },
+      { wch: 30 },
+      { wch: 16 },
+      { wch: 18 },
+      { wch: 16 },
+      { wch: 14 },
+      { wch: 16 },
+      { wch: 10 },
+      { wch: 11 },
+      { wch: 18 },
+      { wch: 13 },
+      { wch: 14 },
+      { wch: 13 },
+      { wch: 14 },
+      { wch: 15 },
+    ];
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Facturi Primite & NIR");
 
@@ -579,18 +642,38 @@ export default function AccountantPortal() {
       "Nr. Crt.": idx + 1,
       "Dată Factură": formatDate(inv.issueDate),
       "Dată Scadență": formatDate(inv.dueDate),
+      "Sursă Document": inv.isExternal ? "Extern / Non-SPV" : inv.spvIndex ? "SPV ANAF" : "Emisă Platformă",
       Client: inv.clientName,
       "CUI Client": inv.clientCUI || "",
       "Număr Factură": inv.invoiceNumber,
-      "Valoare Bază (fără TVA)": inv.totalBase,
-      TVA: inv.totalVAT,
-      "Total Factură": inv.total,
+      "Valoare Bază (valută)": inv.totalBase,
+      "TVA (valută)": inv.totalVAT,
+      "Total Factură (valută)": inv.total,
       Monedă: inv.currency,
+      "Curs BNR": inv.fxRateToRon || 1,
+      "Total Echivalent (RON)": inv.totalRon ?? inv.total,
       Stare: inv.status,
       "Index SPV": inv.spvIndex || "",
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(rows);
+    worksheet["!cols"] = [
+      { wch: 8 },
+      { wch: 13 },
+      { wch: 13 },
+      { wch: 20 },
+      { wch: 30 },
+      { wch: 16 },
+      { wch: 18 },
+      { wch: 16 },
+      { wch: 14 },
+      { wch: 16 },
+      { wch: 10 },
+      { wch: 11 },
+      { wch: 18 },
+      { wch: 12 },
+      { wch: 15 },
+    ];
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Facturi Emise");
 
@@ -699,7 +782,15 @@ export default function AccountantPortal() {
                 const safeSupp = (inv.supplierName || "FURNIZ")
                   .replace(/[^a-zA-Z0-9-_]/g, "_")
                   .slice(0, 20);
-                invoicesFolder?.file(`Factura_${safeSupp}_${safeNum}.pdf`, blob);
+                const extFromMime = contentType.includes("png")
+                  ? "png"
+                  : contentType.includes("jpeg") || contentType.includes("jpg")
+                    ? "jpg"
+                    : contentType.includes("webp")
+                      ? "webp"
+                      : "pdf";
+                const prefix = inv.isExternal ? "Factura_Externa" : "Factura";
+                invoicesFolder?.file(`${prefix}_${safeSupp}_${safeNum}.${extFromMime}`, blob);
                 addedFiles++;
               }
             }
@@ -721,6 +812,31 @@ export default function AccountantPortal() {
                     inv.nirNumber || String(inv.nirId)
                   ).replace(/[^a-zA-Z0-9-_]/g, "_");
                   nirFolder?.file(`NIR_${safeNirNum}.pdf`, blob);
+                  addedFiles++;
+                }
+              }
+            }
+          } catch {}
+        }
+      }
+
+      // Include și extrasele de cont încărcate în folderul Extrase_de_Cont/ când nu există selecție strictă doar pe anumite facturi
+      if (selectedIds.size === 0 && allStatements.length > 0) {
+        const statementsFolder = zip.folder("Extrase_de_Cont");
+        for (const st of allStatements) {
+          try {
+            const stUrl = getAuthenticatedPdfUrl(`${st.downloadUrl}?download=1`);
+            if (stUrl) {
+              const stRes = await fetch(stUrl, { credentials: "include" });
+              const ct = stRes.headers.get("content-type") || "";
+              if (stRes.ok && !ct.includes("text/html")) {
+                const blob = await stRes.blob();
+                if (blob.size > 0) {
+                  const safeName = (
+                    st.fileName ||
+                    `Extras_${st.bankName}_${st.statementMonth}.${st.fileType || "pdf"}`
+                  ).replace(/[^a-zA-Z0-9._-]/g, "_");
+                  statementsFolder?.file(`${st.statementMonth}_${safeName}`, blob);
                   addedFiles++;
                 }
               }
@@ -762,6 +878,121 @@ export default function AccountantPortal() {
   };
 
   const handleDownloadZip = handleDownloadZipBundle;
+
+  const handleDownloadStatementsZip = async () => {
+    if (filteredStatements.length === 0) {
+      toast.error("Nu există extrase de cont pentru descărcare.");
+      return;
+    }
+    setIsDownloadingZip(true);
+    setZipProgress("Se descarcă extrasele de cont...");
+    const zip = new JSZip();
+    let added = 0;
+    try {
+      for (const st of filteredStatements) {
+        const stUrl = getAuthenticatedPdfUrl(`${st.downloadUrl}?download=1`);
+        if (!stUrl) continue;
+        const res = await fetch(stUrl, { credentials: "include" });
+        const ct = res.headers.get("content-type") || "";
+        if (res.ok && !ct.includes("text/html")) {
+          const blob = await res.blob();
+          if (blob.size > 0) {
+            const safeBank = String(st.bankName || "Banca").replace(/[^a-zA-Z0-9_-]/g, "_");
+            const safeName = String(st.fileName || `extras.${st.fileType || "pdf"}`).replace(
+              /[^a-zA-Z0-9._-]/g,
+              "_"
+            );
+            zip.file(`${st.statementMonth}_${safeBank}_${safeName}`, blob);
+            added++;
+          }
+        }
+      }
+      if (added === 0) {
+        toast.error("Fișierele extraselor nu au putut fi descărcate.");
+        return;
+      }
+      const content = await zip.generateAsync({ type: "blob" });
+      const companyName =
+        portalData?.company?.name?.replace(/[^a-zA-Z0-9-_]/g, "_") || "Firma";
+      const filename = `Extrase_Cont_${companyName}_${new Date().toISOString().slice(0, 10)}.zip`;
+      const url = URL.createObjectURL(content);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`Arhiva cu ${added} extrase de cont a fost descărcată!`);
+    } catch {
+      toast.error("Eroare la crearea arhivei de extrase.");
+    } finally {
+      setIsDownloadingZip(false);
+      setZipProgress("");
+    }
+  };
+
+  const handleExportStatementsExcel = () => {
+    if (filteredStatements.length === 0) {
+      toast.error("Nu există extrase de cont pentru export.");
+      return;
+    }
+    const rows = filteredStatements.map((st: any, idx: number) => ({
+      "Nr. Crt.": idx + 1,
+      "Lună Contabilă": st.statementMonth,
+      "De la": st.periodStart || "",
+      "Până la": st.periodEnd || "",
+      Bancă: st.bankName,
+      IBAN: st.iban || "",
+      Monedă: st.currency || "RON",
+      "Nr. Extras": st.statementNumber || "",
+      "Sold Inițial": st.openingBalance ?? "",
+      "Sold Final": st.closingBalance ?? "",
+      "Fișier Original": st.fileName,
+      Observații: st.notes || "",
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws["!cols"] = [
+      { wch: 8 },
+      { wch: 14 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 26 },
+      { wch: 28 },
+      { wch: 9 },
+      { wch: 14 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 30 },
+      { wch: 25 },
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Extrase de Cont");
+    const companyCui = portalData?.company?.cui ? `_${portalData.company.cui}` : "";
+    const filename = `Extrase_Cont${companyCui}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(wb, filename);
+    toast.success(`Fișierul ${filename} a fost exportat!`);
+  };
+
+  const handleDirectStatementDownload = async (st: any) => {
+    const url = getAuthenticatedPdfUrl(`${st.downloadUrl}?download=1`);
+    if (!url) return;
+    try {
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error("Eroare la descărcare");
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = st.fileName || `Extras_${st.bankName}_${st.statementMonth}.${st.fileType || "pdf"}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      window.open(url, "_blank");
+    }
+  };
 
   // 1. Ecran de încărcare inițială
   if (isLoadingPublic || (Boolean(sessionToken) && isCheckingSession)) {
@@ -813,6 +1044,9 @@ export default function AccountantPortal() {
 
   const incomingCount = portalData?.invoices?.length || 0;
   const emittedCount = portalData?.emittedInvoices?.length || 0;
+  const statementsCount = portalData?.bankStatements?.length || 0;
+  const sagaTab: "received" | "emitted" =
+    activeTab === "emitted" ? "emitted" : "received";
 
   // 4. Randare Mod SAGA C Clasic
   if (viewMode === "saga") {
@@ -822,7 +1056,7 @@ export default function AccountantPortal() {
           portalData={portalData}
           token={token}
           sessionToken={sessionToken}
-          activeTab={activeTab}
+          activeTab={sagaTab}
           setActiveTab={setActiveTab}
           search={search}
           setSearch={setSearch}
@@ -872,6 +1106,17 @@ export default function AccountantPortal() {
           onDownloadZip={handleDownloadZip}
           onLockSession={handleLockPortal}
           onSwitchToModern={handleToggleViewMode}
+          onViewStatementPdf={st =>
+            setPreviewDoc({
+              isOpen: true,
+              title: `Extras de cont ${st.bankName} — ${st.statementMonth}`,
+              pdfUrl: getAuthenticatedPdfUrl(st.downloadUrl),
+              filename: st.fileName,
+              type: "invoice",
+            })
+          }
+          onDownloadStatement={handleDirectStatementDownload}
+          onDownloadStatementsZip={handleDownloadStatementsZip}
         />
 
         <DocumentModalPreview
@@ -1010,6 +1255,36 @@ export default function AccountantPortal() {
               {emittedCount}
             </span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("statements")}
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-full text-[12.5px] transition-all cursor-pointer ${
+              activeTab === "statements"
+                ? "apple-sidebar-active"
+                : "text-[#3a3a3c] dark:text-[#ebebf5] font-medium hover:bg-black/[0.045] dark:hover:bg-white/[0.06]"
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <Landmark
+                className={`w-4 h-4 ${
+                  activeTab === "statements"
+                    ? "text-white"
+                    : "text-[#6e6e73] dark:text-[#98989d]"
+                }`}
+              />
+              <span>Extrase de cont</span>
+            </div>
+            <span
+              className={`px-2 py-0.5 rounded-full text-[11px] font-semibold tabular-nums ${
+                activeTab === "statements"
+                  ? "bg-white/20 text-white"
+                  : "bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#6e6e73] dark:text-[#98989d]"
+              }`}
+            >
+              {statementsCount}
+            </span>
+          </button>
         </nav>
 
         {/* Footer Sidebar: Buton Închide Sesiunea */}
@@ -1039,12 +1314,12 @@ export default function AccountantPortal() {
               </div>
             )}
           </div>
-          <div className="apple-segmented shrink-0">
+          <div className="apple-segmented shrink-0 max-w-full overflow-x-auto no-scrollbar">
             <button
               type="button"
               data-active={activeTab === "received"}
               onClick={() => setActiveTab("received")}
-              className="apple-segmented-item px-2.5 text-xs tabular-nums"
+              className="apple-segmented-item px-2 text-xs tabular-nums shrink-0"
             >
               Primite ({incomingCount})
             </button>
@@ -1052,9 +1327,17 @@ export default function AccountantPortal() {
               type="button"
               data-active={activeTab === "emitted"}
               onClick={() => setActiveTab("emitted")}
-              className="apple-segmented-item px-2.5 text-xs tabular-nums"
+              className="apple-segmented-item px-2 text-xs tabular-nums shrink-0"
             >
               Emise ({emittedCount})
+            </button>
+            <button
+              type="button"
+              data-active={activeTab === "statements"}
+              onClick={() => setActiveTab("statements")}
+              className="apple-segmented-item px-2 text-xs tabular-nums shrink-0"
+            >
+              Extrase ({statementsCount})
             </button>
           </div>
           <button
@@ -1074,12 +1357,14 @@ export default function AccountantPortal() {
               <h1 className="text-[22px] sm:text-[26px] font-bold tracking-[-0.026em] text-[#1d1d1f] dark:text-[#f5f5f7] leading-tight">
                 {activeTab === "received"
                   ? "Facturi primite & NIR-uri"
-                  : "Facturi emise (vânzări)"}
+                  : activeTab === "emitted"
+                    ? "Facturi emise (vânzări)"
+                    : "Extrase de cont bancare"}
               </h1>
               <p className="text-[12.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5 tabular-nums">
                 {activeTab === "received" ? (
                   <>
-                    Intrări de la furnizori ·{" "}
+                    Intrări de la furnizori (SPV + externe) ·{" "}
                     <strong className="text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold">
                       {incomingCount}
                     </strong>{" "}
@@ -1090,7 +1375,7 @@ export default function AccountantPortal() {
                       </span>
                     )}
                   </>
-                ) : (
+                ) : activeTab === "emitted" ? (
                   <>
                     Ieșiri către clienți ·{" "}
                     <strong className="text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold">
@@ -1100,6 +1385,19 @@ export default function AccountantPortal() {
                     {filteredEmittedInvoices.length !== emittedCount && (
                       <span className="ml-1.5 text-[#1d1d1f] dark:text-white font-medium">
                         ({filteredEmittedInvoices.length} afișate)
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    Extrase bancare lunare puse la dispoziție de firmă ·{" "}
+                    <strong className="text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold">
+                      {statementsCount}
+                    </strong>{" "}
+                    extrase
+                    {filteredStatements.length !== statementsCount && (
+                      <span className="ml-1.5 text-[#1d1d1f] dark:text-white font-medium">
+                        ({filteredStatements.length} afișate)
                       </span>
                     )}
                   </>
@@ -1176,7 +1474,7 @@ export default function AccountantPortal() {
                     )}
                   </button>
                 </>
-              ) : (
+              ) : activeTab === "emitted" ? (
                 <button
                   type="button"
                   onClick={handleExportEmittedExcel}
@@ -1186,6 +1484,36 @@ export default function AccountantPortal() {
                   <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                   <span>Export Excel (.xlsx)</span>
                 </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleExportStatementsExcel}
+                    disabled={filteredStatements.length === 0}
+                    className="apple-btn-glass flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-full text-[12.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] disabled:opacity-50 cursor-pointer"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span>Export Excel (.xlsx)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDownloadStatementsZip}
+                    disabled={filteredStatements.length === 0 || isDownloadingZip}
+                    className="apple-btn-prominent flex items-center justify-center gap-1.5 h-9 px-4 rounded-full text-white text-[12.5px] font-semibold disabled:opacity-50 cursor-pointer"
+                  >
+                    {isDownloadingZip ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>{zipProgress || "Comprimare..."}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Package className="w-3.5 h-3.5" />
+                        <span>Descarcă extrase (.zip)</span>
+                      </>
+                    )}
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -1621,6 +1949,10 @@ export default function AccountantPortal() {
                                   >
                                     SPV #{inv.spvIndex}
                                   </div>
+                                ) : inv.isExternal ? (
+                                  <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-500/12 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300 mt-0.5">
+                                    Extern / Non-SPV
+                                  </div>
                                 ) : null}
                               </td>
                               <td className="px-4 py-3 text-right tabular-nums text-[13px] text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
@@ -1630,7 +1962,12 @@ export default function AccountantPortal() {
                                 {formatCurrency(inv.totalVAT, inv.currency)}
                               </td>
                               <td className="px-4 py-3 text-right tabular-nums text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] whitespace-nowrap">
-                                {formatCurrency(inv.total, inv.currency)}
+                                <div>{formatCurrency(inv.total, inv.currency)}</div>
+                                {inv.currency && inv.currency !== "RON" && inv.totalRon !== undefined && (
+                                  <div className="text-[10.5px] font-medium text-[#8e8e93]">
+                                    ≈ {formatCurrency(inv.totalRon, "RON")}
+                                  </div>
+                                )}
                               </td>
                               <td className="px-4 py-3 text-center whitespace-nowrap">
                                 {inv.hasNir ? (
@@ -2099,6 +2436,10 @@ export default function AccountantPortal() {
                                   >
                                     SPV #{inv.spvIndex}
                                   </div>
+                                ) : inv.isExternal ? (
+                                  <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-500/12 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300 mt-0.5">
+                                    Extern / Non-SPV
+                                  </div>
                                 ) : null}
                               </td>
                               <td className="px-4 py-3 text-right tabular-nums text-[13px] text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
@@ -2108,7 +2449,12 @@ export default function AccountantPortal() {
                                 {formatCurrency(inv.totalVAT, inv.currency)}
                               </td>
                               <td className="px-4 py-3 text-right tabular-nums text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] whitespace-nowrap">
-                                {formatCurrency(inv.total, inv.currency)}
+                                <div>{formatCurrency(inv.total, inv.currency)}</div>
+                                {inv.currency && inv.currency !== "RON" && inv.totalRon !== undefined && (
+                                  <div className="text-[10.5px] font-medium text-[#8e8e93]">
+                                    ≈ {formatCurrency(inv.totalRon, "RON")}
+                                  </div>
+                                )}
                               </td>
                               <td className="px-4 py-3 text-center whitespace-nowrap">
                                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 dark:bg-emerald-500/18 dark:text-emerald-300 dark:border-emerald-500/25 leading-none">
@@ -2214,6 +2560,264 @@ export default function AccountantPortal() {
                       <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* TAB 3: EXTRASE DE CONT BANCARE */}
+          {activeTab === "statements" && (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                      Extrase disponibile
+                    </span>
+                    <span className="w-7 h-7 rounded-[8px] bg-[#f2f4f7] dark:bg-[#2c2c2e] flex items-center justify-center shrink-0">
+                      <Landmark className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#0a84ff]" />
+                    </span>
+                  </div>
+                  <span className="text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums leading-none">
+                    {filteredStatements.length}
+                  </span>
+                </div>
+
+                <div className="apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                      Luni contabile acoperite
+                    </span>
+                    <span className="w-7 h-7 rounded-[8px] bg-[#eefbf3] dark:bg-emerald-500/18 flex items-center justify-center shrink-0">
+                      <Calendar className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    </span>
+                  </div>
+                  <span className="text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums leading-none">
+                    {portalData?.bankStatementsKpis?.monthsCount ?? statementMonths.length}
+                  </span>
+                </div>
+
+                <div className="apple-surface px-4 sm:px-5 py-3.5 flex flex-col justify-between gap-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[12.5px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                      Bănci / Conturi
+                    </span>
+                    <span className="w-7 h-7 rounded-[8px] bg-[#fff6eb] dark:bg-amber-500/18 flex items-center justify-center shrink-0">
+                      <Coins className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                    </span>
+                  </div>
+                  <span className="text-[24px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums leading-none">
+                    {portalData?.bankStatementsKpis?.banksCount ?? 0}
+                  </span>
+                </div>
+              </div>
+
+              {/* Bara Filtre Extrase */}
+              <div className="apple-surface px-3 py-2.5">
+                <div className="flex flex-wrap xl:flex-nowrap items-center gap-2 w-full min-w-0">
+                  <div className="apple-segmented shrink-0 max-w-full overflow-x-auto no-scrollbar">
+                    {["all", "RON", "EUR", "USD"].map(cur => (
+                      <button
+                        key={cur}
+                        type="button"
+                        data-active={statementCurrencyFilter === cur}
+                        onClick={() => {
+                          setStatementCurrencyFilter(cur);
+                          setPage(1);
+                        }}
+                        className="apple-segmented-item px-3 shrink-0"
+                      >
+                        {cur === "all" ? "Toate valutele" : cur}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="xl:ml-auto flex flex-wrap sm:flex-nowrap items-center gap-2 w-full xl:w-auto xl:flex-1 justify-end min-w-0">
+                    <Select
+                      value={statementMonthFilter}
+                      onValueChange={v => {
+                        setStatementMonthFilter(v);
+                        setPage(1);
+                      }}
+                    >
+                      <SelectTrigger
+                        data-filtered={statementMonthFilter !== "all"}
+                        className="apple-pill-control h-[34px] w-auto min-w-[155px] px-3 shrink-0"
+                      >
+                        <Calendar className="w-3.5 h-3.5 text-[#6e6e73] dark:text-[#98989d] mr-1.5 shrink-0" />
+                        <SelectValue placeholder="Toate lunile" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Toate lunile</SelectItem>
+                        {statementMonths.map(m => (
+                          <SelectItem key={m} value={m}>
+                            {m}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <div className="relative flex-1 min-w-[150px] max-w-full sm:max-w-[260px]">
+                      <Search className="w-3.5 h-3.5 text-[#8e8e93] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        value={searchStatements}
+                        onChange={e => {
+                          setSearchStatements(e.target.value);
+                          setPage(1);
+                        }}
+                        placeholder="Caută bancă, IBAN, fișier..."
+                        style={{ paddingLeft: 34, paddingRight: searchStatements ? 32 : 14 }}
+                        className="apple-pill-control rounded-full w-full h-[34px] outline-none text-[16px] sm:text-[13px] text-[#1d1d1f] dark:text-white placeholder:text-[#8e8e93]"
+                      />
+                      {searchStatements && (
+                        <button
+                          type="button"
+                          onClick={() => setSearchStatements("")}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center hover:bg-black/[0.06] dark:hover:bg-white/[0.12] cursor-pointer"
+                        >
+                          <X className="w-3 h-3 text-[#6e6e73] dark:text-[#98989d]" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tabel Extrase de Cont */}
+              <div className="apple-surface overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
+                      <tr>
+                        <th className="px-3 py-3 w-12 text-center text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                          Nr.
+                        </th>
+                        <th className="px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                          Lună / Perioadă
+                        </th>
+                        <th className="px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                          Bancă & Cont IBAN
+                        </th>
+                        <th className="px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                          Fișier
+                        </th>
+                        <th className="px-4 py-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                          Sold inițial
+                        </th>
+                        <th className="px-4 py-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                          Sold final
+                        </th>
+                        <th className="px-4 py-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                          Document
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
+                      {paginatedItems.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={7}
+                            className="py-12 text-center text-[13px] text-[#6e6e73] dark:text-[#98989d]"
+                          >
+                            Nu există extrase de cont încărcate pentru selecția curentă.
+                          </td>
+                        </tr>
+                      ) : (
+                        paginatedItems.map((st: any, idx: number) => {
+                          const rowNumber = (safePage - 1) * pageSize + idx + 1;
+                          const isPdf = String(st.fileType || "").toLowerCase() === "pdf";
+                          return (
+                            <tr
+                              key={st.id}
+                              className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors"
+                            >
+                              <td className="px-3 py-3 text-center tabular-nums text-[12px] text-[#8e8e93]">
+                                {rowNumber}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap tabular-nums">
+                                <div className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                                  {st.statementMonth}
+                                </div>
+                                {(st.periodStart || st.periodEnd) && (
+                                  <div className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
+                                    {formatDate(st.periodStart)} – {formatDate(st.periodEnd)}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 max-w-[260px]">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] truncate">
+                                    {st.bankName}
+                                  </span>
+                                  <span className="px-2 py-0.5 rounded-full text-[10.5px] font-semibold bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#ebebf5] shrink-0">
+                                    {st.currency}
+                                  </span>
+                                </div>
+                                {st.iban && (
+                                  <div className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] tabular-nums truncate mt-0.5">
+                                    {st.iban}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 max-w-[240px]">
+                                <div
+                                  className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] truncate"
+                                  title={st.fileName}
+                                >
+                                  {st.fileName}
+                                </div>
+                                {st.notes && (
+                                  <div className="text-[11px] text-[#8e8e93] truncate mt-0.5">
+                                    {st.notes}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 text-right tabular-nums text-[13px] text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                                {st.openingBalance !== null && st.openingBalance !== undefined
+                                  ? formatCurrency(st.openingBalance, st.currency)
+                                  : "—"}
+                              </td>
+                              <td className="px-4 py-3 text-right tabular-nums text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] whitespace-nowrap">
+                                {st.closingBalance !== null && st.closingBalance !== undefined
+                                  ? formatCurrency(st.closingBalance, st.currency)
+                                  : "—"}
+                              </td>
+                              <td className="px-4 py-3 text-right whitespace-nowrap">
+                                <div className="inline-flex items-center justify-end gap-1.5">
+                                  {isPdf && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setPreviewDoc({
+                                          isOpen: true,
+                                          title: `Extras ${st.bankName} — ${st.statementMonth}`,
+                                          pdfUrl: getAuthenticatedPdfUrl(st.downloadUrl),
+                                          filename: st.fileName,
+                                          type: "invoice",
+                                        })
+                                      }
+                                      title="Previzualizează PDF"
+                                      className="w-8 h-8 rounded-full apple-btn-glass inline-flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] cursor-pointer"
+                                    >
+                                      <Eye className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDirectStatementDownload(st)}
+                                    title="Descarcă fișierul original"
+                                    className="w-8 h-8 rounded-full apple-btn-glass inline-flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] cursor-pointer"
+                                  >
+                                    <Download className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </>

@@ -1819,6 +1819,37 @@ export async function createInvoiceArchiveEntry(data: InsertInvoiceArchive) {
     } catch (e) {
       console.warn("Failed to extract lines from manual XML upload:", e);
     }
+  } else if (data.total !== undefined && data.total !== null && String(data.total).trim() !== "") {
+    try {
+      const grossVal = parseFloat(String(data.total));
+      const vatVal = parseFloat(String(data.totalVAT || "0"));
+      if (!isNaN(grossVal) && grossVal !== 0) {
+        const isNeg = grossVal < 0;
+        const netBase = Math.round((grossVal - (isNaN(vatVal) ? 0 : vatVal)) * 100) / 100;
+        const computedVatPct =
+          netBase !== 0 && !isNaN(vatVal) && vatVal !== 0
+            ? Math.max(0, Math.round((Math.abs(vatVal) / Math.abs(netBase)) * 10000) / 100)
+            : 0;
+        const lineDesc =
+          (data.notes && String(data.notes).trim().slice(0, 250)) ||
+          (data.supplierName ? `Servicii / Achiziție — ${data.supplierName}` : null) ||
+          (data.invoiceNumber ? `Factură ${data.invoiceNumber}` : "Factură externă");
+        await db.insert(invoiceArchiveLines).values([
+          {
+            invoiceArchiveId: id,
+            description: lineDesc,
+            quantity: (isNeg ? "-1" : "1") as any,
+            unitPrice: String(Math.abs(netBase)) as any,
+            unit: "buc",
+            vatRate: String(computedVatPct) as any,
+            total: String(netBase) as any,
+            currency: (data.currency || "RON").slice(0, 3).toUpperCase(),
+          },
+        ]);
+      }
+    } catch (e) {
+      console.warn("Failed to create summary line for manual invoice:", e);
+    }
   }
   
   const [entry] = await db

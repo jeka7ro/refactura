@@ -314,6 +314,7 @@ export async function requirePdfAccess(
       deviz: schema.devize,
       "bon-consum": schema.bonuriConsum,
       contract: schema.contracts,
+      "bank-statement": schema.bankStatements,
     };
     const table = tables[resource];
     if (!table && resource !== "spv-document") {
@@ -325,6 +326,11 @@ export async function requirePdfAccess(
     if (!db) {
       res.status(500).json({ error: "DB unavailable" });
       return;
+    }
+
+    if (resource === "bank-statement") {
+      const { ensureBankStatementsTable } = await import("./bankStatementsRouter");
+      await ensureBankStatementsTable(db);
     }
 
     let row: any = null;
@@ -518,7 +524,9 @@ export async function requirePdfAccess(
  * un fișier care aparține (e referit de) o altă firmă nu poate fi deschis de o firmă străină.
  * Fișierele încă nereferite trebuie să poarte prefixul t${tenantId}- al unei firme accesibile utilizatorului.
  */
-export function requireUploadAccess(kind: "invoices" | "contracts" | "spv_documents") {
+export function requireUploadAccess(
+  kind: "invoices" | "contracts" | "spv_documents" | "bank_statements"
+) {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       let name = req.path.replace(/^\/+/, "");
@@ -546,6 +554,13 @@ export function requireUploadAccess(kind: "invoices" | "contracts" | "spv_docume
           sql`SELECT tenantId FROM spv_portal_documents WHERE fileUrl = ${url}`
         );
         owners = (spvRows || []).filter((r: any) => r?.tenantId);
+      } else if (kind === "bank_statements") {
+        const { ensureBankStatementsTable } = await import("./bankStatementsRouter");
+        await ensureBankStatementsTable(db);
+        owners = await db
+          .select({ tenantId: schema.bankStatements.tenantId })
+          .from(schema.bankStatements)
+          .where(eq(schema.bankStatements.fileUrl, url));
       } else {
         const table: any = kind === "invoices" ? schema.invoiceArchive : schema.contracts;
         owners = await db

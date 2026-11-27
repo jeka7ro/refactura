@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { useTableSort } from "@/hooks/useTableSort";
 import { useLocation } from "wouter";
+import ExternalInvoiceImportModal from "@/components/ExternalInvoiceImportModal";
 
 const SOURCE_LABELS: Record<string, string> = {
   smartbill: "SmartBill",
@@ -97,7 +98,8 @@ export default function InvoiceArchive() {
   const [limit, setLimit] = useState(20);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [, setIsDragging] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [showExternalModal, setShowExternalModal] = useState(false);
+  const [droppedFiles, setDroppedFiles] = useState<File[] | undefined>(undefined);
   const [selectedEntry, setSelectedEntry] = useState<any>(null);
   const [showMetaModal, setShowMetaModal] = useState(false);
   const [metaForm, setMetaForm] = useState<any>({});
@@ -182,46 +184,12 @@ export default function InvoiceArchive() {
     onSuccess: () => refetch(),
   });
 
-  const handleFiles = useCallback(
-    async (files: FileList | File[]) => {
-      const fileArray = Array.from(files);
-      if (!fileArray.length) return;
-      setUploading(true);
-      try {
-        for (const file of fileArray) {
-          const formData = new FormData();
-          formData.append("file", file);
-          const res = await fetch("/api/upload-invoice", {
-            method: "POST",
-            body: formData,
-            credentials: "include",
-          });
-          if (!res.ok) {
-            const err = await res.text();
-            throw new Error(err || "Upload eșuat");
-          }
-          const { fileKey, fileUrl } = await res.json();
-          const ext = file.name.split(".").pop()?.toLowerCase();
-          const fileType =
-            ext === "pdf" ? "pdf" : ext === "xml" ? "xml" : "other";
-          await createMutation.mutateAsync({
-            fileKey,
-            fileUrl,
-            fileName: file.name,
-            fileType: fileType as any,
-            fileSize: file.size,
-            source: "pdf_manual",
-          });
-        }
-        toast.success(`${fileArray.length} fișier(e) încărcat(e)`);
-      } catch (e: any) {
-        toast.error(e.message);
-      } finally {
-        setUploading(false);
-      }
-    },
-    [createMutation]
-  );
+  const handleFiles = useCallback((files: FileList | File[]) => {
+    const fileArray = Array.from(files);
+    if (!fileArray.length) return;
+    setDroppedFiles(fileArray);
+    setShowExternalModal(true);
+  }, []);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -286,22 +254,20 @@ export default function InvoiceArchive() {
           </button>
           <button
             type="button"
-            disabled={uploading}
-            onClick={() => fileInputRef.current?.click()}
-            className="apple-btn-prominent flex items-center justify-center gap-1.5 h-9 px-4 rounded-full text-white text-[12.5px] font-semibold disabled:opacity-60 cursor-pointer"
+            onClick={() => {
+              setDroppedFiles(undefined);
+              setShowExternalModal(true);
+            }}
+            className="apple-btn-prominent flex items-center justify-center gap-1.5 h-9 px-4 rounded-full text-white text-[12.5px] font-semibold cursor-pointer"
           >
-            {uploading ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Upload className="w-3.5 h-3.5" />
-            )}
-            <span>{uploading ? "Se încarcă..." : "Încarcă facturi"}</span>
+            <Upload className="w-3.5 h-3.5" />
+            <span>Încarcă facturi externe</span>
           </button>
           <input
             ref={fileInputRef}
             type="file"
             multiple
-            accept=".pdf,.xml"
+            accept=".pdf,.xml,.png,.jpg,.jpeg,.webp"
             className="hidden"
             onChange={e => e.target.files && handleFiles(e.target.files)}
           />
@@ -1029,6 +995,8 @@ export default function InvoiceArchive() {
                       <SelectItem value="RON">RON</SelectItem>
                       <SelectItem value="EUR">EUR</SelectItem>
                       <SelectItem value="USD">USD</SelectItem>
+                      <SelectItem value="GBP">GBP</SelectItem>
+                      <SelectItem value="CHF">CHF</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1094,6 +1062,16 @@ export default function InvoiceArchive() {
           </div>
         </div>
       )}
+
+      <ExternalInvoiceImportModal
+        open={showExternalModal}
+        initialFiles={droppedFiles}
+        onClose={() => {
+          setShowExternalModal(false);
+          setDroppedFiles(undefined);
+        }}
+        onSuccess={() => refetch()}
+      />
     </div>
   );
 }

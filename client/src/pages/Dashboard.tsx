@@ -101,16 +101,22 @@ interface UnifiedInvoice {
 // BNR conversion reference for unified RON KPI
 const DEFAULT_EUR_TO_RON = 5.2537;
 const DEFAULT_USD_TO_RON = 4.5164;
+const DEFAULT_GBP_TO_RON = 5.85;
+const DEFAULT_CHF_TO_RON = 5.32;
 
 function toRon(
   amount: number,
   currency: string,
   eurRate = DEFAULT_EUR_TO_RON,
-  usdRate = DEFAULT_USD_TO_RON
+  usdRate = DEFAULT_USD_TO_RON,
+  gbpRate = DEFAULT_GBP_TO_RON,
+  chfRate = DEFAULT_CHF_TO_RON
 ): number {
   const cur = (currency || "RON").toUpperCase();
   if (cur === "EUR") return amount * eurRate;
   if (cur === "USD") return amount * usdRate;
+  if (cur === "GBP") return amount * gbpRate;
+  if (cur === "CHF") return amount * chfRate;
   return amount;
 }
 
@@ -256,6 +262,8 @@ export default function Dashboard() {
 
   const liveEurRate = bnrData?.rates?.EUR || DEFAULT_EUR_TO_RON;
   const liveUsdRate = bnrData?.rates?.USD || DEFAULT_USD_TO_RON;
+  const liveGbpRate = bnrData?.rates?.GBP || DEFAULT_GBP_TO_RON;
+  const liveChfRate = bnrData?.rates?.CHF || DEFAULT_CHF_TO_RON;
 
   const switchTenantMutation = trpc.tenants.switchTenant.useMutation({
     onSuccess: (data) => {
@@ -341,28 +349,27 @@ export default function Dashboard() {
         type: isPrimit ? "primit" : "emis",
         number: i.invoiceNumber || `#${i.id}`,
         partnerName: isPrimit
-          ? i.supplierName || "Furnizor SPV"
-          : i.supplierName || i.customerName || "Client SPV",
+          ? i.supplierName || (i.source === "spv_anaf" ? "Furnizor SPV" : "Furnizor extern")
+          : i.supplierName || i.customerName || "Client",
         partnerCui: isPrimit
           ? i.supplierCUI || ""
           : i.customerCUI || i.supplierCUI || "",
         date: i.issueDate || i.createdAt || "",
         dueDate: i.dueDate || "",
         rawTotal: rawTot,
-        totalRon: toRon(rawTot, cur, liveEurRate, liveUsdRate),
+        totalRon: toRon(rawTot, cur, liveEurRate, liveUsdRate, liveGbpRate, liveChfRate),
         totalVATRon: toRon(
           Number.isFinite(vat) ? vat : 0,
           cur,
           liveEurRate,
-          liveUsdRate
+          liveUsdRate,
+          liveGbpRate,
+          liveChfRate
         ),
         currency: cur,
         status: rawTot < 0 ? "storno" : i.status || "pending",
         source: i.source || "spv_anaf",
-        fileUrl:
-          i.source === "spv_anaf" || i.fileUrl === "spv_import"
-            ? `/api/pdf/archive/${i.id}`
-            : i.fileUrl,
+        fileUrl: `/api/pdf/archive/${i.id}`,
         spvStatus: i.spvStatus,
       });
     });

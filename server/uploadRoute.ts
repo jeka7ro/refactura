@@ -9,17 +9,38 @@ import { resolveRequestTenant } from "./fileAuth";
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 16 * 1024 * 1024 }, // 16MB
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB
   fileFilter: (
     _req: Request,
     file: Express.Multer.File,
     cb: FileFilterCallback
   ) => {
-    const extOk = /\.(pdf|xml)$/i.test(file.originalname);
+    const extOk = /\.(pdf|xml|png|jpg|jpeg|webp)$/i.test(file.originalname);
     if (extOk) {
       cb(null, true);
     } else {
-      cb(new Error("Doar fișiere PDF și XML sunt acceptate"));
+      cb(new Error("Sunt acceptate fișiere PDF, XML sau imagini (PNG, JPG, WEBP)"));
+    }
+  },
+});
+
+const bankStatementUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB
+  fileFilter: (
+    _req: Request,
+    file: Express.Multer.File,
+    cb: FileFilterCallback
+  ) => {
+    const extOk = /\.(pdf|csv|txt|sta|mt940|940|xml|xlsx|xls|zip)$/i.test(file.originalname);
+    if (extOk) {
+      cb(null, true);
+    } else {
+      cb(
+        new Error(
+          "Sunt acceptate extrase în format PDF, CSV, MT940 (.sta/.mt940/.txt), XML, Excel (.xlsx/.xls) sau ZIP"
+        )
+      );
     }
   },
 });
@@ -658,10 +679,594 @@ export function attachSagaClientiImportRoute(app: Express) {
   );
 }
 
+const MONTH_NAME_MAP: Record<string, string> = {
+  jan: "01", january: "01", ian: "01", ianuarie: "01",
+  feb: "02", february: "02", februarie: "02",
+  mar: "03", march: "03", martie: "03",
+  apr: "04", april: "04", aprilie: "04",
+  may: "05", mai: "05",
+  jun: "06", june: "06", iun: "06", iunie: "06",
+  jul: "07", july: "07", iul: "07", iulie: "07",
+  aug: "08", august: "08",
+  sep: "09", sept: "09", september: "09", septembrie: "09",
+  oct: "10", october: "10", octombrie: "10",
+  nov: "11", november: "11", noi: "11", noiembrie: "11",
+  dec: "12", december: "12", decembrie: "12",
+};
+
+export function parseFlexibleDateToIso(raw?: string | null): string | null {
+  if (!raw) return null;
+  const s = String(raw).trim();
+  const iso = s.match(/\b(20\d{2})[-./](0[1-9]|1[0-2])[-./](0[1-9]|[12]\d|3[01])\b/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+
+  const dmy = s.match(/\b(0?[1-9]|[12]\d|3[01])[./-](0?[1-9]|1[0-2])[./-](20\d{2})\b/);
+  if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, "0")}-${dmy[1].padStart(2, "0")}`;
+
+  const engMdy = s.match(/\b([A-Za-zĂÂÎȘȚăâîșț]{3,12})\.?\s+(0?[1-9]|[12]\d|3[01]),?\s+(20\d{2})\b/);
+  if (engMdy) {
+    const mm = MONTH_NAME_MAP[engMdy[1].toLowerCase()];
+    if (mm) return `${engMdy[3]}-${mm}-${engMdy[2].padStart(2, "0")}`;
+  }
+
+  const engDmy = s.match(/\b(0?[1-9]|[12]\d|3[01])\s+([A-Za-zĂÂÎȘȚăâîșț]{3,12})\.?,?\s+(20\d{2})\b/);
+  if (engDmy) {
+    const mm = MONTH_NAME_MAP[engDmy[2].toLowerCase()];
+    if (mm) return `${engDmy[3]}-${mm}-${engDmy[1].padStart(2, "0")}`;
+  }
+
+  return null;
+}
+
+export function parseFlexibleAmount(raw?: string | null): string | null {
+  if (!raw) return null;
+  let s = String(raw).trim().replace(/\s+/g, "");
+  if (!s) return null;
+  const isNeg = s.startsWith("-") || (s.startsWith("(") && s.endsWith(")"));
+  s = s.replace(/^[-(]+|[)]+$/g, "");
+  if (s.includes(",") && s.includes(".")) {
+    if (s.lastIndexOf(",") > s.lastIndexOf(".")) {
+      // European: 1.234,56
+      s = s.replace(/\./g, "").replace(",", ".");
+    } else {
+      // US/UK: 1,234.56
+      s = s.replace(/,/g, "");
+    }
+  } else if (s.includes(",")) {
+    const parts = s.split(",");
+    if (parts[parts.length - 1].length === 2) {
+      s = parts.slice(0, -1).join("") + "." + parts[parts.length - 1];
+    } else {
+      s = s.replace(/,/g, "");
+    }
+  }
+  const n = parseFloat(s);
+  if (isNaN(n)) return null;
+  return (isNeg ? -Math.abs(n) : n).toFixed(2);
+}
+
+const KNOWN_GLOBAL_VENDORS: Array<{ pattern: RegExp; name: string; cui?: string }> = [
+  { pattern: /\bGoogle\s+Ireland\s+Limited\b/i, name: "Google Ireland Limited", cui: "IE6388047V" },
+  { pattern: /\bGoogle\s+Cloud\s+EMEA\s+Limited\b/i, name: "Google Cloud EMEA Limited", cui: "IE3668997OH" },
+  { pattern: /\bMeta\s+Platforms\s+Ireland\s+Limited\b/i, name: "Meta Platforms Ireland Limited", cui: "IE9692928F" },
+  { pattern: /\bFacebook\s+Ireland\s+Limited\b/i, name: "Meta Platforms Ireland Limited", cui: "IE9692928F" },
+  { pattern: /\bOpenAI\s+Ireland\s+L(?:imited|td)\b/i, name: "OpenAI Ireland Ltd", cui: "IE4193588BH" },
+  { pattern: /\bOpenAI,?\s*L\.?L\.?C\.?\b/i, name: "OpenAI, L.L.C." },
+  { pattern: /\bAnthropic\s+Ireland\b/i, name: "Anthropic Ireland, Ltd." },
+  { pattern: /\bAnthropic,?\s*PBC\b/i, name: "Anthropic, PBC" },
+  { pattern: /\bHetzner\s+Online\s+GmbH\b/i, name: "Hetzner Online GmbH", cui: "DE812871812" },
+  { pattern: /\bAmazon\s+Web\s+Services\s+EMEA\s+SARL\b/i, name: "Amazon Web Services EMEA SARL", cui: "LU26888617" },
+  { pattern: /\bAmazon\s+EU\s+S\.?[aà]\.?r\.?l\.?\b/i, name: "Amazon EU S.à r.l.", cui: "LU20260743" },
+  { pattern: /\bCloudflare,?\s*Inc\.?\b/i, name: "Cloudflare, Inc." },
+  { pattern: /\bDigitalOcean,?\s*LLC\b/i, name: "DigitalOcean, LLC" },
+  { pattern: /\bMicrosoft\s+Ireland\s+Operations\s+Limited\b/i, name: "Microsoft Ireland Operations Limited", cui: "IE8256796U" },
+  { pattern: /\bApple\s+Distribution\s+International\b/i, name: "Apple Distribution International Ltd.", cui: "IE9700053D" },
+  { pattern: /\bAdobe\s+Systems\s+Software\s+Ireland\b/i, name: "Adobe Systems Software Ireland Ltd.", cui: "IE6364992H" },
+  { pattern: /\bStripe\s+Payments\s+Europe\b/i, name: "Stripe Payments Europe, Limited", cui: "IE3206488LH" },
+  { pattern: /\bGitHub,?\s*Inc\.?\b/i, name: "GitHub, Inc." },
+  { pattern: /\bVercel\s+Inc\.?\b/i, name: "Vercel Inc." },
+  { pattern: /\bAtlassian\s+Pty\s+Ltd\b/i, name: "Atlassian Pty Ltd" },
+  { pattern: /\bZoom\s+Video\s+Communications\b/i, name: "Zoom Video Communications, Inc." },
+  { pattern: /\bBolt\s+Operations\s+O[ÜU]\b/i, name: "Bolt Operations OÜ", cui: "EE102090374" },
+  { pattern: /\bBooking\.com\s+B\.?V\.?\b/i, name: "Booking.com B.V.", cui: "NL805734958B01" },
+  { pattern: /\bAirbnb\s+Ireland\s+UC\b/i, name: "Airbnb Ireland UC", cui: "IE9827384L" },
+];
+
+export async function extractExternalInvoiceMetadata(
+  buf: Buffer,
+  originalName: string,
+  tenantCui?: string | null,
+  tenantName?: string | null
+): Promise<{
+  invoiceNumber: string | null;
+  supplierName: string | null;
+  supplierCUI: string | null;
+  issueDate: string | null;
+  dueDate: string | null;
+  total: string | null;
+  totalVAT: string | null;
+  currency: string;
+  direction: "in" | "out";
+  rawXml: string | null;
+}> {
+  const ext = path.extname(originalName).toLowerCase();
+  const cleanTenantCui = String(tenantCui || "")
+    .toUpperCase()
+    .replace(/^RO/, "")
+    .replace(/[^A-Z0-9]/g, "");
+  const cleanTenantName = String(tenantName || "")
+    .toLowerCase()
+    .replace(/s\.?r\.?l\.?|s\.?a\.?/g, "")
+    .trim();
+
+  if (ext === ".xml") {
+    try {
+      const xmlStr = buf.toString("utf8");
+      const { XMLParser } = await import("fast-xml-parser");
+      const parser = new XMLParser({
+        numberParseOptions: { leadingZeros: false, hex: false, eNotation: false },
+        ignoreAttributes: false,
+        attributeNamePrefix: "@_",
+      });
+      const parsed = parser.parse(xmlStr);
+      const inv =
+        parsed.Invoice ||
+        parsed.CreditNote ||
+        parsed["ubl:Invoice"] ||
+        parsed["ubl:CreditNote"] ||
+        parsed.Factura;
+      if (inv) {
+        const getTxt = (v: any): string => {
+          if (v === null || v === undefined) return "";
+          if (typeof v === "object") return String(v["#text"] ?? "");
+          return String(v);
+        };
+        const first = (v: any) => (Array.isArray(v) ? v[0] : v);
+        const isCredit = !!(
+          parsed.CreditNote ||
+          parsed["ubl:CreditNote"] ||
+          getTxt(inv["cbc:InvoiceTypeCode"] || inv["InvoiceTypeCode"]).trim() === "381"
+        );
+        const supParty =
+          first(inv["cac:AccountingSupplierParty"])?.["cac:Party"] ||
+          first(inv["AccountingSupplierParty"])?.["Party"];
+        const custParty =
+          first(inv["cac:AccountingCustomerParty"])?.["cac:Party"] ||
+          first(inv["AccountingCustomerParty"])?.["Party"];
+
+        const extractParty = (party: any) => {
+          const legal = first(party?.["cac:PartyLegalEntity"] || party?.["PartyLegalEntity"]);
+          const tax = first(party?.["cac:PartyTaxScheme"] || party?.["PartyTaxScheme"]);
+          const pName = first(party?.["cac:PartyName"] || party?.["PartyName"]);
+          const name =
+            getTxt(legal?.["cbc:RegistrationName"] || legal?.["RegistrationName"]) ||
+            getTxt(pName?.["cbc:Name"] || pName?.["Name"]);
+          const cui =
+            getTxt(tax?.["cbc:CompanyID"] || tax?.["CompanyID"]) ||
+            getTxt(legal?.["cbc:CompanyID"] || legal?.["CompanyID"]);
+          return { name: name.trim(), cui: cui.trim() };
+        };
+
+        const sup = extractParty(supParty);
+        const cust = extractParty(custParty);
+        const normSupCui = sup.cui.toUpperCase().replace(/^RO/, "").replace(/[^A-Z0-9]/g, "");
+        const direction: "in" | "out" =
+          cleanTenantCui && normSupCui && normSupCui === cleanTenantCui ? "out" : "in";
+        const partner = direction === "out" ? cust : sup;
+
+        const monetary =
+          first(inv["cac:LegalMonetaryTotal"] || inv["LegalMonetaryTotal"]) || {};
+        const totalRaw =
+          getTxt(monetary["cbc:TaxInclusiveAmount"] || monetary["TaxInclusiveAmount"]) ||
+          getTxt(monetary["cbc:PayableAmount"] || monetary["PayableAmount"]) ||
+          "0";
+        const taxTotal = first(inv["cac:TaxTotal"] || inv["TaxTotal"]);
+        const vatRaw = getTxt(taxTotal?.["cbc:TaxAmount"] || taxTotal?.["TaxAmount"]) || "0";
+        let totalNum = parseFloat(totalRaw) || 0;
+        let vatNum = parseFloat(vatRaw) || 0;
+        if (isCredit && totalNum > 0) {
+          totalNum = -totalNum;
+          vatNum = -Math.abs(vatNum);
+        }
+        const currency = (
+          getTxt(inv["cbc:DocumentCurrencyCode"] || inv["DocumentCurrencyCode"]) || "RON"
+        )
+          .trim()
+          .toUpperCase()
+          .slice(0, 3);
+
+        return {
+          invoiceNumber: getTxt(inv["cbc:ID"] || inv["ID"]).trim() || null,
+          supplierName: partner.name || null,
+          supplierCUI: partner.cui || null,
+          issueDate: parseFlexibleDateToIso(getTxt(inv["cbc:IssueDate"] || inv["IssueDate"])),
+          dueDate: parseFlexibleDateToIso(getTxt(inv["cbc:DueDate"] || inv["DueDate"])),
+          total: totalNum.toFixed(2),
+          totalVAT: vatNum.toFixed(2),
+          currency: currency || "RON",
+          direction,
+          rawXml: xmlStr,
+        };
+      }
+    } catch (e) {
+      console.warn("[External Invoice Upload] XML parse warning:", e);
+    }
+  }
+
+  let text = "";
+  if (ext === ".pdf") {
+    text = extractContractTextAndHtml(buf, originalName).text;
+    if (!text || text.length < 20) {
+      // Fallback printable ASCII strings for PDFs with uncompressed text runs
+      const rawPrintable = buf
+        .toString("latin1")
+        .replace(/[^\x20-\x7E\r\n]/g, " ")
+        .replace(/\s+/g, " ");
+      text = rawPrintable.slice(0, 40000);
+    }
+  }
+
+  const combinedSource = `${text}\n${originalName}`;
+
+  // 1. Currency
+  let currency = "EUR";
+  if (/\bRON\b|\bLEI\b/i.test(text)) currency = "RON";
+  else if (/\bEUR\b|€/.test(text)) currency = "EUR";
+  else if (/\bUSD\b|\bUS\$|\$(?=\s*\d)/.test(text)) currency = "USD";
+  else if (/\bGBP\b|£/.test(text)) currency = "GBP";
+  else if (/\bCHF\b/i.test(text)) currency = "CHF";
+  else if (/\bRON\b/i.test(originalName)) currency = "RON";
+  else if (/\bUSD\b/i.test(originalName)) currency = "USD";
+  else if (!text) currency = "EUR";
+
+  // 2. Supplier & CUI / EU VAT ID
+  let supplierName: string | null = null;
+  let supplierCUI: string | null = null;
+  for (const v of KNOWN_GLOBAL_VENDORS) {
+    if (v.pattern.test(combinedSource)) {
+      supplierName = v.name;
+      if (v.cui) supplierCUI = v.cui;
+      break;
+    }
+  }
+
+  if (!supplierCUI && text) {
+    const vatMatches =
+      text.match(
+        /\b(?:IE[0-9A-Z]{7,9}|DE\d{9}|LU\d{8}|NL[0-9A-Z]{12}|FR[0-9A-Z]{11}|BE0?\d{9,10}|AT\s*U\d{8}|ES[0-9A-Z]{9}|IT\d{11}|PL\d{10}|CZ\d{8,10}|BG\d{9,10}|CY[0-9A-Z]{9}|EE\d{9}|HU\d{8}|RO\s*\d{2,10})\b/g
+      ) || [];
+    for (const candidate of vatMatches) {
+      const cleaned = candidate.replace(/\s+/g, "").toUpperCase();
+      const bare = cleaned.replace(/^RO/, "");
+      if (cleanTenantCui && bare === cleanTenantCui) continue;
+      supplierCUI = cleaned;
+      break;
+    }
+  }
+
+  if (!supplierName && text) {
+    const supLabelMatch = text.match(
+      /(?:Furnizor|Supplier|Issued\s+by|Seller|Vendor|From)\s*[:\-]\s*([A-Z0-9][A-Za-z0-9\s.,&()\-]{2,70}?)(?=\s+(?:CIF|CUI|VAT|Tax|Reg|Address|Adresa|Client|Customer|Bill\s+to|Invoice|\d{2}[./-]\d{2}))/i
+    );
+    if (supLabelMatch) {
+      const cand = supLabelMatch[1].trim();
+      if (!cleanTenantName || !cand.toLowerCase().includes(cleanTenantName)) {
+        supplierName = cand;
+      }
+    }
+  }
+
+  if (!supplierName && text) {
+    const companyMatches =
+      text.match(
+        /\b([A-Z][A-Za-z0-9&.,\- ]{2,55}\s+(?:Limited|Ltd\.?|GmbH|S\.?A\.?R\.?L\.?|B\.?V\.?|Inc\.?|L\.?L\.?C\.?|PBC|O[ÜU]|S\.?R\.?L\.?|S\.?A\.?))\b/g
+      ) || [];
+    for (const cand of companyMatches) {
+      const trimmed = cand.trim();
+      if (cleanTenantName && trimmed.toLowerCase().includes(cleanTenantName)) continue;
+      supplierName = trimmed;
+      break;
+    }
+  }
+
+  // 3. Invoice number
+  let invoiceNumber: string | null = null;
+  if (text) {
+    const invMatch = text.match(
+      /(?:Invoice\s*(?:number|no\.?|#)|Factur[aă]\s*(?:seria\s*[A-Z0-9]+\s*)?(?:nr\.?|num[aă]r)?|Receipt\s*(?:number|no\.?|#)|Document\s*(?:no\.?|number))\s*[:#\-]?\s*([A-Z0-9][A-Z0-9\-\/_]{2,32})/i
+    );
+    if (invMatch && /\d/.test(invMatch[1])) {
+      invoiceNumber = invMatch[1].trim();
+    }
+  }
+  if (!invoiceNumber) {
+    const baseName = path.basename(originalName, ext).replace(/^t\d+-\d+-/, "");
+    const fnMatch = baseName.match(/\b([A-Z]{1,6}[-_]?\d{3,16}|\d{5,16})\b/i);
+    if (fnMatch) invoiceNumber = fnMatch[1];
+  }
+
+  // 4. Issue Date & Due Date
+  let issueDate: string | null = null;
+  let dueDate: string | null = null;
+  if (text) {
+    const issueLabelMatch = text.match(
+      /(?:Invoice\s+date|Date\s+of\s+issue|Issue\s+date|Data\s+emiterii|Data\s+facturii|Date)\s*[:\-]?\s*([A-Za-z0-9,./\-\s]{6,22})/i
+    );
+    if (issueLabelMatch) issueDate = parseFlexibleDateToIso(issueLabelMatch[1]);
+
+    const dueLabelMatch = text.match(
+      /(?:Due\s+date|Payment\s+due|Data\s+scaden[tț]ei|Scaden[tț][aă]|Termen\s+plat[aă])\s*[:\-]?\s*([A-Za-z0-9,./\-\s]{6,22})/i
+    );
+    if (dueLabelMatch) dueDate = parseFlexibleDateToIso(dueLabelMatch[1]);
+
+    if (!issueDate) {
+      issueDate = parseFlexibleDateToIso(text);
+    }
+  }
+  if (!issueDate) {
+    issueDate = parseFlexibleDateToIso(originalName);
+  }
+
+  // 5. Total & VAT
+  let total: string | null = null;
+  let totalVAT: string | null = null;
+  if (text) {
+    const totalMatch = text.match(
+      /(?:Total\s*(?:de\s*plat[aă]|cu\s*TVA|general|amount|due|payable|in\s+[A-Z]{3})?|Amount\s*(?:due|paid|charged)|Grand\s*total|Balance\s*due)\s*[:\-]?\s*(?:EUR|USD|RON|LEI|GBP|CHF|€|\$|£)?\s*(-?[0-9]{1,3}(?:[.,][0-9]{3})*[.,][0-9]{2}|-?[0-9]+[.,][0-9]{2})/i
+    );
+    if (totalMatch) {
+      total = parseFlexibleAmount(totalMatch[1]);
+    }
+    const vatMatch = text.match(
+      /(?:Total\s*TVA|Valoare\s*TVA|TVA|VAT(?:\s*amount)?|Tax(?:\s*amount)?)\s*(?:\(\d+(?:[.,]\d+)?%\))?\s*[:\-]?\s*(?:EUR|USD|RON|LEI|GBP|CHF|€|\$|£)?\s*(-?[0-9]{1,3}(?:[.,][0-9]{3})*[.,][0-9]{2}|-?[0-9]+[.,][0-9]{2})/i
+    );
+    if (vatMatch) {
+      totalVAT = parseFlexibleAmount(vatMatch[1]);
+    }
+  }
+
+  return {
+    invoiceNumber,
+    supplierName,
+    supplierCUI,
+    issueDate,
+    dueDate,
+    total,
+    totalVAT: totalVAT ?? (total ? "0.00" : null),
+    currency,
+    direction: "in",
+    rawXml: null,
+  };
+}
+
+export function extractBankStatementMetadata(buf: Buffer, originalName: string) {
+  const ext = path.extname(originalName).toLowerCase();
+  let iban: string | null = null;
+  let bankName: string | null = null;
+  let currency: string | null = null;
+  let statementNumber: string | null = null;
+  let statementMonth: string | null = null;
+  let periodStart: string | null = null;
+  let periodEnd: string | null = null;
+  let openingBalance: string | null = null;
+  let closingBalance: string | null = null;
+  let transactionsCount: number | null = null;
+
+  let text = "";
+  if (ext === ".pdf") {
+    text = extractContractTextAndHtml(buf, originalName).text;
+    if (!text || text.length < 15) {
+      text = buf
+        .toString("latin1")
+        .replace(/[^\x20-\x7E\r\n]/g, " ")
+        .replace(/\s+/g, " ")
+        .slice(0, 50000);
+    }
+  } else if ([".csv", ".txt", ".sta", ".mt940", ".940", ".xml"].includes(ext)) {
+    text = buf.toString("utf8").slice(0, 200000);
+  }
+
+  // MT940 tags (:25:, :28C:, :60F:, :62F:, :61:)
+  if (text.includes(":20:") && (text.includes(":60F:") || text.includes(":60M:"))) {
+    const m25 = text.match(/:25:([A-Z0-9/\-]+)/);
+    if (m25) {
+      const cand = m25[1].replace(/[^A-Z0-9]/gi, "").toUpperCase();
+      if (cand.length >= 14) iban = cand;
+    }
+    const m28 = text.match(/:28C?:([^\r\n]+)/);
+    if (m28) statementNumber = m28[1].trim();
+
+    const m60 = text.match(/:60[FM]:([CD])(\d{2})(\d{2})(\d{2})([A-Z]{3})([0-9,]+)/);
+    if (m60) {
+      const sign = m60[1] === "D" ? -1 : 1;
+      periodStart = `20${m60[2]}-${m60[3]}-${m60[4]}`;
+      statementMonth = `20${m60[2]}-${m60[3]}`;
+      currency = m60[5];
+      const val = parseFloat(m60[6].replace(",", "."));
+      if (!isNaN(val)) openingBalance = (sign * val).toFixed(2);
+    }
+    const m62 = text.match(/:62[FM]:([CD])(\d{2})(\d{2})(\d{2})([A-Z]{3})([0-9,]+)/);
+    if (m62) {
+      const sign = m62[1] === "D" ? -1 : 1;
+      periodEnd = `20${m62[2]}-${m62[3]}-${m62[4]}`;
+      if (!statementMonth) statementMonth = `20${m62[2]}-${m62[3]}`;
+      if (!currency) currency = m62[5];
+      const val = parseFloat(m62[6].replace(",", "."));
+      if (!isNaN(val)) closingBalance = (sign * val).toFixed(2);
+    }
+    const txMatches = text.match(/:61:/g);
+    if (txMatches) transactionsCount = txMatches.length;
+  }
+
+  // CAMT.053 XML
+  if (ext === ".xml" && text.includes("<BkToCstmrStmt")) {
+    const ibanXml = text.match(/<IBAN>\s*([A-Z0-9]+)\s*<\/IBAN>/i);
+    if (ibanXml) iban = ibanXml[1].trim().toUpperCase();
+    const ccyXml = text.match(/<Ccy>\s*([A-Z]{3})\s*<\/Ccy>/i);
+    if (ccyXml) currency = ccyXml[1].trim().toUpperCase();
+    const frXml = text.match(/<FrDtTm>\s*(\d{4}-\d{2}-\d{2})/i);
+    if (frXml) {
+      periodStart = frXml[1];
+      statementMonth = frXml[1].slice(0, 7);
+    }
+    const toXml = text.match(/<ToDtTm>\s*(\d{4}-\d{2}-\d{2})/i);
+    if (toXml) {
+      periodEnd = toXml[1];
+      if (!statementMonth) statementMonth = toXml[1].slice(0, 7);
+    }
+    const ntryMatches = text.match(/<Ntry>/g);
+    if (ntryMatches) transactionsCount = ntryMatches.length;
+  }
+
+  const combined = `${text}\n${originalName}`;
+
+  // IBAN from PDF / CSV / filename
+  if (!iban) {
+    const compactText = combined.replace(/([A-Z]{2}\d{2})\s+([A-Z0-9]{4})\s+([A-Z0-9]{4})\s+([A-Z0-9]{4})\s+([A-Z0-9]{4})\s+([A-Z0-9]{4})/g, "$1$2$3$4$5$6");
+    const roIban = compactText.match(/\bRO\d{2}[A-Z]{4}[A-Z0-9]{16}\b/);
+    if (roIban) {
+      iban = roIban[0];
+    } else {
+      const euIban = compactText.match(/\b(?:LT\d{18}|IE\d{2}[A-Z]{4}\d{14}|DE\d{20}|BE\d{14}|NL\d{2}[A-Z]{4}\d{10}|GB\d{2}[A-Z]{4}\d{14})\b/);
+      if (euIban) iban = euIban[0];
+    }
+  }
+
+  // Bank name via BIC or keywords
+  const bicMap: Record<string, string> = {
+    BTRL: "Banca Transilvania",
+    INGB: "ING Bank",
+    RZBR: "Raiffeisen Bank",
+    RNCB: "BCR (Banca Comercială Română)",
+    BRDE: "BRD - Groupe Société Générale",
+    BACX: "UniCredit Bank",
+    CECE: "CEC Bank",
+    REVO: "Revolut Bank",
+    OTPV: "OTP Bank",
+    UGBI: "Garanti BBVA",
+    PIRB: "First Bank",
+    LIBR: "Libra Internet Bank",
+    TREZ: "Trezoreria Statului",
+    BUCU: "Alpha Bank",
+    EGNA: "Vista Bank",
+    BREL: "Salt Bank",
+  };
+  if (iban) {
+    const bic = iban.match(/^RO\d{2}([A-Z]{4})/)?.[1];
+    if (bic && bicMap[bic]) bankName = bicMap[bic];
+    else if (/^LT\d{2}32500|^IE\d{2}REVO/.test(iban)) bankName = "Revolut Bank";
+  }
+  if (!bankName) {
+    if (/Banca\s+Transilvania|\bBT\s*24|\bNeoBT/i.test(combined)) bankName = "Banca Transilvania";
+    else if (/UniCredit/i.test(combined)) bankName = "UniCredit Bank";
+    else if (/\bING\s+Bank/i.test(combined)) bankName = "ING Bank";
+    else if (/Raiffeisen/i.test(combined)) bankName = "Raiffeisen Bank";
+    else if (/Banca\s+Comercial[aă]\s+Rom[aâ]n[aă]|\bBCR\b/i.test(combined)) bankName = "BCR (Banca Comercială Română)";
+    else if (/\bBRD\b/i.test(combined)) bankName = "BRD - Groupe Société Générale";
+    else if (/\bCEC\s+Bank/i.test(combined)) bankName = "CEC Bank";
+    else if (/Revolut/i.test(combined)) bankName = "Revolut Bank";
+    else if (/Libra\s+Internet/i.test(combined)) bankName = "Libra Internet Bank";
+    else if (/Garanti/i.test(combined)) bankName = "Garanti BBVA";
+    else if (/Salt\s+Bank/i.test(combined)) bankName = "Salt Bank";
+    else if (/Wise\s+Europe|\bTransferWise/i.test(combined)) bankName = "Wise";
+    else if (/PayPal/i.test(combined)) bankName = "PayPal";
+    else if (/Stripe/i.test(combined)) bankName = "Stripe";
+  }
+
+  // Currency
+  if (!currency) {
+    if (iban && /EUR/i.test(iban)) currency = "EUR";
+    else if (iban && /USD/i.test(iban)) currency = "USD";
+    else if (/\b(?:Moned[aă]|Valut[aă]|Currency)\s*[:\-]?\s*(RON|EUR|USD|GBP|CHF)\b/i.test(combined)) {
+      currency = combined.match(/\b(?:Moned[aă]|Valut[aă]|Currency)\s*[:\-]?\s*(RON|EUR|USD|GBP|CHF)\b/i)![1].toUpperCase();
+    } else if (/\bEUR\b/.test(originalName)) currency = "EUR";
+    else if (/\bUSD\b/.test(originalName)) currency = "USD";
+    else if (/\bRON\b|\bLEI\b/i.test(combined)) currency = "RON";
+    else if (/\bEUR\b/.test(combined)) currency = "EUR";
+    else currency = "RON";
+  }
+
+  // Period start / end & month
+  if (!periodStart || !periodEnd) {
+    const rangeDmy = combined.match(
+      /(\d{2}[./-]\d{2}[./-]20\d{2})\s*(?:[-–—]|p[aâ]n[aă]\s*la|to)\s*(\d{2}[./-]\d{2}[./-]20\d{2})/i
+    );
+    if (rangeDmy) {
+      periodStart = parseFlexibleDateToIso(rangeDmy[1]);
+      periodEnd = parseFlexibleDateToIso(rangeDmy[2]);
+    } else {
+      const rangeIso = combined.match(/(20\d{2}-\d{2}-\d{2})\s*(?:[-–—]|to)\s*(20\d{2}-\d{2}-\d{2})/i);
+      if (rangeIso) {
+        periodStart = rangeIso[1];
+        periodEnd = rangeIso[2];
+      }
+    }
+  }
+
+  if (!statementMonth) {
+    if (periodEnd) statementMonth = periodEnd.slice(0, 7);
+    else if (periodStart) statementMonth = periodStart.slice(0, 7);
+    else {
+      const ymMatch = combined.match(/\b(20\d{2})[-_.](0[1-9]|1[0-2])\b/);
+      if (ymMatch) {
+        statementMonth = `${ymMatch[1]}-${ymMatch[2]}`;
+      } else {
+        const myMatch = combined.match(/\b(0[1-9]|1[0-2])[-_.](20\d{2})\b/);
+        if (myMatch) statementMonth = `${myMatch[2]}-${myMatch[1]}`;
+      }
+    }
+  }
+  if (!statementMonth) {
+    const now = new Date();
+    statementMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  }
+
+  // Statement number
+  if (!statementNumber && text) {
+    const nrMatch = text.match(/(?:Extras(?:\s+de\s+cont)?\s*nr\.?|Statement\s*(?:no\.?|#))\s*[:\-]?\s*([A-Z0-9\/\-]{1,25})/i);
+    if (nrMatch && /\d/.test(nrMatch[1])) statementNumber = nrMatch[1].trim();
+  }
+
+  // Opening / Closing balances from PDF/CSV text
+  if (!openingBalance && text) {
+    const obMatch = text.match(
+      /(?:Sold\s+ini[tț]ial|Sold\s+precedent|Opening\s+balance)\s*[:\-]?\s*(-?[0-9]{1,3}(?:[.,][0-9]{3})*[.,][0-9]{2}|-?[0-9]+[.,][0-9]{2})/i
+    );
+    if (obMatch) openingBalance = parseFlexibleAmount(obMatch[1]);
+  }
+  if (!closingBalance && text) {
+    const cbMatch = text.match(
+      /(?:Sold\s+final|Sold\s+curent|Closing\s+balance|Ending\s+balance)\s*[:\-]?\s*(-?[0-9]{1,3}(?:[.,][0-9]{3})*[.,][0-9]{2}|-?[0-9]+[.,][0-9]{2})/i
+    );
+    if (cbMatch) closingBalance = parseFlexibleAmount(cbMatch[1]);
+  }
+
+  return {
+    iban,
+    bankName,
+    currency: currency || "RON",
+    statementNumber,
+    statementMonth,
+    periodStart,
+    periodEnd,
+    openingBalance,
+    closingBalance,
+    transactionsCount,
+  };
+}
+
 export function registerUploadRoute(app: Express) {
   app.post(
     "/api/upload-invoice",
-    upload.array("file", 20),
+    (req: Request, res: Response, next) => {
+      upload.array("file", 30)(req, res, (err: any) => {
+        if (err) {
+          res.status(400).json({ error: err.message || "Format de fișier neacceptat" });
+          return;
+        }
+        next();
+      });
+    },
     async (req: Request, res: Response) => {
       try {
         const files = req.files as Express.Multer.File[];
@@ -671,25 +1276,48 @@ export function registerUploadRoute(app: Express) {
         }
 
         const tenantId = resolveRequestTenant(req);
+        let tenantCui: string | null = null;
+        let tenantName: string | null = null;
+        try {
+          const { getDb } = await import("./db");
+          const db = await getDb();
+          if (db && tenantId) {
+            const { tenants } = await import("../drizzle/schema");
+            const { eq } = await import("drizzle-orm");
+            const [t] = await db.select().from(tenants).where(eq(tenants.id, tenantId)).limit(1);
+            if (t) {
+              tenantCui = t.cui;
+              tenantName = t.name;
+            }
+          }
+        } catch {}
+
+        const uploadDirs = [
+          path.join(process.cwd(), "dist", "public", "uploads", "invoices"),
+          path.join(process.cwd(), "client", "public", "uploads", "invoices"),
+        ];
+        for (const d of uploadDirs) {
+          await fs.promises.mkdir(d, { recursive: true }).catch(() => {});
+        }
+
         const results = [];
         for (const file of files) {
-          const ext =
-            file.originalname.split(".").pop()?.toLowerCase() || "bin";
-          const key = `t${tenantId}-${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-          const uploadDir = path.join(
-            process.cwd(),
-            "dist",
-            "public",
-            "uploads",
-            "invoices"
+          const ext = file.originalname.split(".").pop()?.toLowerCase() || "pdf";
+          const safeOriginal = file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_");
+          const key = `t${tenantId}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}-${safeOriginal}`;
+
+          for (const d of uploadDirs) {
+            await fs.promises.writeFile(path.join(d, key), file.buffer);
+          }
+
+          const extracted = await extractExternalInvoiceMetadata(
+            file.buffer,
+            file.originalname,
+            tenantCui,
+            tenantName
           );
-
-          await fs.promises
-            .mkdir(uploadDir, { recursive: true })
-            .catch(() => {});
-
-          const filePath = path.join(uploadDir, key);
-          await fs.promises.writeFile(filePath, file.buffer);
+          const fileType: "pdf" | "xml" | "other" =
+            ext === "xml" ? "xml" : ext === "pdf" ? "pdf" : "other";
 
           const fileUrl = `/uploads/invoices/${key}`;
           results.push({
@@ -697,10 +1325,12 @@ export function registerUploadRoute(app: Express) {
             fileUrl,
             fileName: file.originalname,
             fileSize: file.size,
+            fileType,
+            extracted,
           });
         }
 
-        if (results.length === 1) {
+        if (results.length === 1 && req.query.batch !== "1") {
           res.json(results[0]);
           return;
         }
@@ -708,6 +1338,64 @@ export function registerUploadRoute(app: Express) {
       } catch (err: any) {
         console.error("Upload error:", err);
         res.status(500).json({ error: err.message || "Eroare la upload" });
+      }
+    }
+  );
+
+  // ── BANK STATEMENTS UPLOAD (/api/upload-bank-statement) ──────────────────
+  app.post(
+    "/api/upload-bank-statement",
+    (req: Request, res: Response, next) => {
+      bankStatementUpload.array("files", 30)(req, res, (err: any) => {
+        if (err) {
+          res.status(400).json({ error: err.message || "Format de fișier neacceptat" });
+          return;
+        }
+        next();
+      });
+    },
+    async (req: Request, res: Response) => {
+      try {
+        const files = req.files as Express.Multer.File[];
+        if (!files || files.length === 0) {
+          res.status(400).json({ error: "Niciun fișier primit" });
+          return;
+        }
+
+        const tenantId = resolveRequestTenant(req);
+        const uploadDirs = [
+          path.join(process.cwd(), "dist", "public", "uploads", "bank_statements"),
+          path.join(process.cwd(), "client", "public", "uploads", "bank_statements"),
+        ];
+        for (const d of uploadDirs) {
+          await fs.promises.mkdir(d, { recursive: true }).catch(() => {});
+        }
+
+        const uploaded = [];
+        for (const file of files) {
+          const ext = file.originalname.split(".").pop()?.toLowerCase() || "pdf";
+          const safeOriginal = file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_");
+          const key = `t${tenantId}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}-${safeOriginal}`;
+
+          for (const d of uploadDirs) {
+            await fs.promises.writeFile(path.join(d, key), file.buffer);
+          }
+
+          const extracted = extractBankStatementMetadata(file.buffer, file.originalname);
+          uploaded.push({
+            fileKey: key,
+            fileUrl: `/uploads/bank_statements/${key}`,
+            fileName: file.originalname,
+            fileSize: file.size,
+            fileType: ext,
+            extracted,
+          });
+        }
+
+        res.json({ files: uploaded });
+      } catch (err: any) {
+        console.error("[Bank Statement Upload] Error:", err);
+        res.status(500).json({ error: err.message || "Eroare la încărcarea extrasului de cont" });
       }
     }
   );

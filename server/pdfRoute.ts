@@ -346,6 +346,62 @@ export function registerPdfRoute(app: any) {
         }
       }
 
+      if (!xmlContent && inv.fileUrl && inv.fileUrl !== "spv_import") {
+        const rawFileUrl = String(inv.fileUrl).trim();
+        if (!rawFileUrl.includes("..") && !rawFileUrl.includes("\0")) {
+          const allowedInvoiceDirs = [
+            path.resolve(process.cwd(), "dist", "public", "uploads", "invoices"),
+            path.resolve(process.cwd(), "client", "public", "uploads", "invoices"),
+            path.resolve(process.cwd(), "public", "uploads", "invoices"),
+            path.resolve(process.cwd(), "uploads", "invoices"),
+          ];
+          const relativePath = rawFileUrl.replace(/^\//, "");
+          const candidates = [
+            path.resolve(process.cwd(), "dist", "public", relativePath),
+            path.resolve(process.cwd(), "client", "public", relativePath),
+            path.resolve(process.cwd(), "public", relativePath),
+            path.resolve(process.cwd(), relativePath),
+          ];
+          for (const p of candidates) {
+            const pBase = path.basename(p);
+            const prefixOk =
+              !inv.tenantId ||
+              !/^t\d+-/.test(pBase) ||
+              pBase.startsWith(`t${inv.tenantId}-`);
+            if (
+              prefixOk &&
+              isPathWithinAllowedDirs(p, allowedInvoiceDirs) &&
+              isExistingRegularFile(p)
+            ) {
+              const ext = path.extname(p).toLowerCase();
+              const mimeMap: Record<string, string> = {
+                ".pdf": "application/pdf",
+                ".png": "image/png",
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".webp": "image/webp",
+                ".xml": "application/xml",
+              };
+              const contentType = mimeMap[ext] || "application/octet-stream";
+              const isDownload =
+                req.query.download === "1" ||
+                req.query.download === "true" ||
+                contentType === "application/octet-stream";
+              const dlName =
+                inv.fileName ||
+                `Factura_${(inv.invoiceNumber || String(inv.id)).replace(/[^a-zA-Z0-9._-]/g, "_")}${ext || ".pdf"}`;
+              res.setHeader("Content-Type", contentType);
+              res.setHeader(
+                "Content-Disposition",
+                `${isDownload ? "attachment" : "inline"}; filename="${safeHeaderFilename(dlName)}"`
+              );
+              streamFileSafely(p, res);
+              return;
+            }
+          }
+        }
+      }
+
       if (!xmlContent) {
         res.status(404).json({
           error:
@@ -3318,6 +3374,108 @@ export function registerPdfRoute(app: any) {
       });
     } catch (e: any) {
       console.error("[PDF SPV Document Route] Error:", e.message);
+      if (!res.headersSent) res.status(500).json({ error: e.message });
+    }
+  });
+
+  // GET /api/pdf/bank-statement/:id — Stream original uploaded bank statement file
+  router.get("/bank-statement/:id", async (req: Request, res: Response) => {
+    try {
+      const stmtId = parseInt(req.params.id, 10);
+      if (isNaN(stmtId)) {
+        res.status(400).json({ error: "ID invalid" });
+        return;
+      }
+      const { getDb } = await import("./db");
+      const db = await getDb();
+      if (!db) {
+        res.status(500).json({ error: "Baza de date indisponibilă" });
+        return;
+      }
+      const { ensureBankStatementsTable } = await import("./bankStatementsRouter");
+      await ensureBankStatementsTable(db);
+      const { bankStatements } = await import("../drizzle/schema");
+      const { eq } = await import("drizzle-orm");
+
+      const [stmt] = await db
+        .select()
+        .from(bankStatements)
+        .where(eq(bankStatements.id, stmtId))
+        .limit(1);
+
+      if (!stmt) {
+        res.status(404).json({ error: "Extrasul de cont nu a fost găsit" });
+        return;
+      }
+
+      const rawFileUrl = String(stmt.fileUrl || "").trim();
+      if (!rawFileUrl || rawFileUrl.includes("..") || rawFileUrl.includes("\0")) {
+        res.status(404).json({ error: "Calea fișierului este invalidă" });
+        return;
+      }
+
+      const allowedDirs = [
+        path.resolve(process.cwd(), "dist", "public", "uploads", "bank_statements"),
+        path.resolve(process.cwd(), "client", "public", "uploads", "bank_statements"),
+        path.resolve(process.cwd(), "public", "uploads", "bank_statements"),
+        path.resolve(process.cwd(), "uploads", "bank_statements"),
+      ];
+      const relativePath = rawFileUrl.replace(/^\//, "");
+      const candidates = [
+        path.resolve(process.cwd(), "dist", "public", relativePath),
+        path.resolve(process.cwd(), "client", "public", relativePath),
+        path.resolve(process.cwd(), "public", relativePath),
+        path.resolve(process.cwd(), relativePath),
+      ];
+
+      for (const p of candidates) {
+        const pBase = path.basename(p);
+        const prefixOk =
+          !stmt.tenantId ||
+          !/^t\d+-/.test(pBase) ||
+          pBase.startsWith(`t${stmt.tenantId}-`);
+        if (
+          prefixOk &&
+          isPathWithinAllowedDirs(p, allowedDirs) &&
+          isExistingRegularFile(p)
+        ) {
+          const ext = path.extname(p).toLowerCase();
+          const mimeMap: Record<string, string> = {
+            ".pdf": "application/pdf",
+            ".csv": "text/csv; charset=utf-8",
+            ".txt": "text/plain; charset=utf-8",
+            ".sta": "text/plain; charset=utf-8",
+            ".mt940": "text/plain; charset=utf-8",
+            ".940": "text/plain; charset=utf-8",
+            ".xml": "application/xml",
+            ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            ".xls": "application/vnd.ms-excel",
+            ".zip": "application/zip",
+          };
+          const contentType = mimeMap[ext] || "application/octet-stream";
+          const isDownload =
+            req.query.download === "1" ||
+            req.query.download === "true" ||
+            ext !== ".pdf";
+          const dlName =
+            stmt.fileName ||
+            `Extras_${stmt.bankName}_${stmt.statementMonth}${ext || ".pdf"}`;
+
+          res.setHeader("Content-Type", contentType);
+          res.setHeader(
+            "Content-Disposition",
+            `${isDownload ? "attachment" : "inline"}; filename="${safeHeaderFilename(dlName)}"`
+          );
+          streamFileSafely(p, res);
+          return;
+        }
+      }
+
+      res.status(404).json({
+        error: "Fișierul extrasului de cont nu a fost găsit pe disc.",
+      });
+    } catch (e: any) {
+      console.error("[PDF Bank Statement Route] Error:", e.message);
       if (!res.headersSent) res.status(500).json({ error: e.message });
     }
   });

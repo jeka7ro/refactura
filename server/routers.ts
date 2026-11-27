@@ -9,6 +9,7 @@ import { horecaRouter } from "../modules/horeca";
 import { sagaRouter } from "../modules/saga";
 import { contractsRouter } from "./contractsRouter";
 import { accountantPortalRouter } from "./accountantPortalRouter";
+import { bankStatementsRouter } from "./bankStatementsRouter";
 import { z } from "zod";
 import { generateReInvoicePDF } from "./pdf";
 import {
@@ -3234,6 +3235,8 @@ export const appRouter = router({
           total: z.string().optional(),
           totalVAT: z.string().optional(),
           currency: z.string().optional(),
+          direction: z.enum(["in", "out"]).optional(),
+          rawXml: z.string().optional(),
           source: z
             .enum([
               "smartbill",
@@ -3254,9 +3257,12 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Baza de date indisponibilă" });
         const tenantId = tenantOf(ctx);
+        await assertTenantWriteAccess(ctx, tenantId);
         const safeFileUrl = await assertSafeInvoiceFileUrl(db, input.fileUrl, tenantId);
         return createInvoiceArchiveEntry({
           ...input,
+          currency: input.currency ? input.currency.trim().toUpperCase().slice(0, 3) : "RON",
+          direction: input.direction || "in",
           fileUrl: safeFileUrl,
           tenantId,
         });
@@ -3274,6 +3280,7 @@ export const appRouter = router({
           total: z.string().optional(),
           totalVAT: z.string().optional(),
           currency: z.string().optional(),
+          direction: z.enum(["in", "out"]).optional(),
           status: z
             .enum(["pending", "processed", "refactured", "archived"])
             .optional(),
@@ -3282,9 +3289,10 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
-        
+        const tenantId = tenantOf(ctx);
+        await assertTenantWriteAccess(ctx, tenantId);
         const { id, ...data } = input;
-        return updateInvoiceArchiveEntry(id, (tenantOf(ctx)), data);
+        return updateInvoiceArchiveEntry(id, tenantId, data);
       }),
 
     delete: protectedProcedure
@@ -8342,6 +8350,7 @@ export const appRouter = router({
   }),
 
   accountantPortal: accountantPortalRouter,
+  bankStatements: bankStatementsRouter,
 
 });
 

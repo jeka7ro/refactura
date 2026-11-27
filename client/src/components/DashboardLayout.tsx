@@ -132,6 +132,7 @@ const navItems: NavItem[] = [
       { href: "/devize", label: "Devize de Lucrări", icon: FileText },
       { href: "/re-facturi", label: "Re-Facturi", icon: FileOutput },
       { href: "/arhiva-facturi", label: "Arhivă Facturi", icon: Archive },
+      { href: "/extrase-cont", label: "Extrase de Cont", icon: Coins },
       { href: "/jurnal-spv", label: "Jurnal SPV", icon: ShieldCheck },
       { href: "/evidenta-emailuri", label: "Evidență Emailuri", icon: Mail },
     ],

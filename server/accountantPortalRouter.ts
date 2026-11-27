@@ -506,6 +506,26 @@ export const accountantPortalRouter = router({
         }
       }
 
+      // Cursuri BNR live pentru conversia în RON a facturilor externe în valută (EUR, USD, GBP, CHF etc.)
+      const { fetchBnrExchangeRates } = await import("./bnrService");
+      const bnrData = await fetchBnrExchangeRates().catch(() => null);
+      const fxRates: Record<string, number> = {
+        RON: 1,
+        LEI: 1,
+        EUR: bnrData?.rates?.EUR || 4.977,
+        USD: bnrData?.rates?.USD || 4.58,
+        GBP: bnrData?.rates?.GBP || 5.85,
+        CHF: bnrData?.rates?.CHF || 5.32,
+        MDL: bnrData?.rates?.MDL || 0.26,
+        PLN: bnrData?.rates?.PLN || 1.15,
+        HUF: bnrData?.rates?.HUF || 0.0125,
+      };
+      const getFxToRon = (currency?: string | null): number => {
+        const cur = String(currency || "RON").trim().toUpperCase();
+        if (!cur || cur === "RON" || cur === "LEI") return 1;
+        return fxRates[cur] || 1;
+      };
+
       // 3. Îmbinăm datele
       const enrichedInvoices = invoices.map((inv) => {
         const cleanInvNum = (inv.invoiceNumber || "").trim().toLowerCase();
@@ -516,12 +536,16 @@ export const accountantPortalRouter = router({
         const totalNum = parseFloat(String(inv.total || 0));
         const vatNum = parseFloat(String(inv.totalVAT || 0));
         const baseNum = Math.round((totalNum - vatNum) * 100) / 100;
+        const cur = (inv.currency || "RON").toUpperCase();
+        const fx = getFxToRon(cur);
 
         const spvIdx =
           (inv.spvIndex || "").trim() ||
           (inv.fileName ? inv.fileName.match(/SPV_(\d+)/i)?.[1] : null) ||
           (inv.notes ? inv.notes.match(/index\s*(?:incarcare|spv)?[:\s]+(\d+)/i)?.[1] : null) ||
           "";
+
+        const isExternal = inv.source !== "spv_anaf" && !spvIdx;
 
         return {
           id: inv.id,
@@ -533,9 +557,15 @@ export const accountantPortalRouter = router({
           total: totalNum,
           totalVAT: vatNum,
           totalBase: baseNum,
-          currency: inv.currency || "RON",
+          fxRateToRon: fx,
+          totalRon: Math.round(totalNum * fx * 100) / 100,
+          totalVatRon: Math.round(vatNum * fx * 100) / 100,
+          totalBaseRon: Math.round(baseNum * fx * 100) / 100,
+          currency: cur,
           source: inv.source,
-          pdfUrl: inv.source === "spv_anaf" || inv.fileUrl === "spv_import" ? `/api/pdf/archive/${inv.id}` : inv.fileUrl || `/api/pdf/archive/${inv.id}`,
+          isExternal,
+          fileType: inv.fileType || "pdf",
+          pdfUrl: `/api/pdf/archive/${inv.id}`,
           hasNir: Boolean(matchedNir),
           nirId: matchedNir ? matchedNir.id : null,
           nirNumber: matchedNir ? matchedNir.nirNumber : null,
@@ -583,18 +613,28 @@ export const accountantPortalRouter = router({
         const docPartnerKey = `${normInvoiceDedupNum(num)}|${partnerKey}`;
         if (spvIdx) seenSpvIndexes.add(spvIdx);
         if (docPartnerKey !== "|") seenEmittedDocPartnerKeys.add(docPartnerKey);
+        const cur = (inv.currency || "RON").toUpperCase();
+        const fx = getFxToRon(cur);
+        const tBase = parseFloat(String(inv.subtotal || 0));
+        const tVat = parseFloat(String(inv.totalVAT || 0));
+        const tGross = parseFloat(String(inv.total || 0));
         combinedEmitted.push({
           id: inv.id,
           source: "emitted",
+          isExternal: false,
           invoiceNumber: num,
           clientName: inv.clientName || "Client necunoscut",
           clientCUI: inv.clientCUI || "",
           issueDate: inv.issueDate || "",
           dueDate: inv.dueDate || "",
-          totalBase: parseFloat(String(inv.subtotal || 0)),
-          totalVAT: parseFloat(String(inv.totalVAT || 0)),
-          total: parseFloat(String(inv.total || 0)),
-          currency: inv.currency || "RON",
+          totalBase: tBase,
+          totalVAT: tVat,
+          total: tGross,
+          fxRateToRon: fx,
+          totalBaseRon: Math.round(tBase * fx * 100) / 100,
+          totalVatRon: Math.round(tVat * fx * 100) / 100,
+          totalRon: Math.round(tGross * fx * 100) / 100,
+          currency: cur,
           status: inv.status || "draft",
           pdfUrl: `/api/pdf/emitted/${inv.id}`,
           spvIndex: spvIdx,
@@ -614,18 +654,28 @@ export const accountantPortalRouter = router({
         if (!isDup) {
           if (spvIdx) seenSpvIndexes.add(spvIdx);
           if (docPartnerKey !== "|") seenEmittedDocPartnerKeys.add(docPartnerKey);
+          const cur = (inv.currency || "RON").toUpperCase();
+          const fx = getFxToRon(cur);
+          const tBase = parseFloat(String(inv.subtotal || 0));
+          const tVat = parseFloat(String(inv.totalVAT || 0));
+          const tGross = parseFloat(String(inv.total || 0));
           combinedEmitted.push({
             id: inv.id,
             source: "reinvoice",
+            isExternal: false,
             invoiceNumber: num,
             clientName: inv.clientName || "Client necunoscut",
             clientCUI: inv.clientCUI || "",
             issueDate: inv.issueDate || "",
             dueDate: inv.dueDate || "",
-            totalBase: parseFloat(String(inv.subtotal || 0)),
-            totalVAT: parseFloat(String(inv.totalVAT || 0)),
-            total: parseFloat(String(inv.total || 0)),
-            currency: inv.currency || "RON",
+            totalBase: tBase,
+            totalVAT: tVat,
+            total: tGross,
+            fxRateToRon: fx,
+            totalBaseRon: Math.round(tBase * fx * 100) / 100,
+            totalVatRon: Math.round(tVat * fx * 100) / 100,
+            totalRon: Math.round(tGross * fx * 100) / 100,
+            currency: cur,
             status: inv.status || "draft",
             pdfUrl: `/api/pdf/reinvoice/${inv.id}`,
             spvIndex: spvIdx,
@@ -647,21 +697,29 @@ export const accountantPortalRouter = router({
           if (docPartnerKey !== "|") seenEmittedDocPartnerKeys.add(docPartnerKey);
           const totalNum = parseFloat(String(inv.total || 0));
           const vatNum = parseFloat(String(inv.totalVAT || 0));
-          const baseNum = totalNum - vatNum;
+          const baseNum = Math.round((totalNum - vatNum) * 100) / 100;
+          const cur = (inv.currency || "RON").toUpperCase();
+          const fx = getFxToRon(cur);
+          const isExternal = inv.source !== "spv_anaf" && !spvIdx;
           combinedEmitted.push({
             id: inv.id,
-            source: "spv_out",
+            source: isExternal ? "archive_out" : "spv_out",
+            isExternal,
             invoiceNumber: num,
             clientName: inv.supplierName || "Client necunoscut",
             clientCUI: inv.supplierCUI || "",
             issueDate: inv.issueDate || "",
             dueDate: inv.dueDate || "",
-            totalBase: Math.round(baseNum * 100) / 100,
+            totalBase: baseNum,
             totalVAT: vatNum,
             total: totalNum,
-            currency: inv.currency || "RON",
+            fxRateToRon: fx,
+            totalBaseRon: Math.round(baseNum * fx * 100) / 100,
+            totalVatRon: Math.round(vatNum * fx * 100) / 100,
+            totalRon: Math.round(totalNum * fx * 100) / 100,
+            currency: cur,
             status: inv.status || "emisa",
-            pdfUrl: inv.source === "spv_anaf" || inv.fileUrl === "spv_import" ? `/api/pdf/archive/${inv.id}` : inv.fileUrl || `/api/pdf/archive/${inv.id}`,
+            pdfUrl: `/api/pdf/archive/${inv.id}`,
             spvIndex: spvIdx,
             notes: inv.notes || "",
           });
@@ -674,12 +732,12 @@ export const accountantPortalRouter = router({
       let emittedTotalVat = 0;
       let emittedTotalGross = 0;
       for (const e of combinedEmitted) {
-        emittedTotalBase += e.totalBase;
-        emittedTotalVat += e.totalVAT;
-        emittedTotalGross += e.total;
+        emittedTotalBase += e.totalBaseRon ?? e.totalBase;
+        emittedTotalVat += e.totalVatRon ?? e.totalVAT;
+        emittedTotalGross += e.totalRon ?? e.total;
       }
 
-      // 4. Calculăm sumarul statistic (Dashboard KPIs) pentru facturile primite
+      // 4. Calculăm sumarul statistic (Dashboard KPIs în RON echivalent BNR) pentru facturile primite
       let totalCount = enrichedInvoices.length;
       let totalBase = 0;
       let totalVat = 0;
@@ -688,9 +746,9 @@ export const accountantPortalRouter = router({
       let withoutNirCount = 0;
 
       for (const inv of enrichedInvoices) {
-        totalBase += inv.totalBase;
-        totalVat += inv.totalVAT;
-        totalGross += inv.total;
+        totalBase += inv.totalBaseRon ?? inv.totalBase;
+        totalVat += inv.totalVatRon ?? inv.totalVAT;
+        totalGross += inv.totalRon ?? inv.total;
         if (inv.hasNir) withNirCount++;
         else withoutNirCount++;
       }
@@ -793,7 +851,7 @@ export const accountantPortalRouter = router({
           type: "missing_nir",
           severity: "warning",
           title: `Factură fără recepție NIR (${noNir.invoiceNumber})`,
-          description: `Documentul de la ${noNir.supplierName} în valoare de ${noNir.total} RON nu are NIR întocmit.`,
+          description: `Documentul de la ${noNir.supplierName} în valoare de ${noNir.total} ${noNir.currency || "RON"} nu are NIR întocmit.`,
           docNumber: noNir.invoiceNumber,
           partnerName: noNir.supplierName,
           spvIndex: noNir.spvIndex,
@@ -862,6 +920,44 @@ export const accountantPortalRouter = router({
         })),
       ].sort((a, b) => (b.issueDate || "").localeCompare(a.issueDate || ""));
 
+      // 6. Extrase de cont bancare reale încărcate de administrator
+      const { ensureBankStatementsTable } = await import("./bankStatementsRouter");
+      await ensureBankStatementsTable(db);
+      const rawStatements = await db
+        .select()
+        .from(schema.bankStatements)
+        .where(eq(schema.bankStatements.tenantId, tenant.id))
+        .orderBy(
+          desc(schema.bankStatements.statementMonth),
+          desc(schema.bankStatements.periodEnd),
+          desc(schema.bankStatements.id)
+        );
+
+      const bankStatementsList = rawStatements.map((s) => ({
+        id: s.id,
+        bankName: s.bankName,
+        iban: s.iban || "",
+        currency: s.currency || "RON",
+        statementNumber: s.statementNumber || "",
+        statementMonth: s.statementMonth,
+        periodStart: s.periodStart || "",
+        periodEnd: s.periodEnd || "",
+        openingBalance: s.openingBalance !== null ? parseFloat(String(s.openingBalance)) : null,
+        closingBalance: s.closingBalance !== null ? parseFloat(String(s.closingBalance)) : null,
+        totalDebit: s.totalDebit !== null ? parseFloat(String(s.totalDebit)) : null,
+        totalCredit: s.totalCredit !== null ? parseFloat(String(s.totalCredit)) : null,
+        transactionsCount: s.transactionsCount ?? null,
+        fileName: s.fileName,
+        fileType: (s.fileType || "pdf").toLowerCase(),
+        fileSize: s.fileSize ?? null,
+        notes: s.notes || "",
+        createdAt: s.createdAt,
+        downloadUrl: `/api/pdf/bank-statement/${s.id}`,
+      }));
+
+      const uniqueStatementMonths = new Set(bankStatementsList.map((s) => s.statementMonth).filter(Boolean));
+      const uniqueStatementBanks = new Set(bankStatementsList.map((s) => s.bankName).filter(Boolean));
+
       return {
         company: {
           id: tenant.id,
@@ -873,8 +969,15 @@ export const accountantPortalRouter = router({
           logoHasBackground: Boolean(settings.logoHasBackground),
           themeColor: settings.themeColor || "#16a34a",
         },
+        bnrRates: fxRates,
         invoices: enrichedInvoices,
         emittedInvoices: combinedEmitted,
+        bankStatements: bankStatementsList,
+        bankStatementsKpis: {
+          totalCount: bankStatementsList.length,
+          monthsCount: uniqueStatementMonths.size,
+          banksCount: uniqueStatementBanks.size,
+        },
         spvStats: {
           isConnected: isSpvConnected,
           tokenExpiresAt: spvTokenExpiresAt,

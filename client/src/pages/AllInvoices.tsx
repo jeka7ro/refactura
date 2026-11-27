@@ -37,6 +37,7 @@ import { useTableSort } from "@/hooks/useTableSort";
 import { toast } from "sonner";
 import SpvDeadlineBadge from "@/components/SpvDeadlineBadge";
 import { LiveAutoSyncControl } from "@/components/LiveAutoSyncControl";
+import ExternalInvoiceImportModal from "@/components/ExternalInvoiceImportModal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -97,6 +98,10 @@ const SOURCE_BADGE: Record<string, { label: string; cls: string }> = {
   smartbill: { label: "SmartBill", cls: "text-cyan-600 dark:text-cyan-400" },
   manual: { label: "Manual", cls: "text-slate-500 dark:text-slate-400" },
   refactura: { label: "Re-fact", cls: "text-blue-600 dark:text-blue-400" },
+  pdf_manual: { label: "Extern", cls: "text-violet-600 dark:text-violet-400" },
+  xml_manual: { label: "Extern XML", cls: "text-violet-600 dark:text-violet-400" },
+  efactura: { label: "Extern", cls: "text-violet-600 dark:text-violet-400" },
+  other: { label: "Extern", cls: "text-violet-600 dark:text-violet-400" },
 };
 
 const TYPE_BADGE: Record<InvoiceType, { label: string; cls: string }> = {
@@ -225,6 +230,10 @@ export default function AllInvoices() {
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showExternalImportModal, setShowExternalImportModal] = useState(false);
+  const { data: bnrRatesData } = trpc.system.getBnrRates.useQuery(undefined, {
+    staleTime: 10 * 60 * 1000,
+  });
 
   const handleCardFilterClick = (type: InvoiceType, status: string) => {
     if (typeFilter === type && filterStatus === status) {
@@ -621,7 +630,7 @@ export default function AllInvoices() {
         total: t,
         currency: i.currency || "RON",
         status: t < 0 ? "storno" : i.status || "pending",
-        fileUrl: i.source === "spv_anaf" || i.fileUrl === "spv_import" ? `/api/pdf/archive/${i.id}` : i.fileUrl,
+        fileUrl: `/api/pdf/archive/${i.id}`,
         source: i.source || "spv_anaf",
         itemsText: i.itemsText || "",
         partnerCui: isPrimit
@@ -761,7 +770,13 @@ export default function AllInvoices() {
       });
     }
     if (sourceFilter !== "all") {
-      rows = rows.filter(r => r.source === sourceFilter);
+      if (sourceFilter === "external") {
+        rows = rows.filter(r =>
+          ["pdf_manual", "xml_manual", "efactura", "other"].includes(r.source)
+        );
+      } else {
+        rows = rows.filter(r => r.source === sourceFilter);
+      }
     }
     if (search.trim()) {
       const q = normalizeText(search.trim());
@@ -814,36 +829,52 @@ export default function AllInvoices() {
   const quickCounts = useMemo(() => {
     let spv = 0;
     let manual = 0;
+    let external = 0;
     let other = 0;
     let unpaid = 0;
     for (const r of allRows) {
       if (r.source === "spv_anaf") spv++;
       else if (r.source === "manual") manual++;
+      else if (["pdf_manual", "xml_manual", "efactura", "other"].includes(r.source)) external++;
       else other++;
       if (r.status !== "paid" && r.status !== "processed" && r.status !== "storno") {
         unpaid++;
       }
     }
-    return { spv, manual, other, unpaid };
+    return { spv, manual, external, other, unpaid };
   }, [allRows]);
 
   const filteredTotals = useMemo(() => {
     const sums: Record<string, number> = {};
+    let totalRonEquivalent = 0;
+    const fxMap: Record<string, number> = {
+      RON: 1,
+      LEI: 1,
+      EUR: bnrRatesData?.rates?.EUR || 4.977,
+      USD: bnrRatesData?.rates?.USD || 4.58,
+      GBP: bnrRatesData?.rates?.GBP || 5.85,
+      CHF: bnrRatesData?.rates?.CHF || 5.32,
+    };
     for (const r of filtered) {
       const c = (r.currency || "RON").toUpperCase();
-      sums[c] = (sums[c] || 0) + (Number(r.total) || 0);
+      const val = Number(r.total) || 0;
+      sums[c] = (sums[c] || 0) + val;
+      totalRonEquivalent += val * (fxMap[c] || 1);
     }
     const entries = Object.entries(sums).sort((a, b) => {
       if (a[0] === "RON") return -1;
       if (b[0] === "RON") return 1;
       return b[1] - a[1];
     });
+    const hasForeignCurrency = entries.some(([curr]) => curr !== "RON" && curr !== "LEI");
     return {
       sums,
       entries,
+      totalRonEquivalent,
+      hasForeignCurrency,
       isFiltered: filtered.length !== allRows.length,
     };
-  }, [filtered, allRows.length]);
+  }, [filtered, allRows.length, bnrRatesData]);
 
   const handleDownloadReInvoicePDF = async (row: UnifiedRow) => {
     await downloadFile(`/api/pdf/reinvoice/${row.id}?download=1`, `${row.number}.pdf`);
@@ -946,6 +977,14 @@ export default function AllInvoices() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setShowExternalImportModal(true)}
+            className="apple-btn-prominent flex items-center justify-center gap-1.5 h-9 px-4 rounded-full text-white text-[12.5px] font-semibold cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Factură externă</span>
+          </button>
           <LiveAutoSyncControl
             onRefresh={async () => {
               await Promise.all([r1(), r2(), r3()]);
@@ -1108,6 +1147,11 @@ export default function AllInvoices() {
                     + {formatCurrency(val, (curr as Currency) || "EUR")}
                   </span>
                 ))}
+                {filteredTotals.hasForeignCurrency && (
+                  <span className="w-full text-[11px] font-medium text-emerald-700 dark:text-emerald-400 mt-0.5">
+                    ≈ {formatCurrency(filteredTotals.totalRonEquivalent, "RON")} echiv. BNR
+                  </span>
+                )}
               </div>
             )}
           </div>
@@ -1246,6 +1290,7 @@ export default function AllInvoices() {
               <SelectContent>
                 <SelectItem value="all">Toate sursele</SelectItem>
                 <SelectItem value="spv_anaf">SPV ANAF ({quickCounts.spv})</SelectItem>
+                <SelectItem value="external">Externe / Non-SPV ({quickCounts.external})</SelectItem>
                 <SelectItem value="manual">Emise intern ({quickCounts.manual})</SelectItem>
                 <SelectItem value="oblio">Oblio</SelectItem>
                 <SelectItem value="smartbill">SmartBill</SelectItem>
@@ -2322,6 +2367,16 @@ export default function AllInvoices() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ExternalInvoiceImportModal
+        open={showExternalImportModal}
+        onClose={() => setShowExternalImportModal(false)}
+        onSuccess={() => {
+          r1();
+          r2();
+          r3();
+        }}
+      />
     </div>
   );
 }

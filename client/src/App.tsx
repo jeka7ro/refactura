@@ -72,6 +72,7 @@ import SpvHub from "@/pages/SpvHub";
 import EmailLogs from "@/pages/EmailLogs";
 import SagaModule from "@/pages/SagaModule";
 import SagaSyncPage from "@/pages/SagaSyncPage";
+import BankStatements from "@/pages/BankStatements";
 
 import CookieBanner from "@/components/CookieBanner";
 import Terms from "@/pages/legal/Terms";
@@ -171,6 +172,11 @@ function Router() {
       <Route path="/evidenta-emailuri">
         <DashboardLayout>
           <EmailLogs />
+        </DashboardLayout>
+      </Route>
+      <Route path="/extrase-cont">
+        <DashboardLayout>
+          <BankStatements />
         </DashboardLayout>
       </Route>
       <Route path="/email-logs">

@@ -34,13 +34,27 @@ export default function Reports() {
   // Date reale
   const { data: reInvoices = [], isLoading: loadingRI } =
     trpc.reinvoice.list.useQuery();
+  const { data: emittedInvoices = [], isLoading: loadingEI } =
+    trpc.emittedInvoice.list.useQuery();
   const { data: dbClients = [], isLoading: loadingCl } =
     trpc.clients.list.useQuery();
   const { data: archiveData, isLoading: loadingAI } =
     trpc.invoiceArchive.list.useQuery({ limit: 5000 });
+  const { data: bnrData } = trpc.system.getBnrRates.useQuery(undefined, {
+    staleTime: 10 * 60 * 1000,
+  });
   const archiveInvoices = (archiveData as any)?.items ?? [];
 
-  const loading = loadingRI || loadingCl || loadingAI;
+  const loading = loadingRI || loadingEI || loadingCl || loadingAI;
+
+  const toRonAmount = (val: number, cur?: string | null) => {
+    const c = (cur || "RON").toUpperCase();
+    if (c === "RON" || c === "LEI") return val;
+    const rate =
+      bnrData?.rates?.[c] ||
+      (c === "EUR" ? 4.977 : c === "USD" ? 4.58 : c === "GBP" ? 5.85 : c === "CHF" ? 5.32 : 1);
+    return val * rate;
+  };
 
   // ── Statistici per client ──────────────────────────────────────────────────
   const clientStats = dbClients
@@ -67,28 +81,66 @@ export default function Reports() {
 
   const topClients = clientStats.slice(0, 5);
 
-  // ── Trend lunar din invoiceArchive (Emise vs Primite) ────────────────
+  // ── Trend lunar din invoiceArchive + emittedInvoices + reInvoices (convertit în RON BNR) ──
   const monthlyMap: Record<
     string,
     { emise: number; primite: number; dateVal: number }
   > = {};
-  archiveInvoices.forEach((inv: any) => {
-    if (!inv.issueDate) return;
+  const platformOutKeys = new Set<string>();
+  const normNum = (s?: string | null) =>
+    String(s || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase().replace(/^0+/, "");
 
-    const d = new Date(inv.issueDate);
+  (Array.isArray(emittedInvoices) ? emittedInvoices : []).forEach((e: any) => {
+    if (e.status === "cancelled" || e.status === "draft") return;
+    if (e.spvIndex) platformOutKeys.add(`SPV:${String(e.spvIndex).trim()}`);
+    if (e.number) platformOutKeys.add(`NUM:${normNum(e.number)}`);
+    const d = new Date(e.issueDate || e.createdAt);
     if (isNaN(d.getTime())) return;
+    const sortKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    if (!monthlyMap[sortKey]) monthlyMap[sortKey] = { emise: 0, primite: 0, dateVal: d.getTime() };
+    monthlyMap[sortKey].emise += toRonAmount(Number(e.total || 0), e.currency);
+  });
+
+  (Array.isArray(reInvoices) ? reInvoices : []).forEach((r: any) => {
+    if (r.status === "cancelled" || r.status === "draft") return;
+    if (r.spvIndex) platformOutKeys.add(`SPV:${String(r.spvIndex).trim()}`);
+    if (r.number) platformOutKeys.add(`NUM:${normNum(r.number)}`);
+    const d = new Date(r.issueDate || r.createdAt);
+    if (isNaN(d.getTime())) return;
+    const sortKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    if (!monthlyMap[sortKey]) monthlyMap[sortKey] = { emise: 0, primite: 0, dateVal: d.getTime() };
+    monthlyMap[sortKey].emise += toRonAmount(Number(r.total || 0), r.currency);
+  });
+
+  archiveInvoices.forEach((inv: any) => {
+    const rawDate = inv.issueDate || inv.createdAt;
+    if (!rawDate) return;
+
+    const d = new Date(rawDate);
+    if (isNaN(d.getTime())) return;
+
+    if (inv.direction !== "in") {
+      const spvIdx = inv.spvIndex ? String(inv.spvIndex).trim() : "";
+      if (
+        (spvIdx && platformOutKeys.has(`SPV:${spvIdx}`)) ||
+        (inv.invoiceNumber && platformOutKeys.has(`NUM:${normNum(inv.invoiceNumber)}`))
+      ) {
+        return;
+      }
+    }
 
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const sortKey = `${yyyy}-${mm}`; // ex: 2024-11
+    const sortKey = `${yyyy}-${mm}`;
 
     if (!monthlyMap[sortKey])
       monthlyMap[sortKey] = { emise: 0, primite: 0, dateVal: d.getTime() };
 
+    const ronVal = toRonAmount(Number(inv.total || 0), inv.currency);
     if (inv.direction === "in") {
-      monthlyMap[sortKey].primite += Number(inv.total || 0);
+      monthlyMap[sortKey].primite += ronVal;
     } else {
-      monthlyMap[sortKey].emise += Number(inv.total || 0);
+      monthlyMap[sortKey].emise += ronVal;
     }
   });
 
@@ -104,21 +156,30 @@ export default function Reports() {
       };
     });
 
-  // ── KPI totale ────────────────────────────────────────────────────────────
-  const totalReInvoicesRevenue = clientStats.reduce(
-    (s: number, c: any) => s + c.totalRevenue,
-    0
-  );
+  // ── KPI totale (echivalent RON la curs BNR pentru toate sursele, inclusiv externe) ──
+  const totalEmittedPlatform = (Array.isArray(emittedInvoices) ? emittedInvoices : [])
+    .filter((e: any) => e.status !== "cancelled" && e.status !== "draft")
+    .reduce((s: number, e: any) => s + toRonAmount(Number(e.total || 0), e.currency), 0);
+
+  const totalReInvoicesRevenue = (Array.isArray(reInvoices) ? reInvoices : [])
+    .filter((r: any) => r.status !== "cancelled" && r.status !== "draft")
+    .reduce((s: number, r: any) => s + toRonAmount(Number(r.total || 0), r.currency), 0);
 
   const totalFacturiEmise = archiveInvoices
-    .filter((inv: any) => inv.direction !== "in")
-    .reduce((s: number, inv: any) => s + Number(inv.total || 0), 0);
+    .filter((inv: any) => {
+      if (inv.direction === "in") return false;
+      const spvIdx = inv.spvIndex ? String(inv.spvIndex).trim() : "";
+      if (spvIdx && platformOutKeys.has(`SPV:${spvIdx}`)) return false;
+      if (inv.invoiceNumber && platformOutKeys.has(`NUM:${normNum(inv.invoiceNumber)}`)) return false;
+      return true;
+    })
+    .reduce((s: number, inv: any) => s + toRonAmount(Number(inv.total || 0), inv.currency), 0);
 
   const totalFacturiPrimite = archiveInvoices
     .filter((inv: any) => inv.direction === "in")
-    .reduce((s: number, inv: any) => s + Number(inv.total || 0), 0);
+    .reduce((s: number, inv: any) => s + toRonAmount(Number(inv.total || 0), inv.currency), 0);
 
-  const totalRevenue = totalReInvoicesRevenue + totalFacturiEmise;
+  const totalRevenue = totalEmittedPlatform + totalReInvoicesRevenue + totalFacturiEmise;
   const totalExpenses = totalFacturiPrimite;
   const totalReInvoices = reInvoices.length;
   const activeClients = clientStats.length;
@@ -192,7 +253,7 @@ export default function Reports() {
           value={formatCurrency(totalExpenses, selectedCurrency)}
           icon={<TrendingDown className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />}
           iconBg="bg-[#fff6eb] dark:bg-amber-500/18"
-          sub="Cheltuieli din SPV"
+          sub="Cheltuieli SPV + facturi externe"
         />
         <KPICard
           title="Clienți activi"

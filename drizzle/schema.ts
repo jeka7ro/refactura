@@ -881,3 +881,35 @@ export const contractLogs = mysqlTable("contractLogs", {
 export type ContractLog = typeof contractLogs.$inferSelect;
 export type InsertContractLog = typeof contractLogs.$inferInsert;
 
+/**
+ * Bank Statements (Extrase de Cont) — Extrase bancare încărcate pe firmă și vizibile în Portalul Contabil
+ */
+export const bankStatements = mysqlTable("bankStatements", {
+  id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenantId").notNull(),
+  bankName: varchar("bankName", { length: 150 }).notNull(),
+  iban: varchar("iban", { length: 64 }),
+  currency: varchar("currency", { length: 10 }).default("RON").notNull(),
+  statementNumber: varchar("statementNumber", { length: 100 }),
+  statementMonth: varchar("statementMonth", { length: 20 }).notNull(), // ex: "2026-11"
+  periodStart: varchar("periodStart", { length: 20 }), // ex: "2026-11-01"
+  periodEnd: varchar("periodEnd", { length: 20 }), // ex: "2026-11-30"
+  openingBalance: decimal("openingBalance", { precision: 14, scale: 2 }),
+  closingBalance: decimal("closingBalance", { precision: 14, scale: 2 }),
+  totalDebit: decimal("totalDebit", { precision: 14, scale: 2 }),
+  totalCredit: decimal("totalCredit", { precision: 14, scale: 2 }),
+  transactionsCount: int("transactionsCount"),
+  fileKey: varchar("fileKey", { length: 512 }).notNull(),
+  fileUrl: varchar("fileUrl", { length: 512 }).notNull(),
+  fileName: varchar("fileName", { length: 255 }).notNull(),
+  fileType: varchar("fileType", { length: 20 }).default("pdf").notNull(),
+  fileSize: int("fileSize"),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type BankStatement = typeof bankStatements.$inferSelect;
+export type InsertBankStatement = typeof bankStatements.$inferInsert;
+
+

@@ -40,6 +40,7 @@ async function startServer() {
   app.use("/api/saga", requireUserAuth);
   app.use("/api/saga-sync", requireFileAuth);
   app.use("/api/upload-invoice", requireUserAuth);
+  app.use("/api/upload-bank-statement", requireUserAuth);
   app.use("/api/upload-spv-document", requireUserAuth);
   app.use("/api/spv/import-real-document", requireUserAuth);
   app.use("/api/spv/bulk-download-pdf", requireFileAuth);
@@ -102,7 +103,9 @@ async function startServer() {
     next();
   });
 
-  const serveProtectedSubdir = (sub: "invoices" | "contracts" | "spv_documents") => {
+  const serveProtectedSubdir = (
+    sub: "invoices" | "contracts" | "spv_documents" | "bank_statements"
+  ) => {
     const primaryRoot = path.resolve(uploadsDir, sub);
     const fallbackRoot = path.resolve(clientUploadsDir, sub);
     const staticPrimary = express.static(primaryRoot, { fallthrough: true });
@@ -122,6 +125,7 @@ async function startServer() {
   serveProtectedSubdir("invoices");
   serveProtectedSubdir("contracts");
   serveProtectedSubdir("spv_documents");
+  serveProtectedSubdir("bank_statements");
 
   uploadsRouter.use(requireFileAuth, (req, res) => {
     if (req.method !== "GET" && req.method !== "HEAD") {

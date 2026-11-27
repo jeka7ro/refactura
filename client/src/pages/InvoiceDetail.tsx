@@ -125,8 +125,10 @@ export default function InvoiceDetail() {
   const isSpv = invoice.source === "spv_anaf";
   const hasPdf =
     isSpv || (invoice.fileUrl && invoice.fileUrl !== "spv_import") || !!invoice.rawXml;
-  const pdfUrl =
-    isSpv || invoice.rawXml ? `/api/pdf/archive/${invoiceId}` : invoice.fileUrl;
+  const pdfUrl = hasPdf ? `/api/pdf/archive/${invoiceId}` : null;
+  const isImageDoc =
+    invoice.fileType === "other" &&
+    /\.(png|jpe?g|webp)$/i.test(invoice.fileName || invoice.fileUrl || "");
 
   const sourceLabel =
     source === "spv_anaf"
@@ -135,9 +137,11 @@ export default function InvoiceDetail() {
         ? "Oblio"
         : source === "smartbill"
           ? "SmartBill"
-          : source === "manual"
-            ? "Manual"
-            : String(source);
+          : source === "pdf_manual" || source === "xml_manual"
+            ? "Factură externă"
+            : source === "manual"
+              ? "Manual"
+              : String(source);
 
   return (
     <div className="p-3 sm:p-5 max-w-full space-y-4">
@@ -434,11 +438,21 @@ export default function InvoiceDetail() {
             style={{ WebkitOverflowScrolling: "touch" }}
           >
             <div className="apple-doc-paper overflow-hidden max-w-5xl mx-auto">
-              <iframe
-                src={`${pdfUrl}#view=FitH`}
-                className="border-0 bg-white w-full min-w-[780px] sm:min-w-full h-[78vh] min-h-[680px]"
-                title="Factura PDF"
-              />
+              {isImageDoc ? (
+                <div className="bg-white p-4 flex items-center justify-center">
+                  <img
+                    src={pdfUrl}
+                    alt={invoice.invoiceNumber || "Factură externă"}
+                    className="max-w-full max-h-[78vh] object-contain rounded-lg"
+                  />
+                </div>
+              ) : (
+                <iframe
+                  src={`${pdfUrl}#view=FitH`}
+                  className="border-0 bg-white w-full min-w-[780px] sm:min-w-full h-[78vh] min-h-[680px]"
+                  title="Factura PDF"
+                />
+              )}
             </div>
           </div>
         </div>
