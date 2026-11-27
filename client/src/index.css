@@ -405,10 +405,20 @@ summary,
 
   /* Input Fields */
   input,
-  textarea,
-  select {
+  textarea {
     @apply px-3.5 py-2 transition-colors;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
+  }
+
+  select {
+    @apply px-3 py-1.5 transition-colors;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
+  }
+
+  select[class*="h-"] {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    line-height: 1.25 !important;
   }
 
   input:focus,

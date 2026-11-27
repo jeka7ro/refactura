@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import {
   Popover,
@@ -90,21 +90,66 @@ export function InvoiceCurrencyCalculator({
   const [customRate, setCustomRate] = useState<string>("");
   const [useCustomRate, setUseCustomRate] = useState(false);
   const [selectedLineId, setSelectedLineId] = useState<string>("");
+  const wasOpenRef = useRef<boolean>(false);
+  const prevLinesCountRef = useRef<number>(lines?.length || 0);
 
-  // Sincronizare selectedLineId cu liniile curente (fallback automat pe linia 1 dacă linia selectată nu mai există)
+  // Sincronizare inteligentă selectedLineId:
+  // 1) Dacă s-a adăugat un rând nou (ex: Rândul 3), îl selectează automat
+  // 2) La deschiderea calculatorului, selectează automat linia activă fără preț sau primul rând cu preț 0 (ex: Rândul 3)
   useEffect(() => {
-    if (lines && lines.length > 0) {
-      const exists = lines.some(l => l.id === selectedLineId);
-      if (!exists) {
-        const activeLine = lines[activeLineIndex] || lines[0];
-        if (activeLine) {
-          setSelectedLineId(activeLine.id);
-        }
-      }
-    } else if (selectedLineId) {
-      setSelectedLineId("");
+    if (!lines || lines.length === 0) {
+      if (selectedLineId) setSelectedLineId("");
+      prevLinesCountRef.current = 0;
+      return;
     }
-  }, [lines, activeLineIndex, selectedLineId]);
+
+    const prevCount = prevLinesCountRef.current;
+    prevLinesCountRef.current = lines.length;
+
+    if (lines.length > prevCount && prevCount > 0) {
+      const newestLine = lines[lines.length - 1];
+      if (newestLine) {
+        setSelectedLineId(newestLine.id);
+        return;
+      }
+    }
+
+    const justOpened = open && !wasOpenRef.current;
+    wasOpenRef.current = open;
+
+    if (justOpened && selectedLineId !== "__ALL__") {
+      const activeCandidate = lines[activeLineIndex];
+      const isZeroPrice = (l?: { unitPrice?: number | string }) =>
+        !l || !l.unitPrice || parseFloat(String(l.unitPrice)) === 0;
+
+      if (activeCandidate && isZeroPrice(activeCandidate)) {
+        setSelectedLineId(activeCandidate.id);
+        return;
+      }
+      const firstUnpriced = lines.find(l => isZeroPrice(l));
+      if (firstUnpriced) {
+        setSelectedLineId(firstUnpriced.id);
+        return;
+      }
+      if (activeCandidate) {
+        setSelectedLineId(activeCandidate.id);
+        return;
+      }
+    }
+
+    if (selectedLineId === "__ALL__") {
+      if (lines.length <= 1) setSelectedLineId(lines[0].id);
+      return;
+    }
+
+    const exists = lines.some(l => String(l.id) === String(selectedLineId));
+    if (!exists) {
+      const activeLine = lines[activeLineIndex] || lines[0];
+      if (activeLine) {
+        setSelectedLineId(activeLine.id);
+      }
+    }
+  }, [lines, activeLineIndex, selectedLineId, open]);
 
   const { data: bnrData } = trpc.system.getBnrRates.useQuery(undefined, {
     staleTime: 5 * 60 * 1000,
@@ -203,9 +248,17 @@ export function InvoiceCurrencyCalculator({
 
   const currentLineIndexDisplay = useMemo(() => {
     if (!lines || lines.length === 0) return 1;
-    const foundIdx = lines.findIndex(l => l.id === selectedLineId);
-    return foundIdx >= 0 ? foundIdx + 1 : activeLineIndex + 1;
+    if (selectedLineId === "__ALL__") return -1;
+    const foundIdx = lines.findIndex(l => String(l.id) === String(selectedLineId));
+    return foundIdx >= 0 ? foundIdx + 1 : Math.min(lines.length, Math.max(1, activeLineIndex + 1));
   }, [lines, selectedLineId, activeLineIndex]);
+
+  const formatLineShortLabel = (desc?: string, idx = 0) => {
+    const clean = (desc || "").trim();
+    if (!clean) return `Produs/Serviciu`;
+    if (clean.length <= 28) return clean;
+    return `${clean.slice(0, 15).trimEnd()}…${clean.slice(-13).trimStart()}`;
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -231,11 +284,17 @@ export function InvoiceCurrencyCalculator({
         align="end"
         sideOffset={6}
         avoidCollisions={true}
-        collisionPadding={10}
-        style={{
-          maxHeight: "min(385px, var(--radix-popper-available-height, 385px))",
+        collisionPadding={12}
+        onFocusOutside={e => {
+          const target = e.target as HTMLElement | null;
+          if (target && target.tagName === "SELECT") {
+            e.preventDefault();
+          }
         }}
-        className="w-[340px] sm:w-[380px] overflow-hidden flex flex-col p-3 bg-white dark:bg-[#1c1c1e] rounded-[22px] border border-black/[0.08] dark:border-white/[0.10] shadow-2xl z-50 animate-in fade-in-50 zoom-in-95"
+        style={{
+          maxHeight: "min(540px, var(--radix-popper-available-height, 540px))",
+        }}
+        className="w-[348px] sm:w-[396px] overflow-hidden flex flex-col p-3.5 !bg-white dark:!bg-[#1c1c1e] !backdrop-blur-none rounded-[22px] border border-black/[0.08] dark:border-white/[0.12] shadow-2xl z-50 animate-in fade-in-50 zoom-in-95"
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-black/[0.06] dark:border-white/[0.08] pb-1.5 shrink-0">
@@ -328,7 +387,7 @@ export function InvoiceCurrencyCalculator({
               <select
                 value={fromCurrency}
                 onChange={e => setFromCurrency(e.target.value as SupportedCurrency)}
-                className="h-8 px-2 text-xs font-semibold rounded-lg border border-black/[0.08] dark:border-white/[0.10] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none cursor-pointer"
+                className="h-8 py-0 px-2.5 text-xs font-semibold leading-normal rounded-lg border border-black/[0.08] dark:border-white/[0.10] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none cursor-pointer"
               >
                 {CURRENCIES.map(c => (
                   <option key={c.code} value={c.code}>
@@ -351,7 +410,7 @@ export function InvoiceCurrencyCalculator({
               <select
                 value={toCurrency}
                 onChange={e => setToCurrency(e.target.value as SupportedCurrency)}
-                className="h-8 px-2 text-xs font-semibold rounded-lg border border-black/[0.08] dark:border-white/[0.10] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none cursor-pointer"
+                className="h-8 py-0 px-2.5 text-xs font-semibold leading-normal rounded-lg border border-black/[0.08] dark:border-white/[0.10] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none cursor-pointer"
               >
                 {CURRENCIES.map(c => (
                   <option key={c.code} value={c.code}>
@@ -490,22 +549,70 @@ export function InvoiceCurrencyCalculator({
         </div>
 
         {/* Butoane Acțiuni Directe în Factură (Footer Vizibil Permanent) */}
-        <div className="pt-2 border-t border-black/[0.06] dark:border-white/[0.08] flex flex-col gap-1.5 shrink-0 bg-white dark:bg-[#1c1c1e]">
+        <div className="pt-2.5 border-t border-black/[0.06] dark:border-white/[0.08] flex flex-col gap-2 shrink-0 bg-white dark:bg-[#1c1c1e]">
           {lines && lines.length > 1 && onApplyPrice && (
-            <div className="flex items-center gap-1.5">
-              <label className="text-[11px] font-medium text-[#6e6e73] dark:text-[#98989d] shrink-0">
-                Aplică pe linia:
-              </label>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <label className="text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] shrink-0">
+                  Aplică pe linia:
+                </label>
+                {lines.length <= 6 && (
+                  <div className="flex items-center gap-1 flex-wrap">
+                    {lines.map((l, i) => {
+                      const isSel = String(selectedLineId || lines[0]?.id) === String(l.id);
+                      return (
+                        <button
+                          key={l.id}
+                          type="button"
+                          onClick={() => setSelectedLineId(String(l.id))}
+                          className={cn(
+                            "h-6 px-2 text-[11px] font-semibold tabular-nums rounded-full border transition-colors cursor-pointer",
+                            isSel
+                              ? "bg-primary text-white border-transparent"
+                              : "bg-[#f2f2f7] dark:bg-[#2c2c2e] border-black/[0.06] dark:border-white/[0.08] text-[#1d1d1f] dark:text-[#ebebf5] hover:bg-black/[0.08] dark:hover:bg-white/[0.14]"
+                          )}
+                          title={`Linia ${i + 1}: ${l.description || "Produs/Serviciu"}`}
+                        >
+                          L{i + 1}
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedLineId("__ALL__")}
+                      className={cn(
+                        "h-6 px-2.5 text-[11px] font-semibold rounded-full border transition-colors cursor-pointer",
+                        selectedLineId === "__ALL__"
+                          ? "bg-primary text-white border-transparent"
+                          : "bg-[#f2f2f7] dark:bg-[#2c2c2e] border-black/[0.06] dark:border-white/[0.08] text-[#1d1d1f] dark:text-[#ebebf5] hover:bg-black/[0.08] dark:hover:bg-white/[0.14]"
+                      )}
+                      title="Aplică prețul pe toate liniile facturii"
+                    >
+                      Toate
+                    </button>
+                  </div>
+                )}
+              </div>
+
               <select
-                value={selectedLineId || lines[0]?.id}
+                value={
+                  selectedLineId === "__ALL__"
+                    ? "__ALL__"
+                    : (lines.some(l => String(l.id) === String(selectedLineId))
+                        ? selectedLineId
+                        : String(lines[0]?.id || ""))
+                }
                 onChange={e => setSelectedLineId(e.target.value)}
-                className="h-7 text-xs px-2 rounded-lg border border-black/[0.08] dark:border-white/[0.10] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] flex-1 truncate"
+                className="w-full h-9 py-0 px-3 text-[12.5px] font-medium leading-normal rounded-xl border border-black/[0.08] dark:border-white/[0.12] bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#1d1d1f] dark:text-[#f5f5f7] outline-none cursor-pointer"
               >
                 {lines.map((l, i) => (
-                  <option key={l.id} value={l.id}>
-                    Linia {i + 1}: {l.description ? (l.description.length > 22 ? l.description.slice(0, 22) + "..." : l.description) : "Produs/Serviciu"} ({l.unitPrice || 0} {currentCurrency})
+                  <option key={l.id} value={String(l.id)}>
+                    Linia {i + 1}: {formatLineShortLabel(l.description, i)} ({Number(l.unitPrice || 0).toLocaleString("ro-RO", { maximumFractionDigits: 2 })} {currentCurrency})
                   </option>
                 ))}
+                <option value="__ALL__">
+                  Toate liniile ({lines.length} rânduri)
+                </option>
               </select>
             </div>
           )}
@@ -515,17 +622,21 @@ export function InvoiceCurrencyCalculator({
               type="button"
               onClick={() => {
                 const validTargetId =
-                  lines && lines.some(l => l.id === selectedLineId)
-                    ? selectedLineId
-                    : (lines && lines[0]?.id) || "";
+                  selectedLineId === "__ALL__"
+                    ? "__ALL__"
+                    : lines && lines.some(l => String(l.id) === String(selectedLineId))
+                      ? selectedLineId
+                      : String((lines && (lines[activeLineIndex]?.id || lines[0]?.id)) || "");
                 onApplyPrice(parseFloat(convertedResult.toFixed(2)), validTargetId);
                 setOpen(false);
               }}
-              className="apple-btn-prominent w-full flex items-center justify-center gap-1.5 h-8 py-1 text-white text-xs font-semibold cursor-pointer"
+              className="apple-btn-prominent w-full flex items-center justify-center gap-1.5 h-9 px-3 text-white text-[12.5px] font-semibold cursor-pointer"
             >
-              <ArrowDown className="w-3.5 h-3.5" />
-              <span className="tabular-nums">
-                Aplică {convertedResult.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {toCurrency} pe linia {currentLineIndexDisplay}
+              <ArrowDown className="w-3.5 h-3.5 shrink-0" />
+              <span className="tabular-nums truncate">
+                {selectedLineId === "__ALL__" && lines && lines.length > 1
+                  ? `Aplică ${convertedResult.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${toCurrency} pe toate cele ${lines.length} linii`
+                  : `Aplică ${convertedResult.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${toCurrency} pe linia ${currentLineIndexDisplay}`}
               </span>
             </button>
           )}

@@ -1,5 +1,18 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-27 11:31 — Fix complet Calculator Valutar BNR: aplicare pe Rândul 3 / toate liniile și eliminare tăiere text în `<select>` (`InvoiceCurrencyCalculator.tsx`, `EmitInvoice.tsx`, `ReInvoice.tsx`, `index.css`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Rezolvat tăierea/suprascrierea textului în `<select>` și înălțimea `PopoverContent` (`client/src/index.css`, `client/src/components/InvoiceCurrencyCalculator.tsx`):**
+     - Eliminat `py-2` (`padding-top: 8px; padding-bottom: 8px`) de pe elementele `<select>` cu înălțime explicită (`select[class*="h-"]`) din `index.css` `@layer base`, care lăsa doar `10px` spațiu interior și tăia pe jumătate textul `Linia 3: ...` în selector.
+     - Trecut selectorul `Aplică pe linia:` pe lățime completă (`w-full h-9 py-0 px-3`), mărit `maxHeight` al popover-ului la `540px` și fundal 100% opac (`!bg-white dark:!bg-[#1c1c1e]`) ca să nu mai apară scrollbar intern sau suprapunere peste conținutul din spate.
+  2. **Rezolvat selecția și aplicarea sumei pe Rândul 3 și pe linii multiple (`InvoiceCurrencyCalculator.tsx`, `EmitInvoice.tsx`, `ReInvoice.tsx`):**
+     - La adăugarea unui rând nou (ex: Rândul 3) sau la deschiderea calculatorului, linia activă / primul rând cu preț `0` este selectat automat (`L3`), fără a rămâne blocat pe linia anterioară.
+     - Adăugat butoane rapide `L1`, `L2`, `L3` … + `Toate` și opțiunea `Toate liniile` (`__ALL__`) pentru aplicarea sumei convertite pe un rând anume sau pe toate rândurile facturii dintr-un click, plus trunchiere inteligentă la mijloc a descrierilor lungi și protecție `initializedSourceRef` contra suprascrierii rândurilor noi la focus în fereastră.
+- **Fișiere:** `client/src/index.css`, `client/src/components/InvoiceCurrencyCalculator.tsx`, `client/src/pages/EmitInvoice.tsx`, `client/src/pages/ReInvoice.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori), `npm run build` (`0` erori) și verificare geometrică + funcțională în Playwright Headless (3 linii + `Toate`, `paddingTop/Bottom: 0px`, `scrollHeight <= clientHeight`, screenshot verificat vizual), fără `git push`.
+
 ### 2026-11-26 23:08 — Restaurare logo firmă (`GetApp` + `www.getapp.ro` pe Tenantul 1) pe toate PDF-urile facturilor primite din SPV/Arhivă (`server/pdfRoute.ts`)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

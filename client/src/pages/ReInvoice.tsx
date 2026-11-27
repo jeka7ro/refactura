@@ -1456,6 +1456,11 @@ export default function ReInvoice() {
                   currentCurrency={currency}
                   activeExchangeRate={invoiceBnrRate || undefined}
                   issueDate={today}
+                  lines={lines.map((l, idx) => ({
+                    id: String(l.id),
+                    description: l.description || `Linia ${idx + 1}`,
+                    unitPrice: l.unitPrice,
+                  }))}
                   onSelectCurrency={c => {
                     setCurrency(c as Currency);
                     toast(`Moneda facturii a fost comutată în ${c}`);
@@ -1463,11 +1468,18 @@ export default function ReInvoice() {
                   onApplyPrice={(price, lineId) => {
                     setLines(prev => {
                       if (!prev || prev.length === 0) return prev;
-                      const targetIdx = lineId ? prev.findIndex(l => l.id === lineId) : 0;
+                      if (lineId === "__ALL__") {
+                        return prev.map(l => ({ ...l, unitPrice: price }));
+                      }
+                      const targetIdx = lineId ? prev.findIndex(l => String(l.id) === String(lineId)) : 0;
                       const finalIdx = targetIdx >= 0 ? targetIdx : 0;
                       return prev.map((l, idx) => (idx === finalIdx ? { ...l, unitPrice: price } : l));
                     });
-                    toast(`Preț actualizat: ${price}`);
+                    toast.success(
+                      lineId === "__ALL__"
+                        ? `Preț ${price.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency} aplicat pe toate liniile`
+                        : `Preț ${price.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency} aplicat`
+                    );
                   }}
                 />
               </div>

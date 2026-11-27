@@ -247,6 +247,8 @@ export default function EmitInvoice() {
 
   // Lines
   const [lines, setLines] = useState<Line[]>([defaultLine()]);
+  const [activeLineId, setActiveLineId] = useState<string>("");
+  const initializedSourceRef = useRef<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [showOptional, setShowOptional] = useState(false);
   const [showCodes, setShowCodes] = useState(false);
@@ -508,9 +510,12 @@ export default function EmitInvoice() {
     }
   }, [clientsData, editId, stornoId, selectedClientId]);
 
-  // Pre-fill Edit or Storno data
+  // Pre-fill Edit or Storno data (only once per sourceId + deviz load so window-focus refetches never overwrite user-added lines)
   useEffect(() => {
     if (originalInvoice && sourceId) {
+      const initKey = `${stornoId ? "storno" : "edit"}:${sourceId}:${linkedDevizForEdit?.lines?.length || 0}`;
+      if (initializedSourceRef.current === initKey) return;
+      initializedSourceRef.current = initKey;
       if (originalInvoice.clientId)
         setSelectedClientId(String(originalInvoice.clientId));
       setClientName(originalInvoice.clientName || "");
@@ -1031,15 +1036,18 @@ export default function EmitInvoice() {
     await fetchAndApplyQrData(tenantId, month, year);
   };
 
-  const addLine = () =>
+  const addLine = () => {
+    const newLineObj = defaultLine();
+    setActiveLineId(newLineObj.id);
     setLines(prev => {
       const defaultVat = isReverseCharge ? 0 : 21;
       const lastVat =
         prev.length > 0 && prev[prev.length - 1].vatRate !== undefined
           ? prev[prev.length - 1].vatRate
           : defaultVat;
-      return [...prev, { ...defaultLine(), vatRate: lastVat }];
+      return [...prev, { ...newLineObj, vatRate: lastVat }];
     });
+  };
   const removeLine = (id: string) =>
     setLines(prev => prev.filter(l => l.id !== id));
   const updateLine = useCallback(
@@ -1097,7 +1105,7 @@ export default function EmitInvoice() {
             ...l,
             description: p.name,
             unit: p.unit || "buc",
-            unitPrice: parseFloat(p.defaultPrice) || 0,
+            unitPrice: parseFloat(p.defaultPrice) || parseFloat(String(l.unitPrice)) || 0,
             vatRate: chosenVat,
           };
         }
@@ -1787,18 +1795,33 @@ export default function EmitInvoice() {
               currentCurrency={currency}
               activeExchangeRate={effectiveInvoiceBnrRate}
               issueDate={issueDate}
+              activeLineIndex={Math.max(0, lines.findIndex(l => l.id === activeLineId))}
               lines={lines.map((l, idx) => ({
-                id: l.id,
+                id: String(l.id),
                 description: l.description || `Linia ${idx + 1}`,
                 unitPrice: l.unitPrice,
               }))}
               onApplyPrice={(price, lineId) => {
+                let appliedLabel = "";
                 setLines(prev => {
                   if (!prev || prev.length === 0) {
+                    appliedLabel = "linia 1";
                     return [{ ...defaultLine(), unitPrice: price, quantity: 1 }];
                   }
-                  const targetIdx = lineId ? prev.findIndex(l => l.id === lineId) : 0;
+                  if (lineId === "__ALL__") {
+                    appliedLabel = `toate cele ${prev.length} linii`;
+                    return prev.map(l => ({
+                      ...l,
+                      unitPrice: price,
+                      quantity:
+                        !l.quantity || parseFloat(String(l.quantity)) === 0
+                          ? 1
+                          : l.quantity,
+                    }));
+                  }
+                  const targetIdx = lineId ? prev.findIndex(l => String(l.id) === String(lineId)) : 0;
                   const finalIdx = targetIdx >= 0 ? targetIdx : 0;
+                  appliedLabel = `linia ${finalIdx + 1}`;
                   return prev.map((l, idx) => {
                     if (idx === finalIdx) {
                       return {
@@ -1813,6 +1836,9 @@ export default function EmitInvoice() {
                     return l;
                   });
                 });
+                toast.success(
+                  `Preț ${price.toLocaleString("ro-RO", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency} aplicat pe ${appliedLabel || "linie"}`
+                );
               }}
               trigger={
                 <button
@@ -1874,6 +1900,7 @@ export default function EmitInvoice() {
           {lines.map((line, idx) => (
             <div
               key={line.id}
+              onFocusCapture={() => setActiveLineId(line.id)}
               className={cn(
                 "grid grid-cols-2 sm:grid-cols-4 md:grid-cols-12 gap-3 md:gap-0 items-start md:items-center hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] p-4 md:p-0 border-b border-black/[0.045] dark:border-white/[0.06] md:border-b-0 transition-colors",
                 focusedLineId === line.id ? "relative z-30" : "relative z-0"
