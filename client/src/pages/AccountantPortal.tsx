@@ -686,15 +686,54 @@ export default function AccountantPortal() {
   };
 
   // Descarcă XML SAGA
-  const handleDownloadSagaXml = async () => {
+  const handleDownloadSagaXml = async (tabOverride?: "received" | "emitted" | unknown) => {
     const now = new Date();
-    let month = now.getMonth() + 1;
-    let year = now.getFullYear();
+    const curMonth = now.getMonth() + 1;
+    const curYear = now.getFullYear();
+    let month = curMonth;
+    let year = curYear;
+    let startDate: string | undefined;
+    let endDate: string | undefined;
 
-    if (period === "last_month") {
-      month = month === 1 ? 12 : month - 1;
-      year = month === 12 ? year - 1 : year;
-    } else if (period === "current_year" || period === "all") {
+    const effectiveTab =
+      tabOverride === "received" || tabOverride === "emitted"
+        ? tabOverride
+        : activeTab === "emitted"
+          ? "emitted"
+          : "received";
+    const activePeriod = effectiveTab === "emitted" ? periodEmitted : period;
+    const activeCustomStart = effectiveTab === "emitted" ? customStartDateEmitted : customStartDate;
+    const activeCustomEnd = effectiveTab === "emitted" ? customEndDateEmitted : customEndDate;
+
+    if (activePeriod === "last_month") {
+      month = curMonth === 1 ? 12 : curMonth - 1;
+      year = curMonth === 1 ? curYear - 1 : curYear;
+    } else if (activePeriod === "last_3_months") {
+      month = 0;
+      const threeMonthsStart = new Date(curYear, curMonth - 3, 1);
+      const sY = threeMonthsStart.getFullYear();
+      const sM = String(threeMonthsStart.getMonth() + 1).padStart(2, "0");
+      startDate = `${sY}-${sM}-01`;
+      endDate = `${curYear}-${String(curMonth).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    } else if (activePeriod === "custom") {
+      const sMatch = activeCustomStart.match(/^(\d{4})-(\d{2})-\d{2}$/);
+      const eMatch = activeCustomEnd.match(/^(\d{4})-(\d{2})-\d{2}$/);
+      if (
+        sMatch &&
+        eMatch &&
+        sMatch[1] === eMatch[1] &&
+        sMatch[2] === eMatch[2] &&
+        activeCustomStart.endsWith("-01")
+      ) {
+        year = parseInt(sMatch[1], 10);
+        month = parseInt(sMatch[2], 10);
+      } else {
+        month = 0;
+        if (sMatch) year = parseInt(sMatch[1], 10);
+        if (activeCustomStart) startDate = activeCustomStart;
+        if (activeCustomEnd) endDate = activeCustomEnd;
+      }
+    } else if (activePeriod === "current_year" || activePeriod === "all") {
       month = 0;
     }
 
@@ -705,6 +744,8 @@ export default function AccountantPortal() {
         sessionToken,
         month,
         year,
+        startDate,
+        endDate,
       });
 
       let blob: Blob;
@@ -1303,23 +1344,33 @@ export default function AccountantPortal() {
       {/* ZONA PRINCIPALĂ DE CONȚINUT */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Bara Mobilă (sub md:) */}
-        <div className="md:hidden bg-white/90 dark:bg-[#18181a] backdrop-blur-xl border-b border-black/[0.06] dark:border-white/[0.08] px-3 py-2.5 flex items-center justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <div className="text-[13px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] truncate">
-              {publicInfo.companyName}
-            </div>
-            {publicInfo.cui && (
-              <div className="text-[11px] text-[#6e6e73] dark:text-[#98989d] tabular-nums">
-                CUI {publicInfo.cui}
+        <div className="md:hidden bg-white/90 dark:bg-[#18181a] backdrop-blur-xl border-b border-black/[0.06] dark:border-white/[0.08] px-3 py-2.5 space-y-2 min-w-0">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <div className="min-w-0 flex-1">
+              <div className="text-[13px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] truncate">
+                {publicInfo.companyName}
               </div>
-            )}
+              {publicInfo.cui && (
+                <div className="text-[11px] text-[#6e6e73] dark:text-[#98989d] tabular-nums truncate">
+                  CUI {publicInfo.cui}
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              aria-label="Închide sesiunea"
+              onClick={handleLockPortal}
+              className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] shrink-0 cursor-pointer"
+            >
+              <Lock className="w-3.5 h-3.5" />
+            </button>
           </div>
-          <div className="apple-segmented shrink-0 max-w-full overflow-x-auto no-scrollbar">
+          <div className="apple-segmented w-full min-w-0 flex">
             <button
               type="button"
               data-active={activeTab === "received"}
               onClick={() => setActiveTab("received")}
-              className="apple-segmented-item px-2 text-xs tabular-nums shrink-0"
+              className="apple-segmented-item flex-1 justify-center px-1.5 text-[11.5px] tabular-nums min-w-0 truncate"
             >
               Primite ({incomingCount})
             </button>
@@ -1327,7 +1378,7 @@ export default function AccountantPortal() {
               type="button"
               data-active={activeTab === "emitted"}
               onClick={() => setActiveTab("emitted")}
-              className="apple-segmented-item px-2 text-xs tabular-nums shrink-0"
+              className="apple-segmented-item flex-1 justify-center px-1.5 text-[11.5px] tabular-nums min-w-0 truncate"
             >
               Emise ({emittedCount})
             </button>
@@ -1335,19 +1386,11 @@ export default function AccountantPortal() {
               type="button"
               data-active={activeTab === "statements"}
               onClick={() => setActiveTab("statements")}
-              className="apple-segmented-item px-2 text-xs tabular-nums shrink-0"
+              className="apple-segmented-item flex-1 justify-center px-1.5 text-[11.5px] tabular-nums min-w-0 truncate"
             >
               Extrase ({statementsCount})
             </button>
           </div>
-          <button
-            type="button"
-            aria-label="Închide sesiunea"
-            onClick={handleLockPortal}
-            className="w-8 h-8 rounded-full apple-btn-glass flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] shrink-0 cursor-pointer"
-          >
-            <Lock className="w-3.5 h-3.5" />
-          </button>
         </div>
 
         <main className="p-3 sm:p-5 space-y-4 flex-1 min-w-0 max-w-full">

@@ -6,6 +6,8 @@ import {
   extractBankStatementMetadata,
 } from "./uploadRoute";
 import { detectBankFromIban } from "./bankStatementsRouter";
+import { detectPartnerCountry, toSagaXmlBuffer } from "./sagaXmlGenerator";
+import iconv from "iconv-lite";
 
 describe("External Non-SPV Invoice & Bank Statement Parsers", () => {
   it("normalizes European, US, and English human-readable invoice dates", () => {
@@ -111,5 +113,25 @@ describe("External Non-SPV Invoice & Bank Statement Parsers", () => {
     expect(parsed.openingBalance).toBe("1500.00");
     expect(parsed.closingBalance).toBe("1815.00");
     expect(parsed.transactionsCount).toBe(2);
+  });
+
+  it("classifies EU, US, UK, CH and RO partner countries accurately for SAGA C without misclassifying RO SRLs", () => {
+    expect(detectPartnerCountry("IE6388047V", "Google Ireland Limited", "EUR")).toBe("IE");
+    expect(detectPartnerCountry("DE123456789", "Hetzner Online GmbH", "EUR")).toBe("DE");
+    expect(detectPartnerCountry("", "OpenAI, L.L.C.", "USD")).toBe("US");
+    expect(detectPartnerCountry("", "Anthropic, PBC", "USD")).toBe("US");
+    expect(detectPartnerCountry("", "Cloudflare, Inc.", "USD")).toBe("US");
+    expect(detectPartnerCountry("", "Wise Payments Ltd", "GBP")).toBe("GB");
+    expect(detectPartnerCountry("", "Proton AG", "CHF")).toBe("CH");
+    expect(detectPartnerCountry("RO42322117", "TRADE INVEST NETWORK S.R.L.", "RON")).toBe("RO");
+    expect(detectPartnerCountry("", "WOOD GLASS SRL", "RON")).toBe("RO");
+    expect(detectPartnerCountry("28396216", "WOOD GLASS SRL", "EUR")).toBe("RO");
+  });
+
+  it("encodes SAGA XML buffer strictly as Windows-1250 with cedilla normalization", () => {
+    const sampleXml = `<?xml version="1.0" encoding="Windows-1250"?>\n<Facturi><Descriere>Servicii consultanță și producție Țăndărei</Descriere></Facturi>`;
+    const buf = toSagaXmlBuffer(sampleXml);
+    const decoded = iconv.decode(buf, "windows-1250");
+    expect(decoded).toContain("Servicii consultan\u0163ă \u015Fi produc\u0163ie \u0162ăndărei");
   });
 });

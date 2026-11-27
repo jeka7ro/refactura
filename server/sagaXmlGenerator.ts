@@ -41,6 +41,46 @@ export function detectCountryFromCui(cui?: string | null): string {
   return "RO";
 }
 
+/**
+ * Detectează codul ISO-2 al țării partenerului pentru SAGA C:
+ * 1. Dacă CUI/VAT începe cu prefix ISO-2 extern (ex: IE6388047V, DE..., LU...), îl folosește direct.
+ * 2. Dacă nu are CUI/VAT completat (ex: furnizori SUA/non-UE ca OpenAI, L.L.C., Anthropic, PBC, Cloudflare, Inc.),
+ *    deduce țara din sufixul juridic și monedă, fără a afecta niciodată firmele românești (SRL/SA/PFA -> RO).
+ */
+export function detectPartnerCountry(
+  cui?: string | null,
+  name?: string | null,
+  currency?: string | null
+): string {
+  const fromCui = detectCountryFromCui(cui);
+  if (fromCui !== "RO") return fromCui;
+
+  const cleanCui = String(cui || "").trim();
+  if (cleanCui) return "RO";
+
+  const cleanName = String(name || "").trim();
+  if (!cleanName) return "RO";
+
+  // Nu clasificăm niciodată o entitate juridică românească drept externă
+  if (/\b(S\.?R\.?L\.?|S\.?A\.?|P\.?F\.?A\.?|I\.?I\.?|I\.?F\.?|S\.?N\.?C\.?|S\.?C\.?S\.?)\b/i.test(cleanName)) {
+    return "RO";
+  }
+
+  if (/\b(Ireland|Dublin)\b/i.test(cleanName)) return "IE";
+  if (
+    /(?:,\s*|\s+)(Inc\.?|L\.L\.C\.?|LLC|PBC|Corp\.?|Corporation)$/i.test(cleanName) ||
+    /\b(OpenAI|Anthropic|Cloudflare|GitHub|Vercel|DigitalOcean|Figma)\b/i.test(cleanName)
+  ) {
+    return "US";
+  }
+
+  const cur = String(currency || "").trim().toUpperCase();
+  if (cur === "GBP" && /\b(Ltd\.?|Limited|PLC|LLP)\b/i.test(cleanName)) return "GB";
+  if (cur === "CHF" && /\b(AG|GmbH|Sàrl|Sarl)\b/i.test(cleanName)) return "CH";
+
+  return "RO";
+}
+
 export function normalizeSagaUm(rawUnit?: string | null): string {
   const trimmed = (rawUnit || "").trim();
   if (!trimmed) return "buc";
@@ -725,6 +765,8 @@ export async function generateSagaExportXML(
   options?: {
     nirIds?: number[];
     invoiceIds?: number[];
+    startDate?: string;
+    endDate?: string;
   }
 ) {
   const db = await getDb();
@@ -732,11 +774,19 @@ export async function generateSagaExportXML(
 
   const company = await getTenantCompanyProfile(tenantId);
 
-  // Format dates for filtering (month === 0 means entire year)
+  // Format dates for filtering (month === 0 means entire year, unless explicit startDate/endDate provided)
+  const cleanOptStart = options?.startDate ? toIsoDateStr(options.startDate) : "";
+  const cleanOptEnd = options?.endDate ? toIsoDateStr(options.endDate) : "";
   const isAllYear = !month || month === 0;
-  const startDateStr = isAllYear ? `${year}-01-01` : `${year}-${String(month).padStart(2, "0")}-01`;
+  const startDateStr =
+    cleanOptStart ||
+    (isAllYear ? `${year}-01-01` : `${year}-${String(month).padStart(2, "0")}-01`);
   const lastDay = isAllYear ? 31 : new Date(year, month, 0).getDate();
-  const endDateStr = isAllYear ? `${year}-12-31` : `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+  const endDateStr =
+    cleanOptEnd ||
+    (isAllYear
+      ? `${year}-12-31`
+      : `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`);
 
   let xml = `<?xml version="1.0" encoding="Windows-1250"?>\n`;
   xml += `<Facturi>\n`;
@@ -1062,6 +1112,197 @@ export async function generateSagaExportXML(
     }
   }
 
+  // Încărcăm o singură dată facturile externe / Non-SPV din arhivă (pentru Ieșiri 1c și Intrări 2c)
+  const nonSpvArchiveRows =
+    options?.invoiceIds === undefined || options?.nirIds === undefined
+      ? (
+          await db
+            .select()
+            .from(schema.invoiceArchive)
+            .where(eq(schema.invoiceArchive.tenantId, tenantId))
+        ).filter(
+          (inv) =>
+            inv.source !== "spv_anaf" &&
+            !String(inv.spvIndex || "").trim() &&
+            String(inv.status || "").toLowerCase() !== "cancelled"
+        )
+      : [];
+
+  // 1c. Export Facturi Externe / Non-SPV de Ieșire (direction === "out") neincluse în emittedInvoices/reInvoices
+  if (options?.invoiceIds === undefined && nonSpvArchiveRows.length > 0) {
+    const monthOutExt = nonSpvArchiveRows.filter((inv) => {
+      if (inv.direction !== "out") return false;
+      if (!inv.issueDate) return false;
+      const d = toIsoDateStr(inv.issueDate);
+      if (!d || d < startDateStr || d > endDateStr) return false;
+      const k = normInvKey(inv.invoiceNumber);
+      return !(k && exportedOutNumbers.has(k));
+    });
+
+    for (const inv of monthOutExt) {
+      if (inv.invoiceNumber) exportedOutNumbers.add(normInvKey(inv.invoiceNumber));
+      const aLines = await db
+        .select()
+        .from(schema.invoiceArchiveLines)
+        .where(eq(schema.invoiceArchiveLines.invoiceArchiveId, inv.id));
+
+      const headerTot = parseFloat(String(inv.total || "0")) || 0;
+      const headerVat = parseFloat(String(inv.totalVAT || "0")) || 0;
+      const headerNet = Math.round((headerTot - headerVat) * 100) / 100;
+
+      let totalValoare = 0;
+      let totalTva = 0;
+      const processedExtOutLines: Array<{
+        description: string;
+        unit: string;
+        qty: number;
+        price: number;
+        rate: number;
+        lineVal: number;
+        lineVat: number;
+      }> = [];
+
+      if (aLines.length > 0) {
+        for (const line of aLines) {
+          let qty = parseFloat(String(line.quantity)) || 1;
+          let price = parseFloat(String(line.unitPrice)) || 0;
+          const rate =
+            line.vatRate !== null && line.vatRate !== undefined && String(line.vatRate).trim() !== ""
+              ? parseFloat(String(line.vatRate)) || 0
+              : 0;
+          const rawTotal = parseFloat(String(line.total));
+          let lineVal =
+            !isNaN(rawTotal) && rawTotal !== 0
+              ? rawTotal
+              : Math.round(qty * price * 100) / 100;
+          if (lineVal < 0) {
+            if (qty > 0 && price > 0) qty = -qty;
+            else if (qty > 0 && price === 0) {
+              qty = -qty;
+              price = Math.abs(lineVal);
+            }
+          } else if (lineVal > 0) {
+            qty = Math.abs(qty);
+            price = Math.abs(price) || Math.abs(lineVal);
+          }
+          let lineVat = Math.round(lineVal * (rate / 100) * 100) / 100;
+          if (lineVal < 0 && lineVat > 0) lineVat = -lineVat;
+          if (lineVal > 0 && lineVat < 0) lineVat = Math.abs(lineVat);
+          totalValoare += lineVal;
+          totalTva += lineVat;
+          processedExtOutLines.push({
+            description: line.description || `Servicii conform factură ${inv.invoiceNumber || ""}`.trim(),
+            unit: line.unit || "buc",
+            qty,
+            price,
+            rate,
+            lineVal,
+            lineVat,
+          });
+        }
+      } else {
+        const inferredRate =
+          headerNet !== 0 && headerVat !== 0
+            ? Math.round(Math.abs(headerVat / headerNet) * 100)
+            : 0;
+        const lineVat = headerNet < 0 ? -Math.abs(headerVat) : Math.abs(headerVat);
+        totalValoare = headerNet;
+        totalTva = lineVat;
+        processedExtOutLines.push({
+          description: `Servicii conform factură ${inv.invoiceNumber || ""}`.trim(),
+          unit: "buc",
+          qty: headerNet < 0 ? -1 : 1,
+          price: Math.abs(headerNet),
+          rate: inferredRate,
+          lineVal: headerNet,
+          lineVat,
+        });
+      }
+
+      totalValoare = Math.round(totalValoare * 100) / 100;
+      totalTva = Math.round(totalTva * 100) / 100;
+      let totalFactura = Math.round((totalValoare + totalTva) * 100) / 100;
+      if (headerTot !== 0 && Math.abs(Math.abs(headerTot) - Math.abs(totalFactura)) <= 0.15) {
+        totalFactura = headerTot;
+        totalTva = totalFactura < 0 ? -Math.abs(headerVat) : Math.abs(headerVat);
+        totalValoare = Math.round((totalFactura - totalTva) * 100) / 100;
+      }
+      reconcileLineVat(
+        processedExtOutLines,
+        (i) => i.lineVat,
+        (i, v) => {
+          i.lineVat = v;
+        },
+        (i) => i.rate,
+        totalTva
+      );
+
+      // În invoiceArchive, partenerul (inclusiv clientul pe direction === "out") este stocat în supplierName / supplierCUI
+      const clientName = inv.supplierName || "Client";
+      const clientCif = inv.supplierCUI || "";
+      const invCurrency = (inv.currency || "RON").trim().toUpperCase();
+      const clientCountry = detectPartnerCountry(clientCif, clientName, invCurrency);
+      const invCurs =
+        invCurrency !== "RON" && invCurrency !== "LEI"
+          ? await resolveSagaExchangeRate(inv.issueDate, invCurrency, undefined, inv.notes)
+          : 1;
+      const isExtOutRevCharge = detectReverseChargeFlag({
+        notes: inv.notes,
+        rawXml: inv.rawXml,
+        totalTva,
+        partnerCountry: clientCountry,
+        partnerCui: clientCif,
+      });
+
+      xml += `  <Factura>\n`;
+      xml += `    <Antet>\n`;
+      xml += `      <FurnizorNume>${escapeXml(company.name)}</FurnizorNume>\n`;
+      xml += `      <FurnizorCIF>${escapeXml(company.cui)}</FurnizorCIF>\n`;
+      if (company.regCom) xml += `      <FurnizorNrRegCom>${escapeXml(company.regCom)}</FurnizorNrRegCom>\n`;
+      xml += `      <FurnizorTara>${escapeXml(company.country || "RO")}</FurnizorTara>\n`;
+      if (company.county) xml += `      <FurnizorJudet>${escapeXml(company.county)}</FurnizorJudet>\n`;
+      if (company.city) xml += `      <FurnizorLocalitate>${escapeXml(company.city)}</FurnizorLocalitate>\n`;
+      if (company.address) xml += `      <FurnizorAdresa>${escapeXml(company.address)}</FurnizorAdresa>\n`;
+      xml += `      <ClientNume>${escapeXml(clientName)}</ClientNume>\n`;
+      xml += `      <ClientCIF>${escapeXml(clientCif)}</ClientCIF>\n`;
+      xml += `      <ClientTara>${escapeXml(clientCountry)}</ClientTara>\n`;
+      xml += `      <FacturaNumar>${escapeXml(inv.invoiceNumber || String(inv.id))}</FacturaNumar>\n`;
+      xml += `      <FacturaData>${formatDate(inv.issueDate)}</FacturaData>\n`;
+      if (inv.dueDate) xml += `      <FacturaScadenta>${formatDate(inv.dueDate)}</FacturaScadenta>\n`;
+      xml += `      <FacturaTaxareInversa>${isExtOutRevCharge ? "Da" : "Nu"}</FacturaTaxareInversa>\n`;
+      xml += `      <FacturaTVAIncasare>Nu</FacturaTVAIncasare>\n`;
+      xml += `      <FacturaTip></FacturaTip>\n`;
+      xml += `      <FacturaMoneda>${escapeXml(invCurrency)}</FacturaMoneda>\n`;
+      if (invCurrency !== "RON" && invCurrency !== "LEI" && invCurs > 0) {
+        xml += `      <FacturaCurs>${invCurs.toFixed(4)}</FacturaCurs>\n`;
+      }
+      xml += `      <FacturaTotalValoare>${totalValoare.toFixed(2)}</FacturaTotalValoare>\n`;
+      xml += `      <FacturaTotalTVA>${totalTva.toFixed(2)}</FacturaTotalTVA>\n`;
+      xml += `      <FacturaTotal>${totalFactura.toFixed(2)}</FacturaTotal>\n`;
+      xml += `    </Antet>\n`;
+      xml += `    <Detalii>\n`;
+      xml += `      <Continut>\n`;
+      let extOutIdx = 1;
+      for (const item of processedExtOutLines) {
+        xml += `        <Linie>\n`;
+        xml += `          <LinieNrCrt>${extOutIdx++}</LinieNrCrt>\n`;
+        xml += `          <Tip>Servicii</Tip>\n`;
+        xml += `          <Descriere>${escapeXml(item.description)}</Descriere>\n`;
+        xml += `          <UM>${escapeXml(normalizeSagaUm(item.unit))}</UM>\n`;
+        xml += `          <Cantitate>${item.qty}</Cantitate>\n`;
+        xml += `          <Pret>${item.price.toFixed(4)}</Pret>\n`;
+        xml += `          <Valoare>${item.lineVal.toFixed(2)}</Valoare>\n`;
+        xml += `          <ProcTVA>${item.rate}</ProcTVA>\n`;
+        xml += `          <TVA>${item.lineVat.toFixed(2)}</TVA>\n`;
+        xml += `          <Cont>704</Cont>\n`;
+        xml += `        </Linie>\n`;
+      }
+      xml += `      </Continut>\n`;
+      xml += `    </Detalii>\n`;
+      xml += `  </Factura>\n`;
+    }
+  }
+
   // ───────────────────────────────────────────────────────────────────────────
   // 2. Export Intrări (Facturi Furnizori / NIR)
   // ───────────────────────────────────────────────────────────────────────────
@@ -1224,7 +1465,7 @@ export async function generateSagaExportXML(
     xml += `  <Factura>\n`;
     xml += `    <Antet>\n`;
     // Furnizorul
-    const supplierCountry = detectCountryFromCui(n.supplierCUI);
+    const supplierCountry = detectPartnerCountry(n.supplierCUI, n.supplierName, currency);
     xml += `      <FurnizorNume>${escapeXml(n.supplierName || "")}</FurnizorNume>\n`;
     xml += `      <FurnizorCIF>${escapeXml(n.supplierCUI || "")}</FurnizorCIF>\n`;
     xml += `      <FurnizorTara>${escapeXml(supplierCountry)}</FurnizorTara>\n`;
@@ -1392,7 +1633,7 @@ export async function generateSagaExportXML(
       xml += `  <Factura>\n`;
     xml += `    <Antet>\n`;
     // Furnizorul
-    const supplierCountry = detectCountryFromCui(n.cuiFurnizor);
+    const supplierCountry = detectPartnerCountry(n.cuiFurnizor, n.numeFurnizor, (n as any).valuta);
     xml += `      <FurnizorNume>${escapeXml(n.numeFurnizor || "")}</FurnizorNume>\n`;
     xml += `      <FurnizorCIF>${escapeXml(n.cuiFurnizor || "")}</FurnizorCIF>\n`;
     xml += `      <FurnizorTara>${escapeXml(supplierCountry)}</FurnizorTara>\n`;
@@ -1471,6 +1712,233 @@ export async function generateSagaExportXML(
     xml += `      </Continut>\n`;
     xml += `    </Detalii>\n`;
     xml += `  </Factura>\n`;
+    }
+
+    // c. Facturi Intrări Externe / Non-SPV fără NIR și fără înregistrare dublă în sagaIntrari
+    // (ex: Google Ireland, Meta, OpenAI, Hetzner, AWS, furnizori externi / bonuri & facturi non-SPV de servicii)
+    // NOTĂ: Facturile SPV ANAF (source === "spv_anaf" sau cu spvIndex) fără NIR NU se exportă aici,
+    // deoarece contabilii le preiau direct din SPV în SAGA C (evitând dublarea în SAGA).
+    if (nonSpvArchiveRows.length > 0) {
+      const allNirArchiveIds = new Set<number>();
+      const allExistingInKeys = new Set<string>(exportedDocKeys);
+      for (const n of nirList) {
+        if (n.invoiceArchiveId) allNirArchiveIds.add(n.invoiceArchiveId);
+        const cCui = (n.supplierCUI || "").replace(/^RO/i, "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+        const dNum = normDocPart(n.invoiceNumber || n.nirNumber);
+        if (dNum) {
+          allExistingInKeys.add(`${cCui}_${dNum}`);
+          if (!cCui && n.supplierName) {
+            allExistingInKeys.add(`EXT_${normDocPart(n.supplierName)}_${dNum}`);
+          }
+        }
+      }
+      for (const si of noileIntrari) {
+        if (si.status === "stornat") continue;
+        const cCui = (si.cuiFurnizor || "").replace(/^RO/i, "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+        const dNum = normDocPart(si.nrDoc);
+        if (dNum) {
+          allExistingInKeys.add(`${cCui}_${dNum}`);
+          if (!cCui && si.numeFurnizor) {
+            allExistingInKeys.add(`EXT_${normDocPart(si.numeFurnizor)}_${dNum}`);
+          }
+        }
+      }
+
+      const monthInExt = nonSpvArchiveRows.filter((inv) => {
+        if (inv.direction !== "in") return false;
+        if (allNirArchiveIds.has(inv.id)) return false;
+        if (!inv.issueDate) return false;
+        const d = toIsoDateStr(inv.issueDate);
+        return Boolean(d) && d >= startDateStr && d <= endDateStr;
+      });
+
+      for (const inv of monthInExt) {
+        const cleanSupplierCui = (inv.supplierCUI || "")
+          .replace(/^RO/i, "")
+          .replace(/[^A-Za-z0-9]/g, "")
+          .toUpperCase();
+        const docNum = normDocPart(inv.invoiceNumber || String(inv.id));
+        const primaryKey = docNum
+          ? cleanSupplierCui
+            ? `${cleanSupplierCui}_${docNum}`
+            : `EXT_${normDocPart(inv.supplierName)}_${docNum}`
+          : "";
+        if (primaryKey && allExistingInKeys.has(primaryKey)) continue;
+        if (cleanSupplierCui && docNum && allExistingInKeys.has(`${cleanSupplierCui}_${docNum}`)) continue;
+        if (primaryKey) {
+          allExistingInKeys.add(primaryKey);
+          exportedDocKeys.add(primaryKey);
+        }
+
+        const aLines = await db
+          .select()
+          .from(schema.invoiceArchiveLines)
+          .where(eq(schema.invoiceArchiveLines.invoiceArchiveId, inv.id));
+
+        const headerTot = parseFloat(String(inv.total || "0")) || 0;
+        const headerVat = parseFloat(String(inv.totalVAT || "0")) || 0;
+        const headerNet = Math.round((headerTot - headerVat) * 100) / 100;
+
+        let totalValoare = 0;
+        let totalTva = 0;
+        const processedExtInLines: Array<{
+          description: string;
+          unit: string;
+          qty: number;
+          price: number;
+          rate: number;
+          lineVal: number;
+          lineVat: number;
+        }> = [];
+
+        if (aLines.length > 0) {
+          for (const line of aLines) {
+            let qty = parseFloat(String(line.quantity)) || 1;
+            let price = parseFloat(String(line.unitPrice)) || 0;
+            const rate =
+              line.vatRate !== null && line.vatRate !== undefined && String(line.vatRate).trim() !== ""
+                ? parseFloat(String(line.vatRate)) || 0
+                : 0;
+            const rawTotal = parseFloat(String(line.total));
+            let lineVal =
+              !isNaN(rawTotal) && rawTotal !== 0
+                ? rawTotal
+                : Math.round(qty * price * 100) / 100;
+
+            if (lineVal < 0) {
+              if (qty > 0 && price > 0) qty = -qty;
+              else if (qty > 0 && price === 0) {
+                qty = -qty;
+                price = Math.abs(lineVal);
+              }
+            } else if (lineVal > 0) {
+              qty = Math.abs(qty);
+              price = Math.abs(price) || Math.abs(lineVal);
+            }
+
+            let lineVat = Math.round(lineVal * (rate / 100) * 100) / 100;
+            if (lineVal < 0 && lineVat > 0) lineVat = -lineVat;
+            if (lineVal > 0 && lineVat < 0) lineVat = Math.abs(lineVat);
+
+            totalValoare += lineVal;
+            totalTva += lineVat;
+            processedExtInLines.push({
+              description:
+                line.description ||
+                `Servicii conform factură ${inv.invoiceNumber || ""} - ${inv.supplierName || ""}`.trim(),
+              unit: line.unit || "buc",
+              qty,
+              price,
+              rate,
+              lineVal,
+              lineVat,
+            });
+          }
+        } else {
+          const inferredRate =
+            headerNet !== 0 && headerVat !== 0
+              ? Math.round(Math.abs(headerVat / headerNet) * 100)
+              : 0;
+          const lineVat = headerNet < 0 ? -Math.abs(headerVat) : Math.abs(headerVat);
+          totalValoare = headerNet;
+          totalTva = lineVat;
+          processedExtInLines.push({
+            description:
+              `Servicii conform factură ${inv.invoiceNumber || ""} - ${inv.supplierName || ""}`.trim(),
+            unit: "buc",
+            qty: headerNet < 0 ? -1 : 1,
+            price: Math.abs(headerNet),
+            rate: inferredRate,
+            lineVal: headerNet,
+            lineVat,
+          });
+        }
+
+        totalValoare = Math.round(totalValoare * 100) / 100;
+        totalTva = Math.round(totalTva * 100) / 100;
+        let totalFactura = Math.round((totalValoare + totalTva) * 100) / 100;
+
+        if (headerTot !== 0 && Math.abs(Math.abs(headerTot) - Math.abs(totalFactura)) <= 0.15) {
+          totalFactura = headerTot;
+          totalTva = totalFactura < 0 ? -Math.abs(headerVat) : Math.abs(headerVat);
+          totalValoare = Math.round((totalFactura - totalTva) * 100) / 100;
+        }
+        reconcileLineVat(
+          processedExtInLines,
+          (i) => i.lineVat,
+          (i, v) => {
+            i.lineVat = v;
+          },
+          (i) => i.rate,
+          totalTva
+        );
+
+        const invCurrency = (inv.currency || "RON").trim().toUpperCase();
+        const supplierCountry = detectPartnerCountry(
+          inv.supplierCUI,
+          inv.supplierName,
+          invCurrency
+        );
+        const invCurs =
+          invCurrency !== "RON" && invCurrency !== "LEI"
+            ? await resolveSagaExchangeRate(inv.issueDate, invCurrency, undefined, inv.notes)
+            : 1;
+        const isExtInRevCharge = detectReverseChargeFlag({
+          notes: inv.notes,
+          rawXml: inv.rawXml,
+          totalTva,
+          partnerCountry: supplierCountry,
+          partnerCui: inv.supplierCUI,
+        });
+
+        xml += `  <Factura>\n`;
+        xml += `    <Antet>\n`;
+        xml += `      <FurnizorNume>${escapeXml(inv.supplierName || "")}</FurnizorNume>\n`;
+        xml += `      <FurnizorCIF>${escapeXml(inv.supplierCUI || "")}</FurnizorCIF>\n`;
+        xml += `      <FurnizorTara>${escapeXml(supplierCountry)}</FurnizorTara>\n`;
+        xml += `      <ClientNume>${escapeXml(company.name)}</ClientNume>\n`;
+        xml += `      <ClientCIF>${escapeXml(company.cui)}</ClientCIF>\n`;
+        if (company.regCom) xml += `      <ClientNrRegCom>${escapeXml(company.regCom)}</ClientNrRegCom>\n`;
+        if (company.county) xml += `      <ClientJudet>${escapeXml(company.county)}</ClientJudet>\n`;
+        xml += `      <ClientTara>${escapeXml(company.country || "RO")}</ClientTara>\n`;
+        if (company.city) xml += `      <ClientLocalitate>${escapeXml(company.city)}</ClientLocalitate>\n`;
+        if (company.address) xml += `      <ClientAdresa>${escapeXml(company.address)}</ClientAdresa>\n`;
+        xml += `      <FacturaNumar>${escapeXml(inv.invoiceNumber || String(inv.id))}</FacturaNumar>\n`;
+        xml += `      <FacturaData>${formatDate(inv.issueDate)}</FacturaData>\n`;
+        if (inv.dueDate) xml += `      <FacturaScadenta>${formatDate(inv.dueDate)}</FacturaScadenta>\n`;
+        xml += `      <FacturaTaxareInversa>${isExtInRevCharge ? "Da" : "Nu"}</FacturaTaxareInversa>\n`;
+        xml += `      <FacturaTVAIncasare>Nu</FacturaTVAIncasare>\n`;
+        xml += `      <FacturaTip></FacturaTip>\n`;
+        xml += `      <FacturaMoneda>${escapeXml(invCurrency)}</FacturaMoneda>\n`;
+        if (invCurrency !== "RON" && invCurrency !== "LEI" && invCurs > 0) {
+          xml += `      <FacturaCurs>${invCurs.toFixed(4)}</FacturaCurs>\n`;
+        }
+        xml += `      <FacturaTotalValoare>${totalValoare.toFixed(2)}</FacturaTotalValoare>\n`;
+        xml += `      <FacturaTotalTVA>${totalTva.toFixed(2)}</FacturaTotalTVA>\n`;
+        xml += `      <FacturaTotal>${totalFactura.toFixed(2)}</FacturaTotal>\n`;
+        xml += `    </Antet>\n`;
+        xml += `    <Detalii>\n`;
+        xml += `      <Continut>\n`;
+
+        let extInIdx = 1;
+        for (const item of processedExtInLines) {
+          xml += `        <Linie>\n`;
+          xml += `          <LinieNrCrt>${extInIdx++}</LinieNrCrt>\n`;
+          xml += `          <Tip>Servicii</Tip>\n`;
+          xml += `          <Descriere>${escapeXml(item.description)}</Descriere>\n`;
+          xml += `          <UM>${escapeXml(normalizeSagaUm(item.unit))}</UM>\n`;
+          xml += `          <Cantitate>${item.qty}</Cantitate>\n`;
+          xml += `          <Pret>${item.price.toFixed(4)}</Pret>\n`;
+          xml += `          <Valoare>${item.lineVal.toFixed(2)}</Valoare>\n`;
+          xml += `          <ProcTVA>${item.rate}</ProcTVA>\n`;
+          xml += `          <TVA>${item.lineVat.toFixed(2)}</TVA>\n`;
+          xml += `          <Cont>628</Cont>\n`;
+          xml += `        </Linie>\n`;
+        }
+        xml += `      </Continut>\n`;
+        xml += `    </Detalii>\n`;
+        xml += `  </Factura>\n`;
+      }
     }
   }
 

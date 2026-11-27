@@ -1,5 +1,21 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-27 14:25 — Verificare completă & blindare Export SAGA XML/ZIP/Web pentru Facturi Externe Non-SPV + Portal Contabil (`sagaXmlGenerator.ts`, `accountantPortalRouter.ts`, `AccountantPortal.tsx`, `SagaClassicPortalView.tsx`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Integrare completă a Facturilor Externe / Non-SPV în Exportul SAGA XML, Arhiva ZIP și SAGA Web (`server/sagaXmlGenerator.ts`):**
+     - Adăugat exportul facturilor externe / Non-SPV de **Intrare** (`direction === "in"`, `source !== "spv_anaf"`, fără `spvIndex` și fără dublură în `nir` sau `sagaIntrari`) pe `<Tip>Servicii</Tip>` și `<Cont>628</Cont>` (fără `<Cod>` sau `<Gestiune>`, ca să nu polueze `ART_<data>.xml`), cu calcul automat `<FacturaCurs>` la cursul BNR al datei documentului și `<FacturaTaxareInversa>` (`Da` pentru furnizori intracomunitari UE cu VAT ID valid și TVA `0`, ex. `Google Ireland IE6388047V`; `Nu` pentru furnizori non-UE sau interni).
+     - Adăugat exportul facturilor externe / Non-SPV de **Ieșire** (`direction === "out"`, `source !== "spv_anaf"`, fără `spvIndex`, deduplicate față de `emittedInvoices` și `reInvoices`) pe `<Cont>704</Cont>` / `<Tip>Servicii</Tip>`, citind corect numele și CUI-ul clientului din `invoiceArchive`.
+     - Păstrat **100% neschimbate** facturile SPV ANAF fără NIR (pentru a evita dublarea la importul SPV în SAGA C) și toate sumele/regulile istorice SAGA (`Tenant 1` = exact `25` `<Factura>` fără dubluri; `Tenant 4 WOOD GLASS SRL` = exact `215` `<Factura>` fără dubluri; codificare binară `Windows-1250`).
+     - Adăugat `detectPartnerCountry(cui, name, currency)` pentru clasificarea corectă a țării partenerilor externi fără prefix VAT (ex. `OpenAI, L.L.C.`, `Anthropic, PBC`, `Cloudflare, Inc.` → `US`, `GBP + Ltd` → `GB`, `CHF + AG/GmbH` → `CH`), fără a afecta niciodată firmele românești (`SRL`/`SA`/`PFA` → `RO`).
+  2. **Aliniere Portal Contabil (`Mod Modern` + `Mod SAGA Clasic`) și geometrie mobilă `320px` (`server/accountantPortalRouter.ts`, `client/src/pages/AccountantPortal.tsx`, `client/src/components/SagaClassicPortalView.tsx`):**
+     - Extins `downloadSagaXml` și `generateSagaExportXML` cu suport pentru `startDate` / `endDate`, astfel încât filtrele `Ultimele 3 luni` și `Interval personalizat` din Portalul Contabil (pe ambele taburi `Intrări` / `Ieșiri`, atât în `Mod Modern`, cât și în `Mod SAGA Clasic`) să exporte exact perioada selectată.
+     - Corectat `getDocumentLines` în Portalul Contabil pentru facturile din arhivă fără NIR: afișare `<Cont>628</Cont>` / `Servicii` pentru facturile externe Non-SPV, calcul corect al TVA-ului pe linie când `invoiceArchiveLines.total` stochează valoarea netă (`LineExtensionAmount`) și transmiterea parametrului `source` din `SagaClassicPortalView`.
+     - Aliniat antetul mobil din `AccountantPortal.tsx` și bara superioară din `SagaClassicPortalView.tsx` (`min-w-0 max-w-full`) pentru `0` overflow orizontal pe toate rezoluțiile (`320px`, `375px`, `390px`, `430px`, `1440px`) în Light și Dark Mode.
+- **Fișiere:** `server/sagaXmlGenerator.ts`, `server/accountantPortalRouter.ts`, `server/externalAndStatements.test.ts`, `client/src/pages/AccountantPortal.tsx`, `client/src/components/SagaClassicPortalView.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori), `npx vitest run` (`8/8` passed), `npm run build` (`0` erori), verificare live SAGA XML & ZIP HTTP (`T1 = 25` doc., `T4 WOOD GLASS = 215` doc., `0` dubluri, test end-to-end Google Ireland `IE` + OpenAI `US` + Hetzner cu NIR fără dublare + ieșire externă + curățare `100%` cu `0` date de test rămase în DB) și Playwright (`320px–1440px`, Light/Dark), fără `git push`.
+
 ### 2026-11-27 12:52 — Import Facturi Externe / Non-SPV (calcul lunar + Portal Contabil), Extrase de Cont Bancare și instalare skill-uri `mattpocock/skills` + `obra/superpowers` + `anthropics/skills`
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

@@ -1091,6 +1091,8 @@ export const accountantPortalRouter = router({
         month: z.number(), // 1-12 sau 0
         year: z.number(),
         nirId: z.number().optional(),
+        startDate: z.string().trim().optional(),
+        endDate: z.string().trim().optional(),
       })
     )
     .mutation(async ({ input }) => {
@@ -1123,8 +1125,19 @@ export const accountantPortalRouter = router({
         xml = await generateSagaNirXML(tenant.id, input.nirId);
         filename = `NIR_${input.nirId}_${safeCui}.xml`;
       } else {
-        xml = await generateSagaExportXML(tenant.id, input.month, input.year);
-        filename = `F_${safeCui}_${input.month}_${input.year}.xml`;
+        xml = await generateSagaExportXML(tenant.id, input.month, input.year, {
+          startDate: input.startDate || undefined,
+          endDate: input.endDate || undefined,
+        });
+        if (input.startDate && input.endDate && input.month === 0) {
+          const sClean = input.startDate.replace(/[^0-9]/g, "").slice(0, 8);
+          const eClean = input.endDate.replace(/[^0-9]/g, "").slice(0, 8);
+          filename = `F_${safeCui}_${sClean}_${eClean}.xml`;
+        } else if (input.month === 0) {
+          filename = `F_${safeCui}_ALL_${input.year}.xml`;
+        } else {
+          filename = `F_${safeCui}_${input.month}_${input.year}.xml`;
+        }
       }
 
       const buffer = toSagaXmlBuffer(xml);
@@ -1224,7 +1237,15 @@ export const accountantPortalRouter = router({
 
         // 2. Altfel, verificăm că factura din arhivă aparține tenantului curent înainte de a returna liniile
         const [ownArchive] = await db
-          .select({ id: schema.invoiceArchive.id })
+          .select({
+            id: schema.invoiceArchive.id,
+            source: schema.invoiceArchive.source,
+            spvIndex: schema.invoiceArchive.spvIndex,
+            total: schema.invoiceArchive.total,
+            totalVAT: schema.invoiceArchive.totalVAT,
+            supplierName: schema.invoiceArchive.supplierName,
+            invoiceNumber: schema.invoiceArchive.invoiceNumber,
+          })
           .from(schema.invoiceArchive)
           .where(
             and(
@@ -1235,6 +1256,9 @@ export const accountantPortalRouter = router({
           .limit(1);
 
         if (ownArchive) {
+          const isExternalNonSpv =
+            ownArchive.source !== "spv_anaf" &&
+            !String(ownArchive.spvIndex || "").trim();
           const aLines = await db
             .select()
             .from(schema.invoiceArchiveLines)
@@ -1244,16 +1268,32 @@ export const accountantPortalRouter = router({
             return aLines.map((l, idx) => {
               const qty = parseFloat(String(l.quantity || 0));
               const price = parseFloat(String(l.unitPrice || 0));
-              const tot = parseFloat(String(l.total || (qty * price)));
-              const vat = parseFloat(String(l.vatRate || 21));
-              const val = Math.round(qty * price * 100) / 100;
-              const tvaSum = Math.round((tot - val) * 100) / 100;
+              const vat =
+                l.vatRate !== null && l.vatRate !== undefined && String(l.vatRate).trim() !== ""
+                  ? parseFloat(String(l.vatRate))
+                  : isExternalNonSpv
+                    ? 0
+                    : 21;
+              const rawLineTotal = parseFloat(String(l.total || 0));
+              const val =
+                qty !== 0 && price !== 0
+                  ? Math.round(qty * price * 100) / 100
+                  : Math.round(rawLineTotal * 100) / 100;
+              // În invoiceArchiveLines, l.total stochează de regulă LineExtensionAmount (valoarea netă fără TVA)
+              const isRawAlreadyGross =
+                vat > 0 && Math.abs(rawLineTotal) > Math.abs(val) + 0.02;
+              const tvaSum = isRawAlreadyGross
+                ? Math.round((rawLineTotal - val) * 100) / 100
+                : Math.round(val * (vat / 100) * 100) / 100;
+              const tot = isRawAlreadyGross
+                ? Math.round(rawLineTotal * 100) / 100
+                : Math.round((val + tvaSum) * 100) / 100;
               return {
                 lineOrder: idx + 1,
-                type: "Mărfuri",
-                gestiune: "Depozit",
+                type: isExternalNonSpv ? "Servicii" : "Mărfuri",
+                gestiune: isExternalNonSpv ? "—" : "Depozit",
                 description: l.description,
-                code: String(idx + 1).padStart(8, "0"),
+                code: isExternalNonSpv ? "" : String(idx + 1).padStart(8, "0"),
                 unit: (l.unit || "buc").toUpperCase(),
                 quantity: qty,
                 unitPrice: price,
@@ -1262,13 +1302,45 @@ export const accountantPortalRouter = router({
                 total: tot,
                 tva: tvaSum,
                 nedeductibil: 0,
-                account: "371",
+                account: isExternalNonSpv ? "628" : "371",
                 pretVanzare: 0,
                 adaosUnitar: 0,
                 adaosProcent: 0,
                 infoSuplimentare: "",
               };
             });
+          }
+
+          if (isExternalNonSpv) {
+            const totGross = parseFloat(String(ownArchive.total || 0)) || 0;
+            const totVat = parseFloat(String(ownArchive.totalVAT || 0)) || 0;
+            const totNet = Math.round((totGross - totVat) * 100) / 100;
+            const vatRate =
+              totNet !== 0 && totVat !== 0
+                ? Math.round(Math.abs(totVat / totNet) * 100)
+                : 0;
+            return [
+              {
+                lineOrder: 1,
+                type: "Servicii",
+                gestiune: "—",
+                description: `Servicii conform factură ${ownArchive.invoiceNumber || ""} - ${ownArchive.supplierName || ""}`.trim(),
+                code: "",
+                unit: "BUC",
+                quantity: totNet < 0 ? -1 : 1,
+                unitPrice: Math.abs(totNet),
+                valoare: totNet,
+                vatRate,
+                total: totGross,
+                tva: totVat,
+                nedeductibil: 0,
+                account: "628",
+                pretVanzare: 0,
+                adaosUnitar: 0,
+                adaosProcent: 0,
+                infoSuplimentare: "",
+              },
+            ];
           }
         }
 

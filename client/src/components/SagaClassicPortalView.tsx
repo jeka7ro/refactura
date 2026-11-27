@@ -83,7 +83,7 @@ interface SagaClassicPortalViewProps {
   // Acțiuni
   onViewInvoicePdf: (inv: any) => void;
   onViewNirPdf: (inv: any) => void;
-  onDownloadSagaXml: () => void;
+  onDownloadSagaXml: (tabOverride?: "received" | "emitted") => void;
   onExportExcel: () => void;
   onExportEmittedExcel: () => void;
   onDownloadZip: () => void;
@@ -479,6 +479,7 @@ export default function SagaClassicPortalView({
         docType: activeTab,
         docId: selectedInvoice?.id || 0,
         nirId: selectedInvoice?.nirId || null,
+        source: activeTab === "emitted" ? selectedInvoice?.source : undefined,
       },
       {
         enabled: Boolean(token && sessionToken && selectedInvoice?.id),
@@ -641,11 +642,11 @@ export default function SagaClassicPortalView({
       : selectedInvoice?.clientName) || "";
 
   return (
-    <div className="min-h-screen apple-canvas text-[#1d1d1f] dark:text-[#f5f5f7] flex flex-col select-none antialiased font-sans">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden apple-canvas text-[#1d1d1f] dark:text-[#f5f5f7] flex flex-col select-none antialiased font-sans">
       {/* 1. TOP APPLICATION MENU BAR */}
-      <div className="bg-white/90 dark:bg-[#18181a] backdrop-blur-xl px-3 py-2 flex items-center justify-between gap-2 border-b border-black/[0.06] dark:border-white/[0.08] text-[12px] shrink-0 flex-wrap">
-        <div className="flex items-center gap-2.5 flex-wrap min-w-0">
-          <span className="font-bold tracking-tight text-[#1d1d1f] dark:text-[#f5f5f7] truncate">
+      <div className="bg-white/90 dark:bg-[#18181a] backdrop-blur-xl px-3 py-2 flex items-center justify-between gap-2 border-b border-black/[0.06] dark:border-white/[0.08] text-[12px] shrink-0 flex-wrap min-w-0 max-w-full">
+        <div className="flex items-center gap-2.5 flex-wrap min-w-0 max-w-full">
+          <span className="font-bold tracking-tight text-[#1d1d1f] dark:text-[#f5f5f7] truncate max-w-full">
             SAGA C.3.0.605 · {company.name ? company.name.toUpperCase() : "FIRMA"} ·{" "}
             <span className="text-[#6e6e73] dark:text-[#98989d] font-medium tabular-nums">
               {company.cui || "CUI"}
@@ -726,7 +727,7 @@ export default function SagaClassicPortalView({
         </div>
 
         {/* Zona Dreapta: Extrase, e-Facturi, Alerte, Comutator Mod Modern & Ieșire */}
-        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 max-w-full flex-wrap">
           <button
             type="button"
             onClick={() => setShowStatementsModal(true)}
@@ -808,8 +809,8 @@ export default function SagaClassicPortalView({
               </span>
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="apple-segmented">
+            <div className="flex items-center gap-2 flex-wrap min-w-0 max-w-full">
+              <div className="apple-segmented max-w-full overflow-x-auto no-scrollbar">
                 <button
                   type="button"
                   data-active={activeTab === "received"}
@@ -817,7 +818,7 @@ export default function SagaClassicPortalView({
                     setActiveTab("received");
                     setSelectedPartnerKey(null);
                   }}
-                  className="apple-segmented-item px-2.5 text-[11.5px] tabular-nums"
+                  className="apple-segmented-item px-2 sm:px-2.5 text-[11px] sm:text-[11.5px] tabular-nums shrink-0"
                 >
                   Furnizori (Intrări) ({portalData?.invoices?.length || 0})
                 </button>
@@ -828,13 +829,13 @@ export default function SagaClassicPortalView({
                     setActiveTab("emitted");
                     setSelectedPartnerKey(null);
                   }}
-                  className="apple-segmented-item px-2.5 text-[11.5px] tabular-nums"
+                  className="apple-segmented-item px-2 sm:px-2.5 text-[11px] sm:text-[11.5px] tabular-nums shrink-0"
                 >
                   Clienți (Ieșiri) ({portalData?.emittedInvoices?.length || 0})
                 </button>
               </div>
 
-              <div className="apple-segmented">
+              <div className="apple-segmented max-w-full overflow-x-auto no-scrollbar">
                 <button
                   type="button"
                   data-active={subView === "all_invoices" && !selectedPartnerKey}
@@ -1159,7 +1160,7 @@ export default function SagaClassicPortalView({
 
                 <button
                   type="button"
-                  onClick={onDownloadSagaXml}
+                  onClick={() => onDownloadSagaXml(activeTab)}
                   className="apple-btn-glass flex items-center gap-1.5 px-3 h-7 text-[11.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer"
                   title="Descarcă fișier XML 100% conform importului SAGA C"
                 >
@@ -2752,7 +2753,7 @@ export default function SagaClassicPortalView({
             <div className="bg-[#fafafa] dark:bg-white/[0.02] px-5 py-3 flex items-center justify-between border-t border-black/[0.06] dark:border-white/[0.08] shrink-0 flex-wrap gap-2">
               <button
                 type="button"
-                onClick={onDownloadSagaXml}
+                onClick={() => onDownloadSagaXml(activeTab)}
                 className="apple-btn-glass flex items-center gap-1.5 px-3.5 h-9 text-[#1d1d1f] dark:text-[#f5f5f7] font-semibold text-[12.5px] rounded-full cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
