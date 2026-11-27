@@ -228,27 +228,97 @@ function extractContractTextAndHtml(buf: Buffer, originalName: string): { text: 
         return out;
       };
 
+      const decodePdfLiteralBytes = (inner: string): number[] => {
+        const bytes: number[] = [];
+        for (let i = 0; i < inner.length; i++) {
+          const ch = inner.charCodeAt(i);
+          if (ch === 0x5c && i + 1 < inner.length) {
+            const nxt = inner[i + 1];
+            if (nxt >= "0" && nxt <= "7") {
+              let oct = nxt;
+              i++;
+              if (i + 1 < inner.length && inner[i + 1] >= "0" && inner[i + 1] <= "7") {
+                oct += inner[++i];
+                if (i + 1 < inner.length && inner[i + 1] >= "0" && inner[i + 1] <= "7") {
+                  oct += inner[++i];
+                }
+              }
+              bytes.push(parseInt(oct, 8) & 0xff);
+              continue;
+            }
+            i++;
+            if (nxt === "n") bytes.push(0x0a);
+            else if (nxt === "r") bytes.push(0x0d);
+            else if (nxt === "t") bytes.push(0x09);
+            else if (nxt === "b") bytes.push(0x08);
+            else if (nxt === "f") bytes.push(0x0c);
+            else if (nxt === "\r" || nxt === "\n") {
+              if (nxt === "\r" && inner[i + 1] === "\n") i++;
+            } else {
+              bytes.push(nxt.charCodeAt(0) & 0xff);
+            }
+          } else {
+            bytes.push(ch & 0xff);
+          }
+        }
+        return bytes;
+      };
+
+      const decodeLiteral = (inner: string): string => {
+        const bytes = decodePdfLiteralBytes(inner);
+        if (bytes.length === 0) return "";
+        if (globalCmap.size > 0 && bytes.length >= 2 && bytes.length % 2 === 0) {
+          let zeroHighCount = 0;
+          let cmapHits = 0;
+          const pairs = bytes.length >> 1;
+          for (let k = 0; k < bytes.length; k += 2) {
+            const cid = (bytes[k] << 8) | bytes[k + 1];
+            if (bytes[k] === 0) zeroHighCount++;
+            if (globalCmap.has(cid)) cmapHits++;
+          }
+          if (cmapHits > 0 && (zeroHighCount >= Math.ceil(pairs * 0.5) || cmapHits >= Math.ceil(pairs * 0.6))) {
+            let out = "";
+            for (let k = 0; k < bytes.length; k += 2) {
+              const cid = (bytes[k] << 8) | bytes[k + 1];
+              if (globalCmap.has(cid)) out += globalCmap.get(cid);
+              else if (cid >= 32 && cid <= 126) out += String.fromCharCode(cid);
+            }
+            return out;
+          }
+        }
+        let plain = "";
+        for (const b of bytes) {
+          if (globalCmap.has(b) && b < 32) plain += globalCmap.get(b);
+          else if (b >= 32 || b === 0x0a || b === 0x09) plain += String.fromCharCode(b);
+        }
+        return plain;
+      };
+
       let fullText = "";
       for (const s of contentStreams) {
         const cleaned = s.replace(/\/Lang\s*\([^)]*\)/g, "");
         const btBlocks = cleaned.match(/BT[\s\S]*?ET/g) || [];
         for (const block of btBlocks) {
-          const tokenRegex = /\((?:\\.|[^\\)])*\)|<[0-9A-Fa-f]+>/g;
-          let tok: RegExpExecArray | null;
-          let blockText = "";
-          while ((tok = tokenRegex.exec(block)) !== null) {
-            const t = tok[0];
-            if (t.startsWith("(")) {
-              blockText += t.slice(1, -1).replace(/\\([()\\])/g, "$1");
-            } else if (t.startsWith("<")) {
-              blockText += decodeHex(t.slice(1, -1));
+          const linesInBlock = block.split(/\bT[dDm*]\b|\bT'\b/);
+          for (const sub of linesInBlock) {
+            const tokenRegex = /\((?:\\.|[^\\)])*\)|<[0-9A-Fa-f]+>/g;
+            let tok: RegExpExecArray | null;
+            let segText = "";
+            while ((tok = tokenRegex.exec(sub)) !== null) {
+              const t = tok[0];
+              if (t.startsWith("(")) {
+                segText += decodeLiteral(t.slice(1, -1));
+              } else if (t.startsWith("<")) {
+                segText += decodeHex(t.slice(1, -1));
+              }
             }
+            if (segText) fullText += segText + " ";
           }
-          fullText += blockText;
+          fullText += "\n";
         }
       }
 
-      const normalized = fullText.replace(/\s+/g, " ").trim();
+      const normalized = fullText.normalize("NFKC").replace(/[ \t]+/g, " ").replace(/\n\s+/g, "\n").trim();
       if (normalized) {
         // Structure extracted text into readable HTML paragraphs around section headers & numbered clauses
         const structured = normalized
@@ -1120,15 +1190,15 @@ export function extractBankStatementMetadata(buf: Buffer, originalName: string) 
 
   const combined = `${text}\n${originalName}`;
 
-  // IBAN from PDF / CSV / filename
+  // IBAN from PDF / CSV / filename (including underscore-delimited filenames like RO31BACX..._RON_...)
   if (!iban) {
     const compactText = combined.replace(/([A-Z]{2}\d{2})\s+([A-Z0-9]{4})\s+([A-Z0-9]{4})\s+([A-Z0-9]{4})\s+([A-Z0-9]{4})\s+([A-Z0-9]{4})/g, "$1$2$3$4$5$6");
-    const roIban = compactText.match(/\bRO\d{2}[A-Z]{4}[A-Z0-9]{16}\b/);
+    const roIban = compactText.match(/(?:^|[^A-Z0-9])(RO\d{2}[A-Z]{4}[A-Z0-9]{16})(?![A-Z0-9])/);
     if (roIban) {
-      iban = roIban[0];
+      iban = roIban[1];
     } else {
-      const euIban = compactText.match(/\b(?:LT\d{18}|IE\d{2}[A-Z]{4}\d{14}|DE\d{20}|BE\d{14}|NL\d{2}[A-Z]{4}\d{10}|GB\d{2}[A-Z]{4}\d{14})\b/);
-      if (euIban) iban = euIban[0];
+      const euIban = compactText.match(/(?:^|[^A-Z0-9])(LT\d{18}|IE\d{2}[A-Z]{4}\d{14}|DE\d{20}|BE\d{14}|NL\d{2}[A-Z]{4}\d{10}|GB\d{2}[A-Z]{4}\d{14})(?![A-Z0-9])/);
+      if (euIban) iban = euIban[1];
     }
   }
 
@@ -1199,6 +1269,15 @@ export function extractBankStatementMetadata(buf: Buffer, originalName: string) 
       if (rangeIso) {
         periodStart = rangeIso[1];
         periodEnd = rangeIso[2];
+      } else {
+        // Format compact din numele fișierului (ex. UniCredit: _09102026_09102026_)
+        const fnCompactRange = originalName.match(
+          /(?:^|[_.-])(0[1-9]|[12]\d|3[01])(0[1-9]|1[0-2])(20\d{2})[_.-](0[1-9]|[12]\d|3[01])(0[1-9]|1[0-2])(20\d{2})(?:[_.-]|$)/
+        );
+        if (fnCompactRange) {
+          periodStart = `${fnCompactRange[3]}-${fnCompactRange[2]}-${fnCompactRange[1]}`;
+          periodEnd = `${fnCompactRange[6]}-${fnCompactRange[5]}-${fnCompactRange[4]}`;
+        }
       }
     }
   }
@@ -1227,7 +1306,10 @@ export function extractBankStatementMetadata(buf: Buffer, originalName: string) 
     if (nrMatch && /\d/.test(nrMatch[1])) statementNumber = nrMatch[1].trim();
   }
 
-  // Opening / Closing balances from PDF/CSV text
+  let totalDebit: string | null = null;
+  let totalCredit: string | null = null;
+
+  // Opening / Closing balances & Debits / Credits from PDF/CSV text
   if (!openingBalance && text) {
     const obMatch = text.match(
       /(?:Sold\s+ini[tț]ial|Sold\s+precedent|Opening\s+balance)\s*[:\-]?\s*(-?[0-9]{1,3}(?:[.,][0-9]{3})*[.,][0-9]{2}|-?[0-9]+[.,][0-9]{2})/i
@@ -1240,6 +1322,16 @@ export function extractBankStatementMetadata(buf: Buffer, originalName: string) 
     );
     if (cbMatch) closingBalance = parseFlexibleAmount(cbMatch[1]);
   }
+  if (text) {
+    const debMatch = text.match(
+      /(?:Sume\s+debitate|Rulaj\s+debitor|Total\s+debit)\s*[:\-]?\s*(-?[0-9]{1,3}(?:[.,][0-9]{3})*[.,][0-9]{2}|-?[0-9]+[.,][0-9]{2})/i
+    );
+    if (debMatch) totalDebit = parseFlexibleAmount(debMatch[1]);
+    const credMatch = text.match(
+      /(?:Sume\s+creditate|Rulaj\s+creditor|Total\s+credit)\s*[:\-]?\s*(-?[0-9]{1,3}(?:[.,][0-9]{3})*[.,][0-9]{2}|-?[0-9]+[.,][0-9]{2})/i
+    );
+    if (credMatch) totalCredit = parseFlexibleAmount(credMatch[1]);
+  }
 
   return {
     iban,
@@ -1251,8 +1343,98 @@ export function extractBankStatementMetadata(buf: Buffer, originalName: string) 
     periodEnd,
     openingBalance,
     closingBalance,
+    totalDebit,
+    totalCredit,
     transactionsCount,
   };
+}
+
+const STATEMENT_UNPACK_EXTS = new Set([
+  "pdf",
+  "csv",
+  "txt",
+  "sta",
+  "mt940",
+  "940",
+  "xml",
+  "xlsx",
+  "xls",
+]);
+
+export async function unpackBankStatementZipBuffer(
+  zipBuffer: Buffer,
+  tenantId: number,
+  uploadDirs: string[]
+) {
+  const zip = new AdmZip(zipBuffer);
+  const rawEntries = zip.getEntries();
+  if (rawEntries.length > 300) {
+    throw new Error("Arhiva ZIP conține prea multe fișiere (maxim 300 extrase per arhivă).");
+  }
+
+  const validEntries = rawEntries
+    .filter((entry) => {
+      if (entry.isDirectory) return false;
+      const entryPath = String(entry.entryName || "");
+      if (
+        entryPath.includes("..") ||
+        entryPath.includes("\0") ||
+        entryPath.startsWith("__MACOSX/") ||
+        entryPath.includes("/__MACOSX/")
+      ) {
+        return false;
+      }
+      const base = path.posix.basename(entryPath.replace(/\\/g, "/"));
+      if (!base || base.startsWith(".")) return false;
+      const ext = base.split(".").pop()?.toLowerCase() || "";
+      return STATEMENT_UNPACK_EXTS.has(ext);
+    })
+    .sort((a, b) => a.entryName.localeCompare(b.entryName, undefined, { numeric: true }));
+
+  let totalUnpackedBytes = 0;
+  const unpacked: Array<{
+    fileKey: string;
+    fileUrl: string;
+    fileName: string;
+    fileSize: number;
+    fileType: string;
+    extracted: ReturnType<typeof extractBankStatementMetadata>;
+  }> = [];
+
+  for (const entry of validEntries) {
+    if (entry.header.size < 0 || entry.header.size > 50 * 1024 * 1024) {
+      throw new Error(`Fișierul ${entry.entryName} din arhiva ZIP depășește limita de 50MB.`);
+    }
+    const entryBuf = entry.getData();
+    if (entryBuf.length > 50 * 1024 * 1024) {
+      throw new Error(`Fișierul ${entry.entryName} din arhiva ZIP depășește limita de 50MB.`);
+    }
+    totalUnpackedBytes += entryBuf.length;
+    if (totalUnpackedBytes > 250 * 1024 * 1024) {
+      throw new Error("Dimensiunea totală dezarhivată a extraselor depășește limita de 250MB.");
+    }
+
+    const baseName = path.posix.basename(entry.entryName.replace(/\\/g, "/"));
+    const ext = baseName.split(".").pop()?.toLowerCase() || "pdf";
+    const safeBase = baseName.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const key = `t${tenantId}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}-${safeBase}`;
+
+    for (const d of uploadDirs) {
+      await fs.promises.writeFile(path.join(d, key), entryBuf);
+    }
+
+    const extracted = extractBankStatementMetadata(entryBuf, baseName);
+    unpacked.push({
+      fileKey: key,
+      fileUrl: `/uploads/bank_statements/${key}`,
+      fileName: baseName,
+      fileSize: entryBuf.length,
+      fileType: ext,
+      extracted,
+    });
+  }
+
+  return unpacked;
 }
 
 export function registerUploadRoute(app: Express) {
@@ -1374,6 +1556,18 @@ export function registerUploadRoute(app: Express) {
         const uploaded = [];
         for (const file of files) {
           const ext = file.originalname.split(".").pop()?.toLowerCase() || "pdf";
+          if (ext === "zip") {
+            const unpackedItems = await unpackBankStatementZipBuffer(
+              file.buffer,
+              tenantId,
+              uploadDirs
+            );
+            if (unpackedItems.length > 0) {
+              uploaded.push(...unpackedItems);
+              continue;
+            }
+          }
+
           const safeOriginal = file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_");
           const key = `t${tenantId}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}-${safeOriginal}`;
 

@@ -406,4 +406,168 @@ export const bankStatementsRouter = router({
 
       return { success: true };
     }),
+
+  unpackZip: protectedProcedure
+    .input(z.object({ id: z.number().int() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Baza de date indisponibilă",
+        });
+      }
+      const tenantId = tenantOf(ctx);
+      await assertWriteRole(ctx, tenantId);
+      await ensureBankStatementsTable(db);
+
+      const [existing] = await db
+        .select()
+        .from(bankStatements)
+        .where(
+          and(
+            eq(bankStatements.id, input.id),
+            eq(bankStatements.tenantId, tenantId)
+          )
+        )
+        .limit(1);
+
+      if (!existing) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Extrasul arhivat nu a fost găsit.",
+        });
+      }
+
+      const isZip =
+        String(existing.fileType || "").toLowerCase() === "zip" ||
+        String(existing.fileUrl || "").toLowerCase().endsWith(".zip");
+      if (!isZip) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Acest extras nu este o arhivă ZIP.",
+        });
+      }
+
+      const uploadDirs = [
+        path.resolve(process.cwd(), "dist", "public", "uploads", "bank_statements"),
+        path.resolve(process.cwd(), "client", "public", "uploads", "bank_statements"),
+      ];
+      for (const d of uploadDirs) {
+        await fs.promises.mkdir(d, { recursive: true }).catch(() => {});
+      }
+
+      const baseName = path.basename(existing.fileUrl);
+      if (!baseName.startsWith(`t${tenantId}-`) || baseName.includes("..")) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Cale de fișier nepermisă.",
+        });
+      }
+
+      let foundZipPath = "";
+      for (const rootDir of uploadDirs) {
+        const cand = path.resolve(rootDir, baseName);
+        if (cand.startsWith(rootDir + path.sep) && fs.existsSync(cand)) {
+          const st = await fs.promises.stat(cand).catch(() => null);
+          if (st?.isFile()) {
+            foundZipPath = cand;
+            break;
+          }
+        }
+      }
+
+      if (!foundZipPath) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Fișierul ZIP original nu a fost găsit pe disc.",
+        });
+      }
+
+      const zipBuf = await fs.promises.readFile(foundZipPath);
+      const { unpackBankStatementZipBuffer } = await import("./uploadRoute");
+      const unpackedItems = await unpackBankStatementZipBuffer(
+        zipBuf,
+        tenantId,
+        uploadDirs
+      );
+
+      if (unpackedItems.length === 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Arhiva ZIP nu conține extrase PDF/CSV/MT940/XML valide.",
+        });
+      }
+
+      const createdIds: number[] = [];
+      for (const item of unpackedItems) {
+        const extMeta = item.extracted;
+        const resolvedMonth =
+          extMeta.statementMonth || existing.statementMonth || "2026-01";
+        const [mY, mM] = resolvedMonth.split("-").map(Number);
+        const lastDay =
+          mY && mM >= 1 && mM <= 12
+            ? String(new Date(mY, mM, 0).getDate()).padStart(2, "0")
+            : "30";
+        const resolvedIban =
+          (extMeta.iban || existing.iban || "").replace(/\s+/g, "").toUpperCase() ||
+          null;
+        const resolvedBank =
+          extMeta.bankName ||
+          existing.bankName ||
+          (resolvedIban ? detectBankFromIban(resolvedIban) : null) ||
+          "Cont Bancar";
+
+        const [ins] = await db.insert(bankStatements).values({
+          tenantId,
+          bankName: resolvedBank,
+          iban: resolvedIban,
+          currency: (extMeta.currency || existing.currency || "RON")
+            .toUpperCase()
+            .slice(0, 10),
+          statementNumber: extMeta.statementNumber || existing.statementNumber || null,
+          statementMonth: resolvedMonth,
+          periodStart: extMeta.periodStart || `${resolvedMonth}-01`,
+          periodEnd: extMeta.periodEnd || `${resolvedMonth}-${lastDay}`,
+          openingBalance: normalizeDecimalOrNull(extMeta.openingBalance) as any,
+          closingBalance: normalizeDecimalOrNull(extMeta.closingBalance) as any,
+          totalDebit: normalizeDecimalOrNull(extMeta.totalDebit) as any,
+          totalCredit: normalizeDecimalOrNull(extMeta.totalCredit) as any,
+          transactionsCount: extMeta.transactionsCount ?? null,
+          fileKey: item.fileKey,
+          fileUrl: item.fileUrl,
+          fileName: item.fileName,
+          fileType: item.fileType,
+          fileSize: item.fileSize,
+          notes: existing.notes || null,
+        });
+        createdIds.push(Number((ins as any).insertId));
+      }
+
+      await db
+        .delete(bankStatements)
+        .where(
+          and(
+            eq(bankStatements.id, existing.id),
+            eq(bankStatements.tenantId, tenantId)
+          )
+        );
+
+      const [stillRef] = await db
+        .select({ id: bankStatements.id })
+        .from(bankStatements)
+        .where(eq(bankStatements.fileUrl, existing.fileUrl))
+        .limit(1);
+
+      if (!stillRef) {
+        for (const rootDir of uploadDirs) {
+          const cand = path.resolve(rootDir, baseName);
+          if (cand.startsWith(rootDir + path.sep) && fs.existsSync(cand)) {
+            await fs.promises.unlink(cand).catch(() => {});
+          }
+        }
+      }
+
+      return { success: true, count: createdIds.length, createdIds };
+    }),
 });

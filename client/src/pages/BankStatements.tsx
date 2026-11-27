@@ -59,6 +59,8 @@ interface DraftStatement {
   periodEnd: string;
   openingBalance: string;
   closingBalance: string;
+  totalDebit: string;
+  totalCredit: string;
   transactionsCount: number | null;
   notes: string;
 }
@@ -166,6 +168,14 @@ export default function BankStatements() {
     onSuccess: () => {
       toast.success("Extrasul de cont a fost șters.");
       setDeleteTarget(null);
+      refetch();
+      utils.accountantPortal.getData.invalidate();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+  const unpackZipMutation = trpc.bankStatements.unpackZip.useMutation({
+    onSuccess: (res) => {
+      toast.success(`${res.count} extrase PDF au fost extrase și afișate individual!`);
       refetch();
       utils.accountantPortal.getData.invalidate();
     },
@@ -283,6 +293,8 @@ export default function BankStatements() {
               "",
             openingBalance: ext.openingBalance ?? "",
             closingBalance: ext.closingBalance ?? "",
+            totalDebit: ext.totalDebit ?? "",
+            totalCredit: ext.totalCredit ?? "",
             transactionsCount: ext.transactionsCount ?? null,
             notes: "",
           };
@@ -336,6 +348,8 @@ export default function BankStatements() {
           periodEnd: d.periodEnd || null,
           openingBalance: d.openingBalance !== "" ? d.openingBalance : null,
           closingBalance: d.closingBalance !== "" ? d.closingBalance : null,
+          totalDebit: d.totalDebit !== "" ? d.totalDebit : null,
+          totalCredit: d.totalCredit !== "" ? d.totalCredit : null,
           transactionsCount: d.transactionsCount,
           fileKey: d.fileKey,
           fileUrl: d.fileUrl,
@@ -664,25 +678,25 @@ export default function BankStatements() {
             <table className="w-full text-left border-collapse">
               <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
                 <tr>
-                  <th className="px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] w-12 text-center">
+                  <th className="px-3 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] w-10 text-center">
                     Nr.
                   </th>
-                  <th className="px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                  <th className="px-3.5 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
                     Lună / Perioadă
                   </th>
-                  <th className="px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                  <th className="px-3.5 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
                     Bancă & Cont IBAN
                   </th>
-                  <th className="px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                  <th className="px-3.5 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
                     Fișier original
                   </th>
-                  <th className="px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] text-right whitespace-nowrap">
+                  <th className="px-3.5 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] text-right whitespace-nowrap">
                     Sold inițial
                   </th>
-                  <th className="px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] text-right whitespace-nowrap">
+                  <th className="px-3.5 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] text-right whitespace-nowrap">
                     Sold final
                   </th>
-                  <th className="px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] text-right whitespace-nowrap">
+                  <th className="px-3.5 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] text-right whitespace-nowrap">
                     Acțiuni
                   </th>
                 </tr>
@@ -690,15 +704,16 @@ export default function BankStatements() {
               <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
                 {filteredItems.map((stmt: any, idx: number) => {
                   const isPdf = String(stmt.fileType || "").toLowerCase() === "pdf";
+                  const isZip = String(stmt.fileType || "").toLowerCase() === "zip";
                   return (
                     <tr
                       key={stmt.id}
                       className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors"
                     >
-                      <td className="px-4 py-3 text-center text-[12px] text-[#8e8e93] tabular-nums">
+                      <td className="px-3 py-3 text-center text-[12px] text-[#8e8e93] tabular-nums">
                         {idx + 1}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap tabular-nums">
+                      <td className="px-3.5 py-3 whitespace-nowrap tabular-nums">
                         <div className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] capitalize">
                           {formatMonthRo(stmt.statementMonth)}
                         </div>
@@ -710,7 +725,7 @@ export default function BankStatements() {
                               : stmt.statementMonth}
                         </div>
                       </td>
-                      <td className="px-4 py-3 max-w-[280px]">
+                      <td className="px-3.5 py-3 max-w-[235px]">
                         <div className="flex items-center gap-2">
                           <span className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] truncate">
                             {stmt.bankName}
@@ -739,7 +754,7 @@ export default function BankStatements() {
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-3 max-w-[250px]">
+                      <td className="px-3.5 py-3 max-w-[205px]">
                         <div className="flex items-center gap-2 min-w-0">
                           {isPdf ? (
                             <FileText className="w-4 h-4 text-[#0071e3] dark:text-[#0a84ff] shrink-0" />
@@ -761,14 +776,30 @@ export default function BankStatements() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-right text-[13px] text-[#6e6e73] dark:text-[#98989d] tabular-nums whitespace-nowrap">
+                      <td className="px-3.5 py-3 text-right text-[13px] text-[#6e6e73] dark:text-[#98989d] tabular-nums whitespace-nowrap">
                         {formatMoney(stmt.openingBalance, stmt.currency)}
                       </td>
-                      <td className="px-4 py-3 text-right text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums whitespace-nowrap">
+                      <td className="px-3.5 py-3 text-right text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums whitespace-nowrap">
                         {formatMoney(stmt.closingBalance, stmt.currency)}
                       </td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <td className="px-3.5 py-3 text-right whitespace-nowrap">
                         <div className="inline-flex items-center justify-end gap-1.5">
+                          {isZip && (
+                            <button
+                              type="button"
+                              onClick={() => unpackZipMutation.mutate({ id: stmt.id })}
+                              disabled={unpackZipMutation.isPending}
+                              title="Extrage și afișează individual toate PDF-urile din arhiva ZIP"
+                              className="apple-btn-prominent h-8 px-3 rounded-full inline-flex items-center gap-1.5 text-white text-[11.5px] font-semibold cursor-pointer disabled:opacity-50"
+                            >
+                              {unpackZipMutation.isPending ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <FileText className="w-3.5 h-3.5" />
+                              )}
+                              <span>Dezarhivează</span>
+                            </button>
+                          )}
                           {isPdf && (
                             <button
                               type="button"

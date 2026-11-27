@@ -1,5 +1,17 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-27 19:45 — Dezarhivare automată arhive `.zip` de Extrase de Cont în PDF-uri individuale + decodare PDF CID/ToUnicode (`uploadRoute.ts`, `bankStatementsRouter.ts`, `BankStatements.tsx`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Dezarhivare automată la încărcarea arhivelor `.zip` de extrase bancare (`POST /api/upload-bank-statement` în `server/uploadRoute.ts` + `bankStatements.unpackZip` în `server/bankStatementsRouter.ts`):**
+     - La încărcarea unei arhive `.zip` (ex. `PDF_Statements.zip` de la UniCredit BusinessNet), serverul extrage automat fiecare PDF/CSV/MT940/XML individual din arhivă (cu protecții anti-zip-bomb și sortare cronologică), le salvează individual cu prefixul `t${tenantId}-` și le afișează separat cu previzualizare PDF în fereastră (`Eye`), atât în `/extrase-cont`, cât și în Portalul Contabil.
+     - Adăugat și mutația `bankStatements.unpackZip` + butonul `Dezarhivează` pentru arhive `.zip` existente și dezarhivat arhiva reală `PDF_Statements.zip` încărcată de utilizator în cele `6` extrase PDF UniCredit reale din Octombrie 2026.
+  2. **Decodare completă PDF CID / Identity-H `/ToUnicode` pentru extragerea automată a soldurilor din PDF-uri bancare (`server/uploadRoute.ts`):**
+     - Extins parserul PDF cu decodarea șirurilor literale pe 2 octeți `( ... )` prin tabela `/ToUnicode` CMap și normalizare Unicode `NFKC` (rezolvând ligatura `Sold ﬁnal` `\uFB01` din PDF-urile UniCredit), plus suport pentru IBAN delimitat cu `_` și intervale compacte `_DDMMYYYY_DDMMYYYY_` din numele fișierelor bancare, extrăgând automat `IBAN`, `Bancă`, `Monedă`, `Perioadă`, `Sold inițial`, `Sold final`, `Sume debitate` și `Sume creditate`.
+- **Fișiere:** `server/uploadRoute.ts`, `server/bankStatementsRouter.ts`, `client/src/pages/BankStatements.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori), `npx vitest run` (`8/8` passed), `npm run build` (`0` erori) și verificare pe cele `6` extrase PDF reale UniCredit extrase din `PDF_Statements.zip` (toate cu IBAN, perioadă exactă, sold inițial, sold final și previzualizare PDF `200 OK`), fără `git push`.
+
 ### 2026-11-27 19:36 — Completare automată interval `1 – ultima zi a lunii` la alegerea lunii contabile pe Extrase de Cont (`BankStatements.tsx`, `bankStatementsRouter.ts`)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**
