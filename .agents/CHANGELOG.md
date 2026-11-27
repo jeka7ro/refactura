@@ -1,5 +1,16 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-27 19:08 — Fix conexiune Vite HMR WebSocket + `Cache-Control: no-store` pe serverul dev și eliminare garantată scrollbar sidebar (`server/_core/vite.ts`, `DashboardLayout.tsx`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Rezolvat cauza pentru care tabul deschis în Chrome rula versiunea veche din memorie (`WebSocket closed without opened.` în `.manus-logs/browserConsole.log`):**
+     - Atașat explicit `hmr: { server }` și headerele `Cache-Control: no-store, no-cache, must-revalidate` în `setupVite` (`server/_core/vite.ts`) și oprit procesele orfane `tsx watch` care blocau WebSocket-ul HMR pe portul `3000`, repornind o singură instanță curată `npm run dev`.
+  2. **Protecție dublă anti-scrollbar pe `<nav>` în `DashboardLayout.tsx`:**
+     - Adăugat și stil inline `scrollbarWidth: "none"` + regulă `<style>` dedicată `.apple-sidebar-nav::-webkit-scrollbar { display: none !important; width: 0 !important }` direct în `SidebarContent`, astfel încât bara gri verticală nu mai poate apărea în niciun browser WebKit/Blink.
+- **Fișiere:** `server/_core/vite.ts`, `client/src/components/DashboardLayout.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori), `npm run build` (`0` erori) și verificare Playwright pe `/arhiva-facturi` (`0` erori WebSocket HMR, `offsetWidth === clientWidth` pe sidebar, iconița `Landmark` activă), fără `git push`.
+
 ### 2026-11-27 17:30 — Fix vizual Sidebar Apple HIG: eliminare bară groasă de scroll peste colțul rotunjit `rounded-[22px]`, finisare grup deschis și iconiță `Extrase de Cont` (`DashboardLayout.tsx`, `index.css`)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

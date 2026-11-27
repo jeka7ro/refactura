@@ -685,8 +685,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full min-h-0 overflow-hidden">
+      <style>{`.apple-sidebar-nav::-webkit-scrollbar{display:none!important;width:0!important;height:0!important;background:transparent!important}`}</style>
       {/* Nav */}
-      <nav className="apple-sidebar-nav no-scrollbar flex-1 py-3 px-2.5 space-y-0.5 overflow-y-auto overflow-x-hidden">
+      <nav
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        className="apple-sidebar-nav no-scrollbar flex-1 py-3 px-2.5 space-y-0.5 overflow-y-auto overflow-x-hidden"
+      >
         {navItems.map(item => {
           const Icon = item.icon;
           const active = isActive(item.href);

@@ -10,8 +10,27 @@ const __dirname = path.dirname(__filename);
 export async function setupVite(app: Express, server: Server) {
   const { createServer: createViteServer } = await import("vite");
   const vite = await createViteServer({
-    server: { middlewareMode: true },
+    server: {
+      middlewareMode: true,
+      hmr: { server },
+      headers: {
+        "Cache-Control": "no-store",
+      },
+    },
     appType: "custom",
+  });
+
+  app.use((req, res, next) => {
+    if (
+      req.path.startsWith("/src/") ||
+      req.path.startsWith("/@") ||
+      req.path.endsWith(".tsx") ||
+      req.path.endsWith(".ts") ||
+      req.path.endsWith(".css")
+    ) {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    }
+    next();
   });
 
   app.use(vite.middlewares);
@@ -22,7 +41,13 @@ export async function setupVite(app: Express, server: Server) {
       const clientPath = path.resolve(__dirname, "../../client/index.html");
       let template = await fs.promises.readFile(clientPath, "utf-8");
       template = await vite.transformIndexHtml(url, template);
-      res.status(200).set({ "Content-Type": "text/html" }).end(template);
+      res
+        .status(200)
+        .set({
+          "Content-Type": "text/html",
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+        })
+        .end(template);
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);
       next(e);
