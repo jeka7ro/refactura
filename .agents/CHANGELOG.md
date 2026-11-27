@@ -1,5 +1,14 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-27 20:06 — Grupare Extrase de Cont pe Luni Contabile (cu sold inițial → sold final pe lună, expandare/restrângere și ZIP pe lună) în Admin și Portal Contabil
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - Creat modulul partajat `client/src/lib/statementMonthGroups.ts` și grupat toate extrasele de cont pe luni contabile (`Octombrie 2026`, `Noiembrie 2026` etc., cele mai recente sus, iar în interiorul fiecărei luni ordonate cronologic `01 → 31` pentru continuitatea soldului) pe toate cele 3 interfețe: `/extrase-cont` (`BankStatements.tsx`), Portalul Contabil `Mod Modern` (`AccountantPortal.tsx`) și Portalul Contabil `Mod SAGA Clasic` (`SagaClassicPortalView.tsx`).
+  - Pe antetul fiecărei luni sunt afișate: numele lunii în română, numărul de extrase, sinteza per cont/valută (`Inițial 2.785,14 RON → Final 2.130,94 RON`), butonul rapid `ZIP lună` (descarcă doar extrasele lunii respective) și expandare/restrângere cu un click.
+- **Fișiere:** `client/src/lib/statementMonthGroups.ts`, `client/src/pages/{BankStatements.tsx,AccountantPortal.tsx}`, `client/src/components/SagaClassicPortalView.tsx`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori), `npx vitest run` (`8/8` passed), `npm run build` (`0` erori) și verificare vizuală Playwright pe `/extrase-cont` și `/contabil/42322117` (`0` overflow pe `320px–1440px`), fără `git push`.
+
 ### 2026-11-27 19:45 — Dezarhivare automată arhive `.zip` de Extrase de Cont în PDF-uri individuale + decodare PDF CID/ToUnicode (`uploadRoute.ts`, `bankStatementsRouter.ts`, `BankStatements.tsx`)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

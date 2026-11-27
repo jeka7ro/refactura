@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Copy,
   Check,
   Loader2,
@@ -36,6 +37,11 @@ import AccountantPinLock from "@/components/AccountantPinLock";
 import DocumentModalPreview from "@/components/DocumentModalPreview";
 import SagaClassicPortalView from "@/components/SagaClassicPortalView";
 import { encodeWindows1250Blob } from "@/lib/fileSave";
+import {
+  groupStatementsByMonth,
+  formatStatementMonthLabel,
+  formatStatementPeriodLabel,
+} from "@/lib/statementMonthGroups";
 import {
   Select,
   SelectContent,
@@ -102,6 +108,7 @@ export default function AccountantPortal() {
   const [searchStatements, setSearchStatements] = useState("");
   const [statementMonthFilter, setStatementMonthFilter] = useState("all");
   const [statementCurrencyFilter, setStatementCurrencyFilter] = useState("all");
+  const [collapsedStatementMonths, setCollapsedStatementMonths] = useState<Record<string, boolean>>({});
 
   // Suprascriere manuală temporară pe sesiunea curentă (altfel se folosește modul setat în Setări -> Portal Contabil)
   const [manualViewOverride, setManualViewOverride] = useState<"modern" | "saga" | null>(null);
@@ -476,6 +483,11 @@ export default function AccountantPortal() {
       return true;
     });
   }, [allStatements, statementMonthFilter, statementCurrencyFilter, searchStatements]);
+
+  const groupedPortalStatements = useMemo(
+    () => groupStatementsByMonth(filteredStatements),
+    [filteredStatements]
+  );
 
   // KPI-uri Facturi Primite (convertite în RON la cursul BNR pentru facturile externe în valută)
   const currentKpis = useMemo(() => {
@@ -920,8 +932,9 @@ export default function AccountantPortal() {
 
   const handleDownloadZip = handleDownloadZipBundle;
 
-  const handleDownloadStatementsZip = async () => {
-    if (filteredStatements.length === 0) {
+  const handleDownloadStatementsZip = async (customSubset?: any[], customMonthKey?: string) => {
+    const targets = Array.isArray(customSubset) ? customSubset : filteredStatements;
+    if (targets.length === 0) {
       toast.error("Nu există extrase de cont pentru descărcare.");
       return;
     }
@@ -930,7 +943,7 @@ export default function AccountantPortal() {
     const zip = new JSZip();
     let added = 0;
     try {
-      for (const st of filteredStatements) {
+      for (const st of targets) {
         const stUrl = getAuthenticatedPdfUrl(`${st.downloadUrl}?download=1`);
         if (!stUrl) continue;
         const res = await fetch(stUrl, { credentials: "include" });
@@ -955,7 +968,8 @@ export default function AccountantPortal() {
       const content = await zip.generateAsync({ type: "blob" });
       const companyName =
         portalData?.company?.name?.replace(/[^a-zA-Z0-9-_]/g, "_") || "Firma";
-      const filename = `Extrase_Cont_${companyName}_${new Date().toISOString().slice(0, 10)}.zip`;
+      const suffix = customMonthKey || new Date().toISOString().slice(0, 10);
+      const filename = `Extrase_Cont_${companyName}_${suffix}.zip`;
       const url = URL.createObjectURL(content);
       const a = document.createElement("a");
       a.href = url;
@@ -1540,7 +1554,7 @@ export default function AccountantPortal() {
                   </button>
                   <button
                     type="button"
-                    onClick={handleDownloadStatementsZip}
+                    onClick={() => handleDownloadStatementsZip()}
                     disabled={filteredStatements.length === 0 || isDownloadingZip}
                     className="apple-btn-prominent flex items-center justify-center gap-1.5 h-9 px-4 rounded-full text-white text-[12.5px] font-semibold disabled:opacity-50 cursor-pointer"
                   >
@@ -2694,7 +2708,7 @@ export default function AccountantPortal() {
                         <SelectItem value="all">Toate lunile</SelectItem>
                         {statementMonths.map(m => (
                           <SelectItem key={m} value={m}>
-                            {m}
+                            {formatStatementMonthLabel(m)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -2726,143 +2740,245 @@ export default function AccountantPortal() {
                 </div>
               </div>
 
-              {/* Tabel Extrase de Cont */}
-              <div className="apple-surface overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
-                      <tr>
-                        <th className="px-3 py-3 w-12 text-center text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
-                          Nr.
-                        </th>
-                        <th className="px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
-                          Lună / Perioadă
-                        </th>
-                        <th className="px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
-                          Bancă & Cont IBAN
-                        </th>
-                        <th className="px-4 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
-                          Fișier
-                        </th>
-                        <th className="px-4 py-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
-                          Sold inițial
-                        </th>
-                        <th className="px-4 py-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
-                          Sold final
-                        </th>
-                        <th className="px-4 py-3 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
-                          Document
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
-                      {paginatedItems.length === 0 ? (
-                        <tr>
-                          <td
-                            colSpan={7}
-                            className="py-12 text-center text-[13px] text-[#6e6e73] dark:text-[#98989d]"
-                          >
-                            Nu există extrase de cont încărcate pentru selecția curentă.
-                          </td>
-                        </tr>
-                      ) : (
-                        paginatedItems.map((st: any, idx: number) => {
-                          const rowNumber = (safePage - 1) * pageSize + idx + 1;
-                          const isPdf = String(st.fileType || "").toLowerCase() === "pdf";
-                          return (
-                            <tr
-                              key={st.id}
-                              className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors"
-                            >
-                              <td className="px-3 py-3 text-center tabular-nums text-[12px] text-[#8e8e93]">
-                                {rowNumber}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap tabular-nums">
-                                <div className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
-                                  {st.statementMonth}
-                                </div>
-                                {(st.periodStart || st.periodEnd) && (
-                                  <div className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
-                                    {formatDate(st.periodStart)} – {formatDate(st.periodEnd)}
-                                  </div>
-                                )}
-                              </td>
-                              <td className="px-4 py-3 max-w-[260px]">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] truncate">
-                                    {st.bankName}
-                                  </span>
-                                  <span className="px-2 py-0.5 rounded-full text-[10.5px] font-semibold bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#ebebf5] shrink-0">
-                                    {st.currency}
-                                  </span>
-                                </div>
-                                {st.iban && (
-                                  <div className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] tabular-nums truncate mt-0.5">
-                                    {st.iban}
-                                  </div>
-                                )}
-                              </td>
-                              <td className="px-4 py-3 max-w-[240px]">
-                                <div
-                                  className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] truncate"
-                                  title={st.fileName}
-                                >
-                                  {st.fileName}
-                                </div>
-                                {st.notes && (
-                                  <div className="text-[11px] text-[#8e8e93] truncate mt-0.5">
-                                    {st.notes}
-                                  </div>
-                                )}
-                              </td>
-                              <td className="px-4 py-3 text-right tabular-nums text-[13px] text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
-                                {st.openingBalance !== null && st.openingBalance !== undefined
-                                  ? formatCurrency(st.openingBalance, st.currency)
-                                  : "—"}
-                              </td>
-                              <td className="px-4 py-3 text-right tabular-nums text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] whitespace-nowrap">
-                                {st.closingBalance !== null && st.closingBalance !== undefined
-                                  ? formatCurrency(st.closingBalance, st.currency)
-                                  : "—"}
-                              </td>
-                              <td className="px-4 py-3 text-right whitespace-nowrap">
-                                <div className="inline-flex items-center justify-end gap-1.5">
-                                  {isPdf && (
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        setPreviewDoc({
-                                          isOpen: true,
-                                          title: `Extras ${st.bankName} — ${st.statementMonth}`,
-                                          pdfUrl: getAuthenticatedPdfUrl(st.downloadUrl),
-                                          filename: st.fileName,
-                                          type: "invoice",
-                                        })
-                                      }
-                                      title="Previzualizează PDF"
-                                      className="w-8 h-8 rounded-full apple-btn-glass inline-flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] cursor-pointer"
-                                    >
-                                      <Eye className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDirectStatementDownload(st)}
-                                    title="Descarcă fișierul original"
-                                    className="w-8 h-8 rounded-full apple-btn-glass inline-flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] cursor-pointer"
-                                  >
-                                    <Download className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
+              {/* Extrase de Cont Grupate pe Luni */}
+              {groupedPortalStatements.length === 0 ? (
+                <div className="apple-surface py-12 text-center text-[13px] text-[#6e6e73] dark:text-[#98989d]">
+                  Nu există extrase de cont încărcate pentru selecția curentă.
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-3.5">
+                  {groupedPortalStatements.map(group => {
+                    const isCollapsed = Boolean(collapsedStatementMonths[group.monthKey]);
+                    return (
+                      <div key={group.monthKey} className="apple-surface overflow-hidden">
+                        {/* Antet Lună Contabilă */}
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={() =>
+                            setCollapsedStatementMonths(prev => ({
+                              ...prev,
+                              [group.monthKey]: !prev[group.monthKey],
+                            }))
+                          }
+                          onKeyDown={e => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              setCollapsedStatementMonths(prev => ({
+                                ...prev,
+                                [group.monthKey]: !prev[group.monthKey],
+                              }));
+                            }
+                          }}
+                          className="px-4 py-3 bg-[#fafafa]/90 dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07] flex items-center justify-between gap-3 flex-wrap cursor-pointer hover:bg-[#f2f4f7]/80 dark:hover:bg-white/[0.04] transition-colors select-none"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
+                            <span className="w-8 h-8 rounded-[10px] bg-[#0071e3]/10 dark:bg-[#0a84ff]/18 flex items-center justify-center shrink-0">
+                              <Calendar className="w-4 h-4 text-[#0071e3] dark:text-[#0a84ff]" />
+                            </span>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-[15px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.015em]">
+                                {group.monthLabel}
+                              </span>
+                              <span className="px-2.5 py-0.5 rounded-full text-[11.5px] font-semibold bg-black/[0.05] dark:bg-white/[0.09] text-[#3a3a3c] dark:text-[#ebebf5] tabular-nums">
+                                {group.items.length}{" "}
+                                {group.items.length === 1 ? "extras" : "extrase"}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 flex-wrap ml-auto">
+                            {group.accounts.map(acc => (
+                              <div
+                                key={acc.key}
+                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white dark:bg-[#2c2c2e] border border-black/[0.06] dark:border-white/[0.09] text-[11.5px] tabular-nums"
+                              >
+                                <span className="font-semibold text-[#6e6e73] dark:text-[#98989d]">
+                                  {acc.bankName} ({acc.currency}):
+                                </span>
+                                {acc.openingBalance !== null && (
+                                  <span className="text-[#6e6e73] dark:text-[#98989d]">
+                                    Inițial{" "}
+                                    <strong className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                                      {formatCurrency(acc.openingBalance, acc.currency)}
+                                    </strong>
+                                  </span>
+                                )}
+                                {acc.openingBalance !== null && acc.closingBalance !== null && (
+                                  <span className="text-[#8e8e93]">→</span>
+                                )}
+                                {acc.closingBalance !== null && (
+                                  <span className="text-[#6e6e73] dark:text-[#98989d]">
+                                    Final{" "}
+                                    <strong className="font-bold text-emerald-600 dark:text-emerald-400">
+                                      {formatCurrency(acc.closingBalance, acc.currency)}
+                                    </strong>
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+
+                            <button
+                              type="button"
+                              onClick={e => {
+                                e.stopPropagation();
+                                handleDownloadStatementsZip(group.items, group.monthKey);
+                              }}
+                              disabled={isDownloadingZip}
+                              className="apple-btn-glass h-8 px-3 rounded-full inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer disabled:opacity-50"
+                              title={`Descarcă toate extrasele din ${group.monthLabel} într-un ZIP`}
+                            >
+                              <Package className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#0a84ff]" />
+                              <span>ZIP lună</span>
+                            </button>
+
+                            <ChevronDown
+                              className={`w-4 h-4 text-[#6e6e73] dark:text-[#98989d] transition-transform duration-200 ${
+                                isCollapsed ? "-rotate-90" : "rotate-0"
+                              }`}
+                            />
+                          </div>
+                        </div>
+
+                        {!isCollapsed && (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                              <thead className="bg-[#fafafa]/50 dark:bg-white/[0.015] border-b border-black/[0.05] dark:border-white/[0.07]">
+                                <tr>
+                                  <th className="px-3 py-2.5 w-10 text-center text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                                    Nr.
+                                  </th>
+                                  <th className="px-3.5 py-2.5 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                                    Dată / Perioadă
+                                  </th>
+                                  <th className="px-3.5 py-2.5 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                                    Bancă & Cont IBAN
+                                  </th>
+                                  <th className="px-3.5 py-2.5 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                                    Fișier
+                                  </th>
+                                  <th className="px-3.5 py-2.5 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                                    Sold inițial
+                                  </th>
+                                  <th className="px-3.5 py-2.5 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                                    Sold final
+                                  </th>
+                                  <th className="px-3.5 py-2.5 text-right text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                                    Document
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
+                                {group.items.map((st: any, idx: number) => {
+                                  const isPdf = String(st.fileType || "").toLowerCase() === "pdf";
+                                  return (
+                                    <tr
+                                      key={st.id}
+                                      className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors"
+                                    >
+                                      <td className="px-3 py-3 text-center tabular-nums text-[12px] text-[#8e8e93]">
+                                        {idx + 1}
+                                      </td>
+                                      <td className="px-3.5 py-3 whitespace-nowrap tabular-nums">
+                                        <div className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                                          {formatStatementPeriodLabel(
+                                            st.periodStart,
+                                            st.periodEnd,
+                                            st.statementMonth
+                                          )}
+                                        </div>
+                                        {st.statementNumber && (
+                                          <div className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
+                                            Extras #{st.statementNumber}
+                                          </div>
+                                        )}
+                                      </td>
+                                      <td className="px-3.5 py-3 max-w-[235px]">
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] truncate">
+                                            {st.bankName}
+                                          </span>
+                                          <span className="px-2 py-0.5 rounded-full text-[10.5px] font-semibold bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#ebebf5] shrink-0">
+                                            {st.currency}
+                                          </span>
+                                        </div>
+                                        {st.iban && (
+                                          <div className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] tabular-nums truncate mt-0.5">
+                                            {st.iban}
+                                          </div>
+                                        )}
+                                      </td>
+                                      <td className="px-3.5 py-3 max-w-[215px]">
+                                        <div
+                                          className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] truncate"
+                                          title={st.fileName}
+                                        >
+                                          {st.fileName}
+                                        </div>
+                                        {st.notes && (
+                                          <div className="text-[11px] text-[#8e8e93] truncate mt-0.5">
+                                            {st.notes}
+                                          </div>
+                                        )}
+                                      </td>
+                                      <td className="px-3.5 py-3 text-right tabular-nums text-[13px] text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                                        {st.openingBalance !== null &&
+                                        st.openingBalance !== undefined
+                                          ? formatCurrency(st.openingBalance, st.currency)
+                                          : "—"}
+                                      </td>
+                                      <td className="px-3.5 py-3 text-right tabular-nums text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] whitespace-nowrap">
+                                        {st.closingBalance !== null &&
+                                        st.closingBalance !== undefined
+                                          ? formatCurrency(st.closingBalance, st.currency)
+                                          : "—"}
+                                      </td>
+                                      <td className="px-3.5 py-3 text-right whitespace-nowrap">
+                                        <div className="inline-flex items-center justify-end gap-1.5">
+                                          {isPdf && (
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                setPreviewDoc({
+                                                  isOpen: true,
+                                                  title: `Extras ${st.bankName} — ${formatStatementPeriodLabel(
+                                                    st.periodStart,
+                                                    st.periodEnd,
+                                                    group.monthLabel
+                                                  )}`,
+                                                  pdfUrl: getAuthenticatedPdfUrl(st.downloadUrl),
+                                                  filename: st.fileName,
+                                                  type: "invoice",
+                                                })
+                                              }
+                                              title="Previzualizează PDF"
+                                              className="w-8 h-8 rounded-full apple-btn-glass inline-flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] cursor-pointer"
+                                            >
+                                              <Eye className="w-3.5 h-3.5" />
+                                            </button>
+                                          )}
+                                          <button
+                                            type="button"
+                                            onClick={() => handleDirectStatementDownload(st)}
+                                            title="Descarcă fișierul original"
+                                            className="w-8 h-8 rounded-full apple-btn-glass inline-flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] cursor-pointer"
+                                          >
+                                            <Download className="w-3.5 h-3.5" />
+                                          </button>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </>
           )}
         </main>

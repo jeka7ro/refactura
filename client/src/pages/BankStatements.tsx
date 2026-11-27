@@ -20,11 +20,18 @@ import {
   Copy,
   Check,
   ExternalLink,
+  ChevronDown,
+  Package,
 } from "lucide-react";
 import { Link } from "wouter";
 import { toast } from "sonner";
+import JSZip from "jszip";
 import { trpc } from "@/lib/trpc";
 import DocumentModalPreview from "@/components/DocumentModalPreview";
+import {
+  groupStatementsByMonth,
+  formatStatementPeriodLabel,
+} from "@/lib/statementMonthGroups";
 import {
   Select,
   SelectContent,
@@ -140,6 +147,8 @@ export default function BankStatements() {
   const [editingStmt, setEditingStmt] = useState<any | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [copiedIban, setCopiedIban] = useState<string | null>(null);
+  const [collapsedMonths, setCollapsedMonths] = useState<Record<string, boolean>>({});
+  const [downloadingMonthZip, setDownloadingMonthZip] = useState<string | null>(null);
 
   const [previewDoc, setPreviewDoc] = useState<{
     isOpen: boolean;
@@ -413,6 +422,57 @@ export default function BankStatements() {
   const hasActiveFilters =
     monthFilter !== "all" || currencyFilter !== "all" || search.trim() !== "";
 
+  const monthGroups = useMemo(
+    () => groupStatementsByMonth(filteredItems),
+    [filteredItems]
+  );
+
+  const toggleMonthCollapse = (monthKey: string) => {
+    setCollapsedMonths((prev) => ({ ...prev, [monthKey]: !prev[monthKey] }));
+  };
+
+  const downloadMonthZip = async (monthKey: string, itemsInMonth: any[]) => {
+    if (!itemsInMonth.length) return;
+    setDownloadingMonthZip(monthKey);
+    try {
+      const token = localStorage.getItem("authToken");
+      const zip = new JSZip();
+      let added = 0;
+      for (const st of itemsInMonth) {
+        const res = await fetch(`/api/pdf/bank-statement/${st.id}?download=1`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          credentials: "include",
+        });
+        const ct = res.headers.get("content-type") || "";
+        if (res.ok && !ct.includes("text/html")) {
+          const blob = await res.blob();
+          if (blob.size > 0) {
+            const safeName = String(
+              st.fileName || `Extras_${st.bankName}_${monthKey}.${st.fileType || "pdf"}`
+            ).replace(/[^a-zA-Z0-9._-]/g, "_");
+            zip.file(safeName, blob);
+            added++;
+          }
+        }
+      }
+      if (added === 0) throw new Error("Niciun fișier disponibil");
+      const content = await zip.generateAsync({ type: "blob" });
+      const blobUrl = URL.createObjectURL(content);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = `Extrase_Cont_${monthKey}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+      toast.success(`Arhiva Extrase_Cont_${monthKey}.zip (${added} extrase) a fost descărcată!`);
+    } catch (err: any) {
+      toast.error(err?.message || "Eroare la descărcarea arhivei lunii");
+    } finally {
+      setDownloadingMonthZip(null);
+    }
+  };
+
   return (
     <div
       className="p-3 sm:p-5 max-w-full space-y-4 overflow-x-hidden"
@@ -673,204 +733,308 @@ export default function BankStatements() {
           </button>
         </div>
       ) : (
-        <div className="apple-surface overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead className="bg-[#fafafa] dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07]">
-                <tr>
-                  <th className="px-3 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] w-10 text-center">
-                    Nr.
-                  </th>
-                  <th className="px-3.5 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
-                    Lună / Perioadă
-                  </th>
-                  <th className="px-3.5 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
-                    Bancă & Cont IBAN
-                  </th>
-                  <th className="px-3.5 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
-                    Fișier original
-                  </th>
-                  <th className="px-3.5 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] text-right whitespace-nowrap">
-                    Sold inițial
-                  </th>
-                  <th className="px-3.5 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] text-right whitespace-nowrap">
-                    Sold final
-                  </th>
-                  <th className="px-3.5 py-3 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] text-right whitespace-nowrap">
-                    Acțiuni
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
-                {filteredItems.map((stmt: any, idx: number) => {
-                  const isPdf = String(stmt.fileType || "").toLowerCase() === "pdf";
-                  const isZip = String(stmt.fileType || "").toLowerCase() === "zip";
-                  return (
-                    <tr
-                      key={stmt.id}
-                      className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors"
-                    >
-                      <td className="px-3 py-3 text-center text-[12px] text-[#8e8e93] tabular-nums">
-                        {idx + 1}
-                      </td>
-                      <td className="px-3.5 py-3 whitespace-nowrap tabular-nums">
-                        <div className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] capitalize">
-                          {formatMonthRo(stmt.statementMonth)}
-                        </div>
-                        <div className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
-                          {stmt.periodStart && stmt.periodEnd
-                            ? `${formatDateRo(stmt.periodStart)} – ${formatDateRo(stmt.periodEnd)}`
-                            : stmt.statementNumber
-                              ? `Extras #${stmt.statementNumber}`
-                              : stmt.statementMonth}
-                        </div>
-                      </td>
-                      <td className="px-3.5 py-3 max-w-[235px]">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] truncate">
-                            {stmt.bankName}
+        <div className="space-y-3.5">
+          {monthGroups.map((group) => {
+            const isCollapsed = Boolean(collapsedMonths[group.monthKey]);
+            return (
+              <div key={group.monthKey} className="apple-surface overflow-hidden">
+                {/* Antet Lună Contabilă */}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => toggleMonthCollapse(group.monthKey)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      toggleMonthCollapse(group.monthKey);
+                    }
+                  }}
+                  className="px-4 py-3 bg-[#fafafa]/90 dark:bg-white/[0.025] border-b border-black/[0.05] dark:border-white/[0.07] flex items-center justify-between gap-3 flex-wrap cursor-pointer hover:bg-[#f2f4f7]/80 dark:hover:bg-white/[0.04] transition-colors select-none"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
+                    <span className="w-8 h-8 rounded-[10px] bg-[#0071e3]/10 dark:bg-[#0a84ff]/18 flex items-center justify-center shrink-0">
+                      <Calendar className="w-4 h-4 text-[#0071e3] dark:text-[#0a84ff]" />
+                    </span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[15px] font-bold text-[#1d1d1f] dark:text-[#f5f5f7] tracking-[-0.015em]">
+                        {group.monthLabel}
+                      </span>
+                      <span className="px-2.5 py-0.5 rounded-full text-[11.5px] font-semibold bg-black/[0.05] dark:bg-white/[0.09] text-[#3a3a3c] dark:text-[#ebebf5] tabular-nums">
+                        {group.items.length}{" "}
+                        {group.items.length === 1 ? "extras" : "extrase"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap ml-auto">
+                    {group.accounts.map((acc) => (
+                      <div
+                        key={acc.key}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white dark:bg-[#2c2c2e] border border-black/[0.06] dark:border-white/[0.09] text-[11.5px] tabular-nums"
+                      >
+                        <span className="font-semibold text-[#6e6e73] dark:text-[#98989d]">
+                          {acc.bankName} ({acc.currency}):
+                        </span>
+                        {acc.openingBalance !== null && (
+                          <span className="text-[#6e6e73] dark:text-[#98989d]">
+                            Inițial{" "}
+                            <strong className="font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                              {formatMoney(acc.openingBalance, acc.currency)}
+                            </strong>
                           </span>
-                          <span className="px-2 py-0.5 rounded-full text-[10.5px] font-semibold bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#ebebf5] tabular-nums shrink-0">
-                            {stmt.currency}
-                          </span>
-                        </div>
-                        {stmt.iban && (
-                          <div className="flex items-center gap-1 mt-0.5">
-                            <span className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] tabular-nums truncate">
-                              {stmt.iban}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => copyIban(stmt.iban)}
-                              title="Copiază IBAN"
-                              className="w-5 h-5 rounded-full inline-flex items-center justify-center text-[#8e8e93] hover:text-[#1d1d1f] dark:hover:text-white cursor-pointer shrink-0"
-                            >
-                              {copiedIban === stmt.iban ? (
-                                <Check className="w-3 h-3 text-emerald-500" />
-                              ) : (
-                                <Copy className="w-3 h-3" />
-                              )}
-                            </button>
-                          </div>
                         )}
-                      </td>
-                      <td className="px-3.5 py-3 max-w-[205px]">
-                        <div className="flex items-center gap-2 min-w-0">
-                          {isPdf ? (
-                            <FileText className="w-4 h-4 text-[#0071e3] dark:text-[#0a84ff] shrink-0" />
-                          ) : (
-                            <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                          )}
-                          <div className="min-w-0">
-                            <div
-                              className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] truncate"
-                              title={stmt.fileName}
+                        {acc.openingBalance !== null && acc.closingBalance !== null && (
+                          <span className="text-[#8e8e93]">→</span>
+                        )}
+                        {acc.closingBalance !== null && (
+                          <span className="text-[#6e6e73] dark:text-[#98989d]">
+                            Final{" "}
+                            <strong className="font-bold text-emerald-600 dark:text-emerald-400">
+                              {formatMoney(acc.closingBalance, acc.currency)}
+                            </strong>
+                          </span>
+                        )}
+                      </div>
+                    ))}
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        downloadMonthZip(group.monthKey, group.items);
+                      }}
+                      disabled={downloadingMonthZip === group.monthKey}
+                      className="apple-btn-glass h-8 px-3 rounded-full inline-flex items-center gap-1.5 text-[11.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] cursor-pointer disabled:opacity-50"
+                      title={`Descarcă toate extrasele din ${group.monthLabel} într-un ZIP`}
+                    >
+                      {downloadingMonthZip === group.monthKey ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Package className="w-3.5 h-3.5 text-[#0071e3] dark:text-[#0a84ff]" />
+                      )}
+                      <span>ZIP lună</span>
+                    </button>
+
+                    <ChevronDown
+                      className={`w-4 h-4 text-[#6e6e73] dark:text-[#98989d] transition-transform duration-200 ${
+                        isCollapsed ? "-rotate-90" : "rotate-0"
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                {!isCollapsed && (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead className="bg-[#fafafa]/50 dark:bg-white/[0.015] border-b border-black/[0.05] dark:border-white/[0.07]">
+                        <tr>
+                          <th className="px-3 py-2.5 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] w-10 text-center">
+                            Nr.
+                          </th>
+                          <th className="px-3.5 py-2.5 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] whitespace-nowrap">
+                            Dată / Perioadă
+                          </th>
+                          <th className="px-3.5 py-2.5 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                            Bancă & Cont IBAN
+                          </th>
+                          <th className="px-3.5 py-2.5 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d]">
+                            Fișier original
+                          </th>
+                          <th className="px-3.5 py-2.5 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] text-right whitespace-nowrap">
+                            Sold inițial
+                          </th>
+                          <th className="px-3.5 py-2.5 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] text-right whitespace-nowrap">
+                            Sold final
+                          </th>
+                          <th className="px-3.5 py-2.5 text-[12px] font-medium text-[#6e6e73] dark:text-[#98989d] text-right whitespace-nowrap">
+                            Acțiuni
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-black/[0.045] dark:divide-white/[0.06]">
+                        {group.items.map((stmt: any, idx: number) => {
+                          const isPdf = String(stmt.fileType || "").toLowerCase() === "pdf";
+                          const isZip = String(stmt.fileType || "").toLowerCase() === "zip";
+                          return (
+                            <tr
+                              key={stmt.id}
+                              className="hover:bg-[#f5f5f7]/80 dark:hover:bg-white/[0.035] transition-colors"
                             >
-                              {stmt.fileName}
-                            </div>
-                            <div className="text-[11px] text-[#8e8e93] tabular-nums">
-                              {(stmt.fileType || "pdf").toUpperCase()}
-                              {stmt.fileSize ? ` · ${formatFileSize(stmt.fileSize)}` : ""}
-                              {stmt.notes ? ` · ${stmt.notes}` : ""}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-3.5 py-3 text-right text-[13px] text-[#6e6e73] dark:text-[#98989d] tabular-nums whitespace-nowrap">
-                        {formatMoney(stmt.openingBalance, stmt.currency)}
-                      </td>
-                      <td className="px-3.5 py-3 text-right text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums whitespace-nowrap">
-                        {formatMoney(stmt.closingBalance, stmt.currency)}
-                      </td>
-                      <td className="px-3.5 py-3 text-right whitespace-nowrap">
-                        <div className="inline-flex items-center justify-end gap-1.5">
-                          {isZip && (
-                            <button
-                              type="button"
-                              onClick={() => unpackZipMutation.mutate({ id: stmt.id })}
-                              disabled={unpackZipMutation.isPending}
-                              title="Extrage și afișează individual toate PDF-urile din arhiva ZIP"
-                              className="apple-btn-prominent h-8 px-3 rounded-full inline-flex items-center gap-1.5 text-white text-[11.5px] font-semibold cursor-pointer disabled:opacity-50"
-                            >
-                              {unpackZipMutation.isPending ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              ) : (
-                                <FileText className="w-3.5 h-3.5" />
-                              )}
-                              <span>Dezarhivează</span>
-                            </button>
-                          )}
-                          {isPdf && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setPreviewDoc({
-                                  isOpen: true,
-                                  title: `Extras ${stmt.bankName} — ${formatMonthRo(stmt.statementMonth)}`,
-                                  pdfUrl: `/api/pdf/bank-statement/${stmt.id}`,
-                                  filename: stmt.fileName,
-                                })
-                              }
-                              title="Previzualizează PDF"
-                              aria-label="Previzualizează PDF"
-                              className="apple-btn-glass w-8 h-8 rounded-full inline-flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] cursor-pointer"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => downloadStatementFile(stmt)}
-                            title="Descarcă fișierul original"
-                            aria-label="Descarcă fișierul original"
-                            className="apple-btn-glass w-8 h-8 rounded-full inline-flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] cursor-pointer"
-                          >
-                            <Download className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const ym = stmt.statementMonth || currentYm;
-                              const bounds = getMonthBounds(ym);
-                              setEditingStmt({
-                                id: stmt.id,
-                                bankName: stmt.bankName || "",
-                                iban: stmt.iban || "",
-                                currency: stmt.currency || "RON",
-                                statementNumber: stmt.statementNumber || "",
-                                statementMonth: ym,
-                                periodStart: stmt.periodStart || bounds?.start || "",
-                                periodEnd: stmt.periodEnd || bounds?.end || "",
-                                openingBalance:
-                                  stmt.openingBalance !== null ? String(stmt.openingBalance) : "",
-                                closingBalance:
-                                  stmt.closingBalance !== null ? String(stmt.closingBalance) : "",
-                                notes: stmt.notes || "",
-                              });
-                            }}
-                            title="Editează detalii"
-                            aria-label="Editează detalii"
-                            className="apple-btn-glass w-8 h-8 rounded-full inline-flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] cursor-pointer"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDeleteTarget(stmt)}
-                            title="Șterge extrasul"
-                            aria-label="Șterge extrasul"
-                            className="apple-btn-glass w-8 h-8 rounded-full inline-flex items-center justify-center text-[#6e6e73] hover:text-[#ff3b30] dark:text-[#98989d] dark:hover:text-[#ff453a] cursor-pointer"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                              <td className="px-3 py-3 text-center text-[12px] text-[#8e8e93] tabular-nums">
+                                {idx + 1}
+                              </td>
+                              <td className="px-3.5 py-3 whitespace-nowrap tabular-nums">
+                                <div className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7]">
+                                  {formatStatementPeriodLabel(
+                                    stmt.periodStart,
+                                    stmt.periodEnd,
+                                    stmt.statementMonth
+                                  )}
+                                </div>
+                                {stmt.statementNumber && (
+                                  <div className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] mt-0.5">
+                                    Extras #{stmt.statementNumber}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-3.5 py-3 max-w-[235px]">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] truncate">
+                                    {stmt.bankName}
+                                  </span>
+                                  <span className="px-2 py-0.5 rounded-full text-[10.5px] font-semibold bg-[#f2f2f7] dark:bg-[#2c2c2e] text-[#3a3a3c] dark:text-[#ebebf5] tabular-nums shrink-0">
+                                    {stmt.currency}
+                                  </span>
+                                </div>
+                                {stmt.iban && (
+                                  <div className="flex items-center gap-1 mt-0.5">
+                                    <span className="text-[11.5px] text-[#6e6e73] dark:text-[#98989d] tabular-nums truncate">
+                                      {stmt.iban}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => copyIban(stmt.iban)}
+                                      title="Copiază IBAN"
+                                      className="w-5 h-5 rounded-full inline-flex items-center justify-center text-[#8e8e93] hover:text-[#1d1d1f] dark:hover:text-white cursor-pointer shrink-0"
+                                    >
+                                      {copiedIban === stmt.iban ? (
+                                        <Check className="w-3 h-3 text-emerald-500" />
+                                      ) : (
+                                        <Copy className="w-3 h-3" />
+                                      )}
+                                    </button>
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-3.5 py-3 max-w-[205px]">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  {isPdf ? (
+                                    <FileText className="w-4 h-4 text-[#0071e3] dark:text-[#0a84ff] shrink-0" />
+                                  ) : (
+                                    <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                  )}
+                                  <div className="min-w-0">
+                                    <div
+                                      className="text-[13px] font-medium text-[#1d1d1f] dark:text-[#f5f5f7] truncate"
+                                      title={stmt.fileName}
+                                    >
+                                      {stmt.fileName}
+                                    </div>
+                                    <div className="text-[11px] text-[#8e8e93] tabular-nums">
+                                      {(stmt.fileType || "pdf").toUpperCase()}
+                                      {stmt.fileSize ? ` · ${formatFileSize(stmt.fileSize)}` : ""}
+                                      {stmt.notes ? ` · ${stmt.notes}` : ""}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-3.5 py-3 text-right text-[13px] text-[#6e6e73] dark:text-[#98989d] tabular-nums whitespace-nowrap">
+                                {formatMoney(stmt.openingBalance, stmt.currency)}
+                              </td>
+                              <td className="px-3.5 py-3 text-right text-[13.5px] font-semibold text-[#1d1d1f] dark:text-[#f5f5f7] tabular-nums whitespace-nowrap">
+                                {formatMoney(stmt.closingBalance, stmt.currency)}
+                              </td>
+                              <td className="px-3.5 py-3 text-right whitespace-nowrap">
+                                <div className="inline-flex items-center justify-end gap-1.5">
+                                  {isZip && (
+                                    <button
+                                      type="button"
+                                      onClick={() => unpackZipMutation.mutate({ id: stmt.id })}
+                                      disabled={unpackZipMutation.isPending}
+                                      title="Extrage și afișează individual toate PDF-urile din arhiva ZIP"
+                                      className="apple-btn-prominent h-8 px-3 rounded-full inline-flex items-center gap-1.5 text-white text-[11.5px] font-semibold cursor-pointer disabled:opacity-50"
+                                    >
+                                      {unpackZipMutation.isPending ? (
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                      ) : (
+                                        <FileText className="w-3.5 h-3.5" />
+                                      )}
+                                      <span>Dezarhivează</span>
+                                    </button>
+                                  )}
+                                  {isPdf && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setPreviewDoc({
+                                          isOpen: true,
+                                          title: `Extras ${stmt.bankName} — ${formatStatementPeriodLabel(
+                                            stmt.periodStart,
+                                            stmt.periodEnd,
+                                            group.monthLabel
+                                          )}`,
+                                          pdfUrl: `/api/pdf/bank-statement/${stmt.id}`,
+                                          filename: stmt.fileName,
+                                        })
+                                      }
+                                      title="Previzualizează PDF"
+                                      aria-label="Previzualizează PDF"
+                                      className="apple-btn-glass w-8 h-8 rounded-full inline-flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] cursor-pointer"
+                                    >
+                                      <Eye className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => downloadStatementFile(stmt)}
+                                    title="Descarcă fișierul original"
+                                    aria-label="Descarcă fișierul original"
+                                    className="apple-btn-glass w-8 h-8 rounded-full inline-flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] cursor-pointer"
+                                  >
+                                    <Download className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const ym = stmt.statementMonth || currentYm;
+                                      const bounds = getMonthBounds(ym);
+                                      setEditingStmt({
+                                        id: stmt.id,
+                                        bankName: stmt.bankName || "",
+                                        iban: stmt.iban || "",
+                                        currency: stmt.currency || "RON",
+                                        statementNumber: stmt.statementNumber || "",
+                                        statementMonth: ym,
+                                        periodStart: stmt.periodStart || bounds?.start || "",
+                                        periodEnd: stmt.periodEnd || bounds?.end || "",
+                                        openingBalance:
+                                          stmt.openingBalance !== null
+                                            ? String(stmt.openingBalance)
+                                            : "",
+                                        closingBalance:
+                                          stmt.closingBalance !== null
+                                            ? String(stmt.closingBalance)
+                                            : "",
+                                        notes: stmt.notes || "",
+                                      });
+                                    }}
+                                    title="Editează detalii"
+                                    aria-label="Editează detalii"
+                                    className="apple-btn-glass w-8 h-8 rounded-full inline-flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] cursor-pointer"
+                                  >
+                                    <Pencil className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDeleteTarget(stmt)}
+                                    title="Șterge extrasul"
+                                    aria-label="Șterge extrasul"
+                                    className="apple-btn-glass w-8 h-8 rounded-full inline-flex items-center justify-center text-[#6e6e73] hover:text-[#ff3b30] dark:text-[#98989d] dark:hover:text-[#ff453a] cursor-pointer"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
