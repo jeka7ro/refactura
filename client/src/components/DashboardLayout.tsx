@@ -53,6 +53,7 @@ import {
   Key,
   Database,
   Coins,
+  Landmark,
   Lock,
   User,
   Check,
@@ -132,7 +133,7 @@ const navItems: NavItem[] = [
       { href: "/devize", label: "Devize de Lucrări", icon: FileText },
       { href: "/re-facturi", label: "Re-Facturi", icon: FileOutput },
       { href: "/arhiva-facturi", label: "Arhivă Facturi", icon: Archive },
-      { href: "/extrase-cont", label: "Extrase de Cont", icon: Coins },
+      { href: "/extrase-cont", label: "Extrase de Cont", icon: Landmark },
       { href: "/jurnal-spv", label: "Jurnal SPV", icon: ShieldCheck },
       { href: "/evidenta-emailuri", label: "Evidență Emailuri", icon: Mail },
     ],
@@ -683,9 +684,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   };
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0 overflow-hidden">
       {/* Nav */}
-      <nav className="flex-1 py-3.5 px-2.5 space-y-0.5 overflow-y-auto">
+      <nav className="apple-sidebar-nav no-scrollbar flex-1 py-3 px-2.5 space-y-0.5 overflow-y-auto overflow-x-hidden">
         {navItems.map(item => {
           const Icon = item.icon;
           const active = isActive(item.href);
@@ -708,7 +709,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                       ? "apple-sidebar-active text-white font-semibold"
                       : (active || hasExpandedSubs) && item.subItems
                         ? "apple-sidebar-group-open text-[#1d1d1f] dark:text-white font-semibold"
-                        : "text-[#3a3a3c] font-medium hover:text-[#1d1d1f] hover:bg-white/65 dark:text-[#ebebf5]/80 dark:hover:text-white dark:hover:bg-white/[0.06]",
+                        : "text-[#3a3a3c] font-medium hover:text-[#1d1d1f] hover:bg-black/[0.04] dark:text-[#ebebf5]/80 dark:hover:text-white dark:hover:bg-white/[0.06]",
                     collapsed && "justify-center px-2"
                   )}
                 >
@@ -726,12 +727,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   {!collapsed && (
                     <span className="flex-1 truncate">{item.label}</span>
                   )}
-                  {/* Badge eliminat pentru a evita confuzia cu numarul total de facturi */}
                 </div>
               </Link>
               {/* Sub-items indentat */}
               {!collapsed && item.subItems && (active || hasExpandedSubs) && (
-                <div className="ml-4 mt-1 pl-3 border-l border-black/[0.08] dark:border-white/[0.08] space-y-0.5 py-0.5">
+                <div className="ml-[21px] mt-0.5 mb-1 pl-2.5 border-l border-black/[0.07] dark:border-white/[0.08] space-y-0.5 py-0.5">
                   {item.subItems.map(sub => {
                     const SubIcon = sub.icon;
                     const subActive = isSubItemActive(sub.href);
@@ -751,13 +751,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                             "flex items-center gap-2 px-3 py-1.5 rounded-full text-[12.5px] transition-all duration-150 cursor-pointer group",
                             subActive
                               ? "apple-sidebar-active text-white font-semibold"
-                              : "text-[#636366] font-medium hover:text-[#1d1d1f] hover:bg-white/65 dark:text-[#98989d] dark:hover:text-white dark:hover:bg-white/[0.06]"
+                              : "text-[#525255] font-medium hover:text-[#1d1d1f] hover:bg-black/[0.04] dark:text-[#98989d] dark:hover:text-white dark:hover:bg-white/[0.06]"
                           )}
                         >
                           <SubIcon
                             className={cn(
                               "w-3.5 h-3.5 flex-shrink-0",
-                              subActive ? "text-white" : "text-[#636366] dark:text-[#98989d]"
+                              subActive ? "text-white" : "text-[#636366] dark:text-[#98989d] group-hover:text-[#1d1d1f] dark:group-hover:text-white"
                             )}
                           />
                           <span className="truncate">{sub.label}</span>
@@ -1224,7 +1224,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Desktop Sidebar — Apple Liquid Glass Functional Layer */}
         <aside
           className={cn(
-            "hidden md:flex flex-col apple-glass rounded-[22px] transition-all duration-300 flex-shrink-0 mt-[74px] sm:mt-[80px] mb-2.5 sm:mb-3.5 ml-2.5 sm:ml-3.5 z-20",
+            "hidden md:flex flex-col apple-glass rounded-[22px] overflow-hidden transition-all duration-300 flex-shrink-0 mt-[76px] sm:mt-[84px] mb-2.5 sm:mb-3.5 ml-2.5 sm:ml-3.5 z-20",
             collapsed ? "w-20" : "w-64"
           )}
         >
@@ -1238,14 +1238,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               className="absolute inset-0 bg-black/45 dark:bg-black/65 backdrop-blur-sm"
               onClick={() => setMobileOpen(false)}
             />
-            <aside className="absolute left-0 top-0 bottom-0 w-68 apple-glass rounded-r-[24px] flex flex-col shadow-2xl">
+            <aside className="absolute left-0 top-0 bottom-0 w-68 apple-glass rounded-r-[24px] overflow-hidden flex flex-col shadow-2xl">
               <SidebarContent />
             </aside>
           </div>
         )}
 
         {/* Page Content — Full-height scroll container so content refracts behind floating Liquid Glass Header */}
-        <main className="flex-1 h-full overflow-y-auto overflow-x-hidden pt-[74px] sm:pt-[80px] px-2.5 sm:px-3.5 pb-[calc(85px+env(safe-area-inset-bottom))] md:pb-12">
+        <main className="flex-1 h-full overflow-y-auto overflow-x-hidden pt-[76px] sm:pt-[84px] px-2.5 sm:px-3.5 pb-[calc(85px+env(safe-area-inset-bottom))] md:pb-12">
           {children}
         </main>
       </div>

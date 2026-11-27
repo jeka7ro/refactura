@@ -1,5 +1,18 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-27 17:30 — Fix vizual Sidebar Apple HIG: eliminare bară groasă de scroll peste colțul rotunjit `rounded-[22px]`, finisare grup deschis și iconiță `Extrase de Cont` (`DashboardLayout.tsx`, `index.css`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  1. **Eliminat bara groasă gri de scroll (`8px`) care ieșea în afara colțului rotunjit din dreapta-sus al meniului lateral (`client/src/components/DashboardLayout.tsx`, `client/src/index.css`):**
+     - Adăugat `overflow-hidden` pe cardul plutitor `<aside>` (`rounded-[22px]`) și clasa `.apple-sidebar-nav` (`no-scrollbar`) pe `<nav>`, astfel încât meniul lateral face scroll fluid din trackpad/rotiță fără să mai afișeze bara verticală groasă care tăia curbura cardului Liquid Glass după adăugarea intrării `Extrase de Cont`.
+     - Rafinat și scrollbar-ul global la `6px` neutru (`rgba(60,60,67,0.18)` / `rgba(235,235,245,0.16)`) în locul nuanței `slate-300`, și echilibrat distanța dintre header-ul plutitor și cardul lateral (`mt-[84px]` / `pt-[84px]`).
+  2. **Finisare vizuală a grupului extins `Facturi` și a iconiței `Extrase de Cont` (`DashboardLayout.tsx`, `index.css`):**
+     - Înlocuit chenarul alb-pe-alb cu umbră de pe `.apple-sidebar-group-open` în Light Mode cu o tentă discretă fără bordură (`rgba(60, 60, 67, 0.055)`), aliniind linia verticală a submeniului exact sub centrul iconiței părinte (`ml-[21px]`).
+     - Înlocuit iconița `Coins` de pe `Extrase de Cont` cu iconița bancară curată `Landmark` (identică cu pagina `/extrase-cont` și Portalul Contabil).
+- **Fișiere:** `client/src/components/DashboardLayout.tsx`, `client/src/index.css`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori), `npm run build` (`0` erori) și verificare vizuală pe captură Retina în Playwright Headless (Light Mode + Dark Mode pe `/facturi-emise-nou` la înălțime `800px`), fără `git push`.
+
 ### 2026-11-27 14:25 — Verificare completă & blindare Export SAGA XML/ZIP/Web pentru Facturi Externe Non-SPV + Portal Contabil (`sagaXmlGenerator.ts`, `accountantPortalRouter.ts`, `AccountantPortal.tsx`, `SagaClassicPortalView.tsx`)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**
