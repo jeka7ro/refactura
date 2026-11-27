@@ -1,5 +1,13 @@
 # Jurnal de modificări (Antigravity ↔ Paperclip)
 
+### 2026-11-27 19:36 — Completare automată interval `1 – ultima zi a lunii` la alegerea lunii contabile pe Extrase de Cont (`BankStatements.tsx`, `bankStatementsRouter.ts`)
+- **Autor:** Antigravity
+- **Ce s-a făcut:**
+  - Adăugat calculul automat `getMonthBounds(ym)` în `client/src/pages/BankStatements.tsx` (atât în modalul de încărcare, cât și la editarea unui extras existent) și fallback-ul pe server în `server/bankStatementsRouter.ts`: la încărcarea unui extras sau la schimbarea câmpului `Luna contabilă *` (ex. `octombrie 2026` → `2026-10`, `noiembrie 2026` → `2026-11`, `februarie` → `28`/`29`), câmpurile `De la data` și `Până la data` se completează automat cu prima zi (`01`) și ultima zi calendaristică a lunii respective (`2026-10-01` – `2026-10-31`).
+- **Fișiere:** `client/src/pages/BankStatements.tsx`, `server/bankStatementsRouter.ts`, `.agents/CHANGELOG.md`
+- **Ramură / Commit:** `main` (commit local)
+- **Build / Teste:** `npx tsc --noEmit` (`0` erori), `npx vitest run` (`8/8` passed), `npm run build` (`0` erori) și verificare interactivă Playwright pe selectorul `Luna contabilă *` (`2026-10` → `2026-10-01` .. `2026-10-31`, `2026-02` → `2026-02-01` .. `2026-02-28`), fără `git push`.
+
 ### 2026-11-27 19:08 — Fix conexiune Vite HMR WebSocket + `Cache-Control: no-store` pe serverul dev și eliminare garantată scrollbar sidebar (`server/_core/vite.ts`, `DashboardLayout.tsx`)
 - **Autor:** Antigravity
 - **Ce s-a făcut:**

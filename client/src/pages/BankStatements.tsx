@@ -88,6 +88,19 @@ function formatMonthRo(ym: string): string {
   return d.toLocaleDateString("ro-RO", { month: "long", year: "numeric" });
 }
 
+function getMonthBounds(ym?: string | null): { start: string; end: string } | null {
+  if (!ym || !/^\d{4}-\d{2}$/.test(ym)) return null;
+  const [y, m] = ym.split("-").map(Number);
+  if (!y || m < 1 || m > 12) return null;
+  const lastDay = new Date(y, m, 0).getDate();
+  const mm = String(m).padStart(2, "0");
+  const dd = String(lastDay).padStart(2, "0");
+  return {
+    start: `${y}-${mm}-01`,
+    end: `${y}-${mm}-${dd}`,
+  };
+}
+
 function formatDateRo(iso?: string | null): string {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -260,8 +273,14 @@ export default function BankStatements() {
               "RON",
             statementNumber: ext.statementNumber || "",
             statementMonth: ext.statementMonth || currentYm,
-            periodStart: ext.periodStart || "",
-            periodEnd: ext.periodEnd || "",
+            periodStart:
+              ext.periodStart ||
+              getMonthBounds(ext.statementMonth || currentYm)?.start ||
+              "",
+            periodEnd:
+              ext.periodEnd ||
+              getMonthBounds(ext.statementMonth || currentYm)?.end ||
+              "",
             openingBalance: ext.openingBalance ?? "",
             closingBalance: ext.closingBalance ?? "",
             transactionsCount: ext.transactionsCount ?? null,
@@ -779,23 +798,25 @@ export default function BankStatements() {
                           </button>
                           <button
                             type="button"
-                            onClick={() =>
+                            onClick={() => {
+                              const ym = stmt.statementMonth || currentYm;
+                              const bounds = getMonthBounds(ym);
                               setEditingStmt({
                                 id: stmt.id,
                                 bankName: stmt.bankName || "",
                                 iban: stmt.iban || "",
                                 currency: stmt.currency || "RON",
                                 statementNumber: stmt.statementNumber || "",
-                                statementMonth: stmt.statementMonth || currentYm,
-                                periodStart: stmt.periodStart || "",
-                                periodEnd: stmt.periodEnd || "",
+                                statementMonth: ym,
+                                periodStart: stmt.periodStart || bounds?.start || "",
+                                periodEnd: stmt.periodEnd || bounds?.end || "",
                                 openingBalance:
                                   stmt.openingBalance !== null ? String(stmt.openingBalance) : "",
                                 closingBalance:
                                   stmt.closingBalance !== null ? String(stmt.closingBalance) : "",
                                 notes: stmt.notes || "",
-                              })
-                            }
+                              });
+                            }}
                             title="Editează detalii"
                             aria-label="Editează detalii"
                             className="apple-btn-glass w-8 h-8 rounded-full inline-flex items-center justify-center text-[#3a3a3c] dark:text-[#ebebf5] cursor-pointer"
@@ -1000,7 +1021,16 @@ export default function BankStatements() {
                       <input
                         type="month"
                         value={d.statementMonth}
-                        onChange={(e) => updateDraft(d.uid, { statementMonth: e.target.value })}
+                        onChange={(e) => {
+                          const nextMonth = e.target.value;
+                          const bounds = getMonthBounds(nextMonth);
+                          updateDraft(d.uid, {
+                            statementMonth: nextMonth,
+                            ...(bounds
+                              ? { periodStart: bounds.start, periodEnd: bounds.end }
+                              : {}),
+                          });
+                        }}
                         className="apple-input w-full h-9 px-2.5 text-[16px] sm:text-[13px] tabular-nums text-[#1d1d1f] dark:text-[#f5f5f7] outline-none"
                       />
                     </div>
@@ -1160,9 +1190,17 @@ export default function BankStatements() {
                   <input
                     type="month"
                     value={editingStmt.statementMonth}
-                    onChange={(e) =>
-                      setEditingStmt({ ...editingStmt, statementMonth: e.target.value })
-                    }
+                    onChange={(e) => {
+                      const nextMonth = e.target.value;
+                      const bounds = getMonthBounds(nextMonth);
+                      setEditingStmt({
+                        ...editingStmt,
+                        statementMonth: nextMonth,
+                        ...(bounds
+                          ? { periodStart: bounds.start, periodEnd: bounds.end }
+                          : {}),
+                      });
+                    }}
                     className="apple-input w-full h-9 px-2.5 text-[16px] sm:text-[13px] tabular-nums outline-none"
                   />
                 </div>
@@ -1185,6 +1223,34 @@ export default function BankStatements() {
                       <SelectItem value="CHF">CHF</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2.5">
+                <div>
+                  <label className="text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1 block">
+                    De la data
+                  </label>
+                  <input
+                    type="date"
+                    value={editingStmt.periodStart || ""}
+                    onChange={(e) =>
+                      setEditingStmt({ ...editingStmt, periodStart: e.target.value })
+                    }
+                    className="apple-input w-full h-9 px-2.5 text-[16px] sm:text-[13px] tabular-nums outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11.5px] font-medium text-[#6e6e73] dark:text-[#98989d] mb-1 block">
+                    Până la data
+                  </label>
+                  <input
+                    type="date"
+                    value={editingStmt.periodEnd || ""}
+                    onChange={(e) =>
+                      setEditingStmt({ ...editingStmt, periodEnd: e.target.value })
+                    }
+                    className="apple-input w-full h-9 px-2.5 text-[16px] sm:text-[13px] tabular-nums outline-none"
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2.5">
@@ -1242,6 +1308,8 @@ export default function BankStatements() {
                     iban: editingStmt.iban || null,
                     currency: editingStmt.currency,
                     statementMonth: editingStmt.statementMonth,
+                    periodStart: editingStmt.periodStart || null,
+                    periodEnd: editingStmt.periodEnd || null,
                     openingBalance: editingStmt.openingBalance || null,
                     closingBalance: editingStmt.closingBalance || null,
                     notes: editingStmt.notes || null,

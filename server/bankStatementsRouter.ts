@@ -277,6 +277,14 @@ export const bankStatementsRouter = router({
 
       const safeFileUrl = await assertSafeBankStatementFileUrl(db, input.fileUrl, tenantId);
       const cleanIban = input.iban ? input.iban.replace(/\s+/g, "").toUpperCase() : null;
+      const cleanMonth = input.statementMonth.trim();
+      const [mY, mM] = cleanMonth.split("-").map(Number);
+      const lastDayOfMonth =
+        mY && mM >= 1 && mM <= 12
+          ? String(new Date(mY, mM, 0).getDate()).padStart(2, "0")
+          : "30";
+      const defaultStart = `${cleanMonth}-01`;
+      const defaultEnd = `${cleanMonth}-${lastDayOfMonth}`;
 
       const [res] = await db.insert(bankStatements).values({
         tenantId,
@@ -284,9 +292,9 @@ export const bankStatementsRouter = router({
         iban: cleanIban,
         currency: input.currency.trim().toUpperCase().slice(0, 10) || "RON",
         statementNumber: input.statementNumber?.trim() || null,
-        statementMonth: input.statementMonth.trim(),
-        periodStart: input.periodStart?.trim() || null,
-        periodEnd: input.periodEnd?.trim() || null,
+        statementMonth: cleanMonth,
+        periodStart: input.periodStart?.trim() || defaultStart,
+        periodEnd: input.periodEnd?.trim() || defaultEnd,
         openingBalance: normalizeDecimalOrNull(input.openingBalance) as any,
         closingBalance: normalizeDecimalOrNull(input.closingBalance) as any,
         totalDebit: normalizeDecimalOrNull(input.totalDebit) as any,
